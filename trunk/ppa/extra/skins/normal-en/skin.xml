@@ -13,17 +13,17 @@
 		<battery_life_label visible="true" left="354" top="5" width="24" height="16" />
 	</battery_pannel>
 	<film_preview_pannel>
-		<preview_image visible="true" left="327" top="71" width="144" height="80" default_image="preview.png" />
+		<preview_image visible="true" left="326" top="71" width="144" height="80" default_image="preview.png" />
 	</film_preview_pannel>
 	<film_information_pannel>
-		<aspect_ratio_label visible="true" left="410" top="190" width="60" height="16" />
-		<fps_label visible="true" left="410" top="209" width="60" height="16" />
-		<total_time_label visible="true" left="410" top="171" width="60" height="16" />
-		<audio_streams_label visible="true" left="410" top="228" width="60" height="16" />
-		<subtitles_label visible="true" left="410" top="247" width="60" height="16" />
+		<aspect_ratio_label visible="true" left="415" top="190" width="60" height="16" />
+		<fps_label visible="true" left="415" top="209" width="60" height="16" />
+		<total_time_label visible="true" left="415" top="171" width="60" height="16" />
+		<audio_streams_label visible="true" left="415" top="228" width="60" height="16" />
+		<subtitles_label visible="true" left="415" top="247" width="60" height="16" />
 	</film_information_pannel>
 	<config_dialog>
-		<dialog alpha="#B0" highlight_alpha="#F0" background_color="#000000" background_highlight_color="#000000" label_color="#FFFFFF" label_highlight_color="#00FFFF" value_color="#00FF00" value_edit_color="#0000FF" />
+		<dialog alpha="#D0" highlight_alpha="#D0" background_color="#000000" background_highlight_color="#000000" label_color="#FFFFFF" label_highlight_color="#00FFFF" value_color="#00FF00" value_edit_color="#0000FF" />
 	</config_dialog>
 	<extra pad_help_image="pad.png"   loading_image="loading.png" />
 </skin>
