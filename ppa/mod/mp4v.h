@@ -27,7 +27,7 @@
 #include <pspsdk.h>
 #include "pspvideocodec.h"
 #include "pspmpeg.h"
-#include "mem64.h"
+#include "../common/mem64.h"
 #include "mpegbase.h"
 
 struct mp4v_struct

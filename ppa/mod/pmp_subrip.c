@@ -27,7 +27,7 @@ subrip subtitle format parser
 #include<string.h>
 
 #include "pmp_subrip.h"
-#include "mem64.h"
+#include "../common/mem64.h"
 
 #include "common/miniconv.h"
 

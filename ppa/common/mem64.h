@@ -32,9 +32,13 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include <stdlib.h>
 #include <malloc.h>
 
-
+#ifdef __cplusplus
+extern "C" {
+#endif
 void *malloc_64(int size);
 void free_64(void *p);
-
+#ifdef __cplusplus
+}
+#endif
 
 #endif

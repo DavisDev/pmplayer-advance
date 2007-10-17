@@ -6,8 +6,8 @@ PSP_FW_VERSION=371
 
 TARGET = PPA
 OBJS = main.o player.o config.o skin.o ftfont.o cfgdialog.o versiondialog.o msgdialog.o skindialog.o usbhost.o nethost.o NetHostFS.o\
-	common/framebuffer.o common/graphics.o common/imagefile.o common/fat.o common/directory.o common/miniconv.o common/ctrl.o common/base64.o \
-	mod/audiodecoder.o mod/aspect_ratio.o mod/decoder_prx.o mod/avc.o mod/mp4v.o mod/cpu_clock.o mod/me.o mod/mem64.o mod/mestub.o mod/mpegbase.o mod/opendir.o  \
+	common/framebuffer.o common/graphics.o common/imagefile.o common/fat.o common/directory.o common/miniconv.o common/ctrl.o common/base64.o common/mem64.o \
+	mod/audiodecoder.o mod/aspect_ratio.o mod/decoder_prx.o mod/avc.o mod/mp4v.o mod/cpu_clock.o mod/me.o mod/mestub.o mod/mpegbase.o mod/opendir.o  \
 	mod/pmp.o mod/pmp_decode.o mod/pmp_file.o mod/pmp_gu.o mod/pmp_interface.o mod/pmp_play.o mod/pmp_read.o mod/texture_subdivision.o \
 	mod/pmp_stat.o mod/gu_font.o mod/pmp_parse.o mod/pmp_microdvd.o mod/pmp_subrip.o mod/valloc.o \
 	tinyxml/tinystr.o tinyxml/tinyxml.o tinyxml/tinyxmlerror.o tinyxml/tinyxmlparser.o \

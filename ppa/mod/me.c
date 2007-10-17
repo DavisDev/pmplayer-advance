@@ -32,7 +32,7 @@ thanks to crazyc, mrbrown, Brunni, xdeadbeef and anyone else involved
 #include <pspkernel.h>
 #include <string.h>
 #include "me.h"
-#include "mem64.h"
+#include "../common/mem64.h"
 
 
 struct me_struct

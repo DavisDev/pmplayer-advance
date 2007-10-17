@@ -28,6 +28,7 @@
 #include FT_SYNTHESIS_H
 
 #include "common/graphics.h"
+#include "common/mem64.h"
 
 class FtFont {
 public:

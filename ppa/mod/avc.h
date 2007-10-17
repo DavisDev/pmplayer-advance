@@ -30,7 +30,7 @@ http://forums.ps2dev.org/viewtopic.php?t=5820
 #include <string.h>
 #include <pspsdk.h>
 #include "pspmpeg.h"
-#include "mem64.h"
+#include "../common/mem64.h"
 #include "mpegbase.h"
 
 struct avc_struct
