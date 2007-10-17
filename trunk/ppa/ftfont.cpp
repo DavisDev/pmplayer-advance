@@ -193,7 +193,7 @@ FtFontImpl::~FtFontImpl() {
 };
 
 bool FtFontImpl::loadFace(const char* filename) {
-	this->fontName = (char*)malloc(strlen(filename)+1);
+	this->fontName = (char*)malloc_64(strlen(filename)+1);
 	memset(this->fontName, 0, strlen(filename)+1);
 	strcpy(this->fontName, filename);
 	FT_Error error;
@@ -283,7 +283,7 @@ void FtFontImpl::sbitCacheAdd(unsigned long ucsCode, int glyphIndex,
 	int pitch = bitmap->pitch;
 	if( pitch < 0 ) pitch = -pitch;
 	if ( pitch * bitmap->rows > 0) {
-		item->bitmap.buffer = (unsigned char*)malloc(pitch * bitmap->rows);
+		item->bitmap.buffer = (unsigned char*)malloc_64(pitch * bitmap->rows);
 		if ( item->bitmap.buffer ) {
 			memset(item->bitmap.buffer, 0, pitch * bitmap->rows);
 			memcpy(item->bitmap.buffer, bitmap->buffer, pitch * bitmap->rows);

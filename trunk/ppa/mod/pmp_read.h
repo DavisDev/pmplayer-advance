@@ -32,7 +32,7 @@ basic layer for reading av frames
 #include <string.h>
 #include <pspiofilemgr.h>
 #include "pmp_file.h"
-#include "mem64.h"
+#include "../common/mem64.h"
 
 
 #define minimum_buffer_size       262144

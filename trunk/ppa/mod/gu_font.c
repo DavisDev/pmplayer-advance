@@ -36,7 +36,7 @@ font rendering system
 #include <string.h>
 #include <malloc.h>
 #include <math.h>
-
+#include "../common/mem64.h"
 
 #include "gu_font.h"
 #include "texture_subdivision.h"
@@ -130,8 +130,8 @@ typedef u32 Color;
 #define SUB_SCREEN_HEIGHT 128
 #define SUB_SCREEN_TEXTURE_WIDTH 512
 
-static unsigned char __attribute__((aligned(32))) sub_8888[DRAW_BUFFER_SIZE];
-static unsigned char __attribute__((aligned(32))) border_sub_8888[DRAW_BUFFER_SIZE]; 
+static unsigned char __attribute__((aligned(64))) sub_8888[DRAW_BUFFER_SIZE];
+static unsigned char __attribute__((aligned(64))) border_sub_8888[DRAW_BUFFER_SIZE]; 
 
 static char cache_string[2048];
 
@@ -527,14 +527,14 @@ void sbit_cache_add(unsigned long ucs_code, int glyph_index, int size, int embol
 	int pitch = bitmap->pitch;
 	if( pitch < 0 ) pitch = -pitch;
 	if ( pitch * bitmap->rows > 0) {
-		item->bitmap.buffer = malloc(pitch * bitmap->rows);
+		item->bitmap.buffer = malloc_64(pitch * bitmap->rows);
 		memset(item->bitmap.buffer, 0, pitch * bitmap->rows);
 		memcpy(item->bitmap.buffer, bitmap->buffer, pitch * bitmap->rows);
 	}
 	pitch = border_bitmap->pitch;
 	if( pitch < 0 ) pitch = -pitch;
 	if ( pitch * border_bitmap->rows > 0) {
-		item->border_bitmap.buffer = malloc(pitch * border_bitmap->rows);
+		item->border_bitmap.buffer = malloc_64(pitch * border_bitmap->rows);
 		if ( item->border_bitmap.buffer ) {
 			memset(item->border_bitmap.buffer, 0, pitch * border_bitmap->rows);
 			memcpy(item->border_bitmap.buffer, border_bitmap->buffer, pitch * border_bitmap->rows);

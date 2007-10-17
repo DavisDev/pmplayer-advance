@@ -5,7 +5,7 @@
 #include <pspdisplay.h>
 #include <psputils.h>
 #include <pspgu.h>
-
+#include "mem64.h"
 #include "graphics.h"
 #include "framebuffer.h"
 
@@ -215,7 +215,7 @@ void blitAlphaImageToScreen(int sx, int sy, int width, int height, Image* source
 }
 
 Image* createImage(int width, int height){
-	Image* image = (Image*) malloc(sizeof(Image));
+	Image* image = (Image*) malloc_64(sizeof(Image));
 	if (!image) return NULL;
 	image->imageWidth = width;
 	image->imageHeight = height;

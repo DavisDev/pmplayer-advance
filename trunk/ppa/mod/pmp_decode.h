@@ -34,7 +34,7 @@ av decoding in a ring buffer
 #include "pmp_read.h"
 //#include "avcodec.h"
 #include "audiodecoder.h"
-#include "mem64.h"
+#include "../common/mem64.h"
 #include "aspect_ratio.h"
 #include "pmp_gu.h"
 #include "pmp_interface.h"

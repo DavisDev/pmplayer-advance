@@ -30,7 +30,7 @@ subtitle parsing layer
 #include "pmp_parse.h"
 #include "pmp_subrip.h"
 #include "pmp_microdvd.h"
-#include "mem64.h"
+#include "../common/mem64.h"
 #include "opendir.h"
 
 

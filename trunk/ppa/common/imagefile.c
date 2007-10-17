@@ -2,7 +2,7 @@
 #include <malloc.h>
 #include <string.h>
 #include <png.h>
-
+#include "mem64.h"
 #include "imagefile.h"
 
 void user_warning_fn(png_structp png_ptr, png_const_charp warning_msg){
@@ -55,7 +55,7 @@ Image* loadPNGImage(const char* filename){
 		return NULL;
 	}
 	
-	line = (u32*) malloc(width * 4);
+	line = (u32*) malloc_64(width * 4);
 	if (!line) {
 		freeImage(image);
 		fclose(fp);
