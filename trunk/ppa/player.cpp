@@ -41,6 +41,7 @@
 #include "skindialog.h"
 #include "usbhost.h"
 #include "nethost.h"
+#include "videomode.h"
 
 #include "common/fat.h"
 #include "common/directory.h"
@@ -71,6 +72,7 @@ PmpAvcPlayer::PmpAvcPlayer() {
 	filmPreviewImage = NULL;
 	
 	fileItems = NULL;
+
 };
 
 PmpAvcPlayer::~PmpAvcPlayer() {
@@ -243,6 +245,8 @@ void PmpAvcPlayer::initSkinData() {
 int PmpAvcPlayer::init(char* ppaPath) {
 	
 	char tempPath[1024];
+
+	pspType = m33KernelGetModel();
 	
 	if ( ppaPath == NULL ) {
 		memset(applicationPath, 0, 256);
@@ -263,6 +267,14 @@ int PmpAvcPlayer::init(char* ppaPath) {
         	return 0;
         }
 #endif
+
+	memset(tempPath, 0, 1024);
+	sprintf(tempPath, "%s%s", applicationPath, "dvemgr.prx");
+#ifdef DEBUG	
+	pspDebugScreenPrintf("load dvemgr...\n");
+#endif
+	if ( ! VideoMode::init(pspType, tempPath))
+		return 0;
 
 #ifdef ENABLE_USBHOST	
 	memset(tempPath, 0, 1024);
@@ -433,7 +445,7 @@ int PmpAvcPlayer::init(char* ppaPath) {
 	pspDebugScreenPrintf("init pmpavc_kernel(GU)...\n");
 #endif
 	//TODO init Graphics
-	initGraphics();
+	initGraphics(pspType, VideoMode::getVideoMode());
 	
 	return 1;
 };
@@ -489,7 +501,7 @@ void PmpAvcPlayer::run() {
 			sprintf(tempPath, "%s%s", applicationPath, "skins/");
 			char tempSkinName[256];
 			memset(tempSkinName, 0, 256);
-			SkinDialog* dialog = new SkinDialog();
+			SkinDialog* dialog = new SkinDialog(Skin::getInstance()->getBackground(skinPath), drawImage);
 			if ( dialog ) {
 				if ( dialog->init(tempPath, tempSkinName) ) {
 					bool res = dialog->execute();
@@ -513,7 +525,7 @@ void PmpAvcPlayer::run() {
 			activeTime = time(NULL);
 		}
 		else if ( (key & PSP_CTRL_LTRIGGER) && (key & PSP_CTRL_TRIANGLE) ) {
-			VersionDialog* dialog = new VersionDialog();
+			VersionDialog* dialog = new VersionDialog(Skin::getInstance()->getBackground(skinPath), drawImage);
 			if (dialog) {
 				if ( dialog->init() ) {
 					dialog->execute();
@@ -524,7 +536,7 @@ void PmpAvcPlayer::run() {
 		} 
 #ifdef DEVHOOK
 		else if ( (key & PSP_CTRL_LTRIGGER) && (key & PSP_CTRL_START) ) {
-			MessageDialog* dialog = new MessageDialog();
+			MessageDialog* dialog = new MessageDialog(Skin::getInstance()->getBackground(skinPath), drawImage);
 			if ( dialog ) {
 				if ( dialog->init("Do you want to quit the PPA ?", MESSAGE_TYPE_YES_NO) ) {
 					u32 res = dialog->execute();
@@ -538,7 +550,7 @@ void PmpAvcPlayer::run() {
 		}
 #else
 		else if ( key & PSP_CTRL_HOME ) {
-			MessageDialog* dialog = new MessageDialog();
+			MessageDialog* dialog = new MessageDialog(Skin::getInstance()->getBackground(skinPath), drawImage);
 			if ( dialog ) {
 				if ( dialog->init("Do you want to quit the PPA ?", MESSAGE_TYPE_YES_NO) ) {
 					u32 res = dialog->execute();
@@ -556,7 +568,7 @@ void PmpAvcPlayer::run() {
 			activeTime = time(NULL);
 		}
 		else if ( key & PSP_CTRL_SQUARE ) {
-			ConfigDialog* dialog = new ConfigDialog();
+			ConfigDialog* dialog = new ConfigDialog(Skin::getInstance()->getBackground(skinPath), drawImage);
 			if ( dialog ) {
 				if ( dialog->init() ) {
 					dialog->execute();
@@ -571,7 +583,7 @@ void PmpAvcPlayer::run() {
 		}
 		else if ( key & PSP_CTRL_SELECT ) {
 			if ( fileItems[fileItemCurrent].filetype != FS_DIRECTORY ) {
-				MessageDialog* dialog = new MessageDialog();
+				MessageDialog* dialog = new MessageDialog(Skin::getInstance()->getBackground(skinPath), drawImage);
 				if ( dialog ) {
 					if ( dialog->init("Are you sure you want to delete this ?", MESSAGE_TYPE_YES_NO) ) {
 						u32 res = dialog->execute();
@@ -672,7 +684,7 @@ void PmpAvcPlayer::run() {
 				paintLoading();
 				disableGraphics();
 				playMovie(false);
-				initGraphics();
+				initGraphics(pspType, VideoMode::getVideoMode());
 				filmPreviewReload = filmInformationReload = true;
 			}
 			activeTime = time(NULL);
@@ -682,7 +694,7 @@ void PmpAvcPlayer::run() {
 				paintLoading();
 				disableGraphics();
 				playMovie(true);
-				initGraphics();
+				initGraphics(pspType, VideoMode::getVideoMode());
 				filmPreviewReload = filmInformationReload = true;
 			}
 			activeTime = time(NULL);
@@ -728,7 +740,6 @@ void PmpAvcPlayer::paint() {
 	
 	blitImageToScreen(0, 0, mainWindow->imageWidth, mainWindow->imageHeight, mainWindow, 0, 0);
 	blitAlphaImageToScreen(0, 0, drawImage->imageWidth, drawImage->imageHeight, drawImage, 0, 0);
-	sceDisplayWaitVblankStart();
 	flipScreen();
 };
 
@@ -1019,7 +1030,6 @@ void PmpAvcPlayer::paintLoading() {
 	if ( img ) {
 		blitAlphaImageToScreen(0, 0, img->imageWidth, img->imageHeight, img, 
 			(PSP_SCREEN_WIDTH - img->imageWidth)/2, (PSP_SCREEN_HEIGHT - img->imageHeight)/2);
-		sceDisplayWaitVblankStart();
 		flipScreen();
 		freeImage(img);
 	}
@@ -1031,7 +1041,6 @@ void PmpAvcPlayer::showPadHelp() {
 	Image* img = loadPNGImage(tempPath);
 	if ( img ) {
 		blitImageToScreen(0, 0, img->imageWidth, img->imageHeight, img, 0, 0 );
-		sceDisplayWaitVblankStart();
 		flipScreen();
 		freeImage(img);
 	}
@@ -1107,9 +1116,9 @@ void PmpAvcPlayer::playMovie(bool resume) {
 	char* result = NULL;
 	
 	if ( resume )
-		result = pmp_play(pmpFileName,1);
+		result = pmp_play(pmpFileName, 1, pspType, VideoMode::getTVAspectRatio(), VideoMode::getVideoMode() );
 	else
-		result = pmp_play(pmpFileName,0);
+		result = pmp_play(pmpFileName, 0, pspType, VideoMode::getTVAspectRatio(), VideoMode::getVideoMode());
 	sceKernelDcacheWritebackInvalidateAll();
 	sceKernelDelayThread(1000000);
 	if ( result ) {
@@ -1132,7 +1141,7 @@ void PmpAvcPlayer::playMovie(bool resume) {
 				fileItemCurrent++;
 				memset(pmpFileName, 0, 512);
 				sprintf(pmpFileName, "%s%s", fileShortPath, fileItems[fileItemCurrent].shortname); 
-				result = pmp_play(pmpFileName,0);
+				result = pmp_play(pmpFileName, 0, pspType, VideoMode::getTVAspectRatio(), VideoMode::getVideoMode());
 				sceKernelDcacheWritebackInvalidateAll();
 				sceKernelDelayThread(1000000);
 				if ( result )
@@ -1147,7 +1156,7 @@ void PmpAvcPlayer::playMovie(bool resume) {
 			fileItemCurrent++;
 			memset(pmpFileName, 0, 512);
 			sprintf(pmpFileName, "%s%s", fileShortPath, fileItems[fileItemCurrent].shortname); 
-			result = pmp_play(pmpFileName,0);
+			result = pmp_play(pmpFileName, 0, pspType, VideoMode::getTVAspectRatio(), VideoMode::getVideoMode());
 			sceKernelDcacheWritebackInvalidateAll();
 			sceKernelDelayThread(1000000); 
 			if ( result )

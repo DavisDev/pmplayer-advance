@@ -30,7 +30,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 
 #include <stdio.h>
-#include "../common/mem64.h"
+#include "common/mem64.h"
 
 
 struct pmp_signature_struct

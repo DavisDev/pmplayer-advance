@@ -34,7 +34,8 @@ av decoding in a ring buffer
 #include "pmp_read.h"
 //#include "avcodec.h"
 #include "audiodecoder.h"
-#include "../common/mem64.h"
+#include "common/mem64.h"
+#include "common/m33sdk.h"
 #include "aspect_ratio.h"
 #include "pmp_gu.h"
 #include "pmp_interface.h"
@@ -71,9 +72,6 @@ struct pmp_decode_struct
 	struct mp4v_struct mp4v;
 	int video_format;
 
-	//AVCodec        *audio_decoder;
-	//AVCodecContext *audio_context;
-	
 	int audio_decoder;
 
 
@@ -87,12 +85,14 @@ struct pmp_decode_struct
 	struct pmp_decode_buffer_struct output_frame_buffers[maximum_frame_buffers];
 
 	unsigned int current_buffer_number;
+	
+	int output_texture_width;
 	};
 
 
 void pmp_decode_safe_constructor(struct pmp_decode_struct *p);
-char *pmp_decode_open(struct pmp_decode_struct *p, char *s);
-void pmp_decode_close(struct pmp_decode_struct *p);
+char *pmp_decode_open(struct pmp_decode_struct *p, char *s, int pspType, int tvAspectRatio, int videoMode);
+void pmp_decode_close(struct pmp_decode_struct *p, int pspType);
 //modify by cooleyes 2007/02/01
 char *pmp_decode_get(struct pmp_decode_struct *p, unsigned int frame_number, unsigned int audio_stream, int audio_channel, int decode_audio, unsigned int volume_boost, unsigned int aspect_ratio, unsigned int zoom, unsigned int luminosity_boost, unsigned int show_interface, unsigned int show_subtitle, unsigned int subtitle_format, unsigned int loop);
 //char *pmp_decode_get(struct pmp_decode_struct *p, unsigned int frame_number, unsigned int audio_stream, int decode_audio, unsigned int volume_boost, unsigned int aspect_ratio, unsigned int zoom, unsigned int luminosity_boost, unsigned int show_interface, unsigned int show_subtitle, unsigned int subtitle_format, unsigned int loop);

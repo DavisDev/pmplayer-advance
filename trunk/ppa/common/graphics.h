@@ -13,6 +13,16 @@
 #define PSP_SCREEN_HEIGHT 272
 #endif
 
+#ifndef PSP_TVOUT_TEXTURE_WIDTH
+#define	PSP_TVOUT_TEXTURE_WIDTH 768
+#endif
+#ifndef PSP_TVOUT_WIDTH
+#define PSP_TVOUT_WIDTH 720
+#endif
+#ifndef PSP_TVOUT_HEIGHT
+#define PSP_TVOUT_HEIGHT 480
+#endif
+
 typedef u32 Color;
 #define A(color) ((u8)(color >> 24 & 0x000000FF))
 #define B(color) ((u8)(color >> 16 & 0x000000FF))
@@ -33,27 +43,15 @@ typedef struct
 extern "C" {
 #endif
 
-void initGraphics();
+void initGraphics(int type, int mode);
 
 void disableGraphics();
 
-Color* getVramDrawBuffer();
+void setGraphicsVideoMode(int mode);
 
-Color* getVramDisplayBuffer();
-
-void guStart();
+void setGraphicsTVAspectRatio(int ar);
 
 void flipScreen();
-
-void clearScreen(Color color);
-
-void putPixelToScreen(Color color, int x, int y);
-
-Color getPixelFromScreen(int x, int y);
-
-void drawLineInScreen(Color color, int x0, int y0, int x1, int y1);
-
-void fillScreenRect(Color color, int x0, int y0, int width, int height);
 
 void blitImageToScreen(int sx, int sy, int width, int height, Image* source, int dx, int dy);
 
@@ -77,8 +75,6 @@ void fillImageRect(Image* image, Color color, int x0, int y0, int width, int hei
 void fillImageEllipse(Image* image, Color color, int x0, int y0, int width, int height, int r);
 
 void putImageToImage(Image* src, Image* dest, int dx, int dy, int dw, int dh);
-
-void makeScreenSnapshot(Image* dest);
 
 #ifdef __cplusplus
 }

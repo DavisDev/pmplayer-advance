@@ -28,20 +28,20 @@ this lib should be used to play .pmp files
 #include "pmp.h"
 
 
-char *pmp_play(char *s, int usePos)
+char *pmp_play(char *s, int usePos, int pspType, int tvAspectRatio, int videoMode)
 	{
 	struct pmp_play_struct p;
 
 
-	pmp_gu_start();
+	pmp_gu_start(pspType, tvAspectRatio, videoMode);
 
 
-	char *result = pmp_play_open(&p, s, usePos);
+	char *result = pmp_play_open(&p, s, usePos, pspType, tvAspectRatio, videoMode);
 	if (result == 0)
 		{
 		result = pmp_play_start(&p);
 
-		pmp_play_close(&p, usePos);
+		pmp_play_close(&p, usePos, pspType);
 		}
 
 	pmp_gu_end();

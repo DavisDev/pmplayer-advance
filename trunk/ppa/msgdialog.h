@@ -37,7 +37,9 @@
 
 class MessageDialog {
 private:
-	Image* screenSnapshot;
+//	Image* screenSnapshot;
+	Image* mainWindow;
+	Image* mainDrawImage;
 	Image* drawImage;
 	FtFont* mainFont;
 	int fontSize;
@@ -48,7 +50,7 @@ private:
 	u32 keys[4];
 	u32 results[4];
 public:
-	MessageDialog();
+	MessageDialog(Image* mainWindow, Image* mainDrawImage);
 	~MessageDialog();
 	bool init(const char* title, u32 type);
 	u32 execute();

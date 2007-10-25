@@ -127,7 +127,7 @@ bool NetHost::startNetHost(const char* address, const char* port, const char* en
 		if ( res < 0 ) {
 			netHostFSCleanup();
 			sceKernelStopModule(modID, 0, NULL, NULL, NULL);
-			sceKernelUnloadModule(modID);
+			//sceKernelUnloadModule(modID);
 			return false;
 		}
 		netHostState = true;
@@ -143,7 +143,7 @@ bool NetHost::stopNetHost() {
 	if ( netHostState ) {
 		netHostFSCleanup();
 		sceKernelStopModule(modID, 0, NULL, NULL, NULL);
-		sceKernelUnloadModule(modID);
+		//sceKernelUnloadModule(modID);
 		netHostState = false;
 	}
 #endif
