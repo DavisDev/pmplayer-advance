@@ -5,23 +5,23 @@ BUILD_PRX = 1
 PSP_FW_VERSION=371
 
 TARGET = PPA
-OBJS = main.o player.o config.o skin.o ftfont.o cfgdialog.o versiondialog.o msgdialog.o skindialog.o usbhost.o nethost.o NetHostFS.o\
-	common/framebuffer.o common/graphics.o common/imagefile.o common/fat.o common/directory.o common/miniconv.o common/ctrl.o common/base64.o common/mem64.o \
+OBJS = main.o player.o config.o skin.o ftfont.o cfgdialog.o versiondialog.o msgdialog.o skindialog.o videomode.o pspDveManager.o usbhost.o nethost.o NetHostFS.o\
+	common/m33sdk.o common/framebuffer.o common/graphics.o common/imagefile.o common/fat.o common/directory.o common/miniconv.o common/ctrl.o common/base64.o common/mem64.o common/texture_subdivision.o \
 	mod/audiodecoder.o mod/aspect_ratio.o mod/decoder_prx.o mod/avc.o mod/mp4v.o mod/cpu_clock.o mod/me.o mod/mestub.o mod/mpegbase.o mod/opendir.o  \
-	mod/pmp.o mod/pmp_decode.o mod/pmp_file.o mod/pmp_gu.o mod/pmp_interface.o mod/pmp_play.o mod/pmp_read.o mod/texture_subdivision.o \
+	mod/pmp.o mod/pmp_decode.o mod/pmp_file.o mod/pmp_gu.o mod/pmp_interface.o mod/pmp_play.o mod/pmp_read.o \
 	mod/pmp_stat.o mod/gu_font.o mod/pmp_parse.o mod/pmp_microdvd.o mod/pmp_subrip.o mod/valloc.o \
 	tinyxml/tinystr.o tinyxml/tinyxml.o tinyxml/tinyxmlerror.o tinyxml/tinyxmlparser.o \
 	../cooleyesAudio/cooleyesAudio.o
 	
-INCDIR = ../cooleyesAudio ../pspvideocodec ../libmpeg  $(PSPLIBSDIR)/include $(PSPLIBSDIR)/include/freetype2 
+INCDIR = ../../m33-sdk/include ../cooleyesAudio ../pspvideocodec ../libmpeg  $(PSPLIBSDIR)/include $(PSPLIBSDIR)/include/freetype2 
 CFLAGS = -O3 -G0 -g -Wall -DHAVE_AV_CONFIG_H -DDEVHOOK -DPSPFW3XX -DENABLE_USBHOST -DENABLE_NETHOST
 CXXFLAGS = $(CFLAGS) -fno-exceptions -fno-rtti
 ASFLAGS = $(CFLAGS)
 
 USE_PSPSDK_LIBC =
-LIBDIR = .. $(PSPLIBSDIR)/lib
+LIBDIR = ../../m33-sdk/lib .. $(PSPLIBSDIR)/lib
 LDFLAGS =
-LIBS = -lstdc++ -lfreetype -lpng -lz -lm -lpsppower -lpspaudiocodec -lpspaudio -lpspaudio_driver -lpspgu -lpspmpeg -lpspvideocodec -lpspusb -lpspusbstor -lpsphprm -lpsprtc 
+LIBS = -lstdc++ -lpspkubridge -lfreetype -lpng -lz -lm -lpsppower -lpspaudiocodec -lpspaudio -lpspaudio_driver -lpspgu -lpspmpeg -lpspvideocodec -lpspusb -lpspusbstor -lpsphprm -lpsprtc 
 
 EXTRA_TARGETS = EBOOT.PBP
 PSP_EBOOT_TITLE = PMPlayer Advance

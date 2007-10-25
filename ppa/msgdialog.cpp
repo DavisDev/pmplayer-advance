@@ -58,25 +58,28 @@ static char circleChar[] = {0xE2, 0x97, 0x8B, 0x00};
 static char crossChar[] = {0xC3, 0x97, 0x00};
 static char squareChar[] = {0xE2, 0x96, 0xA1, 0x00};
 
-MessageDialog::MessageDialog() {
-	screenSnapshot = createImage(PSP_SCREEN_WIDTH, PSP_SCREEN_HEIGHT);
+MessageDialog::MessageDialog(Image* mainWindow, Image* mainDrawImage) {
+//	screenSnapshot = createImage(PSP_SCREEN_WIDTH, PSP_SCREEN_HEIGHT);
+	this->mainWindow = mainWindow;
+	this->mainDrawImage = mainDrawImage;
 	drawImage = createImage(PSP_SCREEN_WIDTH, PSP_SCREEN_HEIGHT);
 };
 
 MessageDialog::~MessageDialog() {
-	freeImage(screenSnapshot);
+//	freeImage(screenSnapshot);
 	freeImage(drawImage);
-	
+	mainWindow = NULL;
+	mainDrawImage = NULL;
 	mainFont = NULL;
 };
 
 bool MessageDialog::init(const char* title, u32 type) {
-	if ( screenSnapshot == NULL )
-		return false;
+//	if ( screenSnapshot == NULL )
+//		return false;
 	if ( drawImage == NULL )
 		return false;
 		
-	makeScreenSnapshot(screenSnapshot);
+//	makeScreenSnapshot(screenSnapshot);
 	
 	mainFont = FtFontManager::getInstance()->getMainFont();
 	fontSize = (Config::getInstance())->getIntegerValue("config/windows/font/size",12);
@@ -146,9 +149,10 @@ void MessageDialog::paint() {
 	int tipsX = MESSAGE_DIALOG_X + (MESSAGE_DIALOG_W - strlen(keyTips)*fontSize/2)/2;
 	mainFont->printStringToImage(drawImage, tipsX, MESSAGE_DIALOG_Y+MESSAGE_DIALOG_H-4-2*fontSize+fontSize-1, MESSAGE_DIALOG_W-tipsX+MESSAGE_DIALOG_X, fontSize+2, labelColor, keyTips);
 			
-	blitImageToScreen(0, 0, screenSnapshot->imageWidth, screenSnapshot->imageHeight, screenSnapshot, 0, 0);
+//	blitImageToScreen(0, 0, screenSnapshot->imageWidth, screenSnapshot->imageHeight, screenSnapshot, 0, 0);
+	blitImageToScreen(0, 0, mainWindow->imageWidth, mainWindow->imageHeight, mainWindow, 0, 0);
+	blitAlphaImageToScreen(0, 0, mainDrawImage->imageWidth, mainDrawImage->imageHeight, mainDrawImage, 0, 0);
 	blitAlphaImageToScreen(0, 0, drawImage->imageWidth, drawImage->imageHeight, drawImage, 0, 0);
-	sceDisplayWaitVblankStart();
 	flipScreen();
 };
 

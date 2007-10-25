@@ -27,13 +27,15 @@
 
 class VersionDialog {
 private:
-	Image* screenSnapshot;
+//	Image* screenSnapshot;
+	Image* mainWindow;
+	Image* mainDrawImage;
 	Image* drawImage;
 	FtFont* mainFont;
 	int fontSize;
 	Color alpha, bgColor, labelColor;
 public:
-	VersionDialog();
+	VersionDialog(Image* mainWindow, Image* mainDrawImage);
 	~VersionDialog();
 	bool init();
 	void execute();

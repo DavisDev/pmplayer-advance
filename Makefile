@@ -131,6 +131,7 @@ ppa3xxzh: eboot3xx
 	rar a -ep1 release/ppa.eboot.fw3xx.`date +"%Y%m%d"`.rar ppa/PPA3xx/nethostfs_302.prx
 	rar a -ep1 release/ppa.eboot.fw3xx.`date +"%Y%m%d"`.rar ppa/PPA3xx/nethostfs_310.prx
 	rar a -ep1 release/ppa.eboot.fw3xx.`date +"%Y%m%d"`.rar ppa/PPA3xx/nethostfs_371.prx
+	rar a -ep1 release/ppa.eboot.fw3xx.`date +"%Y%m%d"`.rar ppa/PPA3xx/dvemgr.prx
 	rar a -ep1 release/ppa.all-zh.fw3xx.`date +"%Y%m%d"`.rar ppa/PPA3xx
 	cat cngba.txt | rar c release/ppa.eboot.fw3xx.`date +"%Y%m%d"`.rar
 	cat cngba.txt | rar c release/ppa.all-zh.fw3xx.`date +"%Y%m%d"`.rar

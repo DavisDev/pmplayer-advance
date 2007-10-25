@@ -25,11 +25,12 @@
 #include<time.h>
 #include "common/graphics.h"
 #include "common/directory.h"
+#include "common/m33sdk.h"
 
 class PmpAvcPlayer {
 
 private:
-	
+	int pspType;
 	char applicationPath[256];
 	char fontPath[1024];
 	char skinPath[1024];

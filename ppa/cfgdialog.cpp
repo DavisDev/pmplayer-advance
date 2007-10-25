@@ -29,6 +29,7 @@
 #include <psputility.h>
 #include "common/ctrl.h"
 #include "common/directory.h"
+#include "common/graphics.h"
 
 #include "mod/cpu_clock.h"
 #include "mod/pmp_sub_charset.h"
@@ -40,6 +41,7 @@
 #include "skin.h"
 #include "usbhost.h"
 #include "nethost.h"
+#include "videomode.h"
 
 #define PPA_CONFIGDLG_ALPHA	0xD0
 #define PPA_CONFIGDLG_HLALPHA	0xD0
@@ -694,10 +696,12 @@ void UsbHostConfigItem::enterEditStatus() {
 		}
 		else if ( key & PSP_CTRL_CIRCLE ) {
 			bool retVal;
-			if ( newValue )
-				retVal = UsbHost::startUsbHost();
-			else
-				retVal = UsbHost::stopUsbHost();
+			if ( newValue != currentValue) {
+				if ( newValue )
+					retVal = UsbHost::startUsbHost();
+				else
+					retVal = UsbHost::stopUsbHost();
+			}
 			currentValue = newValue = UsbHost::getUsbHostState();
 			break;
 		}
@@ -1191,21 +1195,23 @@ void NetHostConfigItem::enterEditStatus() {
 		}
 		else if ( key & PSP_CTRL_CIRCLE ) {
 			bool retVal;
-			if ( newValue ) {
-				Config* config = Config::getInstance();
-				char address[16+1];
-				char port[8+1];
-				char entry[9+1];
-				char password[] = "";
-				char adhocAddress[16+1];
-				strncpy( address, config->getStringValue("config/filesystem/net_filesystem/address", "192.168.0.1"), 16);
-				strncpy( port, config->getStringValue("config/filesystem/net_filesystem/port", "7513"), 8);
-				strncpy( entry, config->getStringValue("config/filesystem/net_filesystem/entry", "1"), 9);
-				strncpy( adhocAddress, config->getStringValue("config/filesystem/net_filesystem/adhoc_address", "192.168.0.1"), 16);
-				retVal = NetHost::startNetHost(address, port, entry, password, adhocAddress);
+			if ( newValue != currentValue) {
+				if ( newValue ) {
+					Config* config = Config::getInstance();
+					char address[16+1];
+					char port[8+1];
+					char entry[9+1];
+					char password[] = "";
+					char adhocAddress[16+1];
+					strncpy( address, config->getStringValue("config/filesystem/net_filesystem/address", "192.168.0.1"), 16);
+					strncpy( port, config->getStringValue("config/filesystem/net_filesystem/port", "7513"), 8);
+					strncpy( entry, config->getStringValue("config/filesystem/net_filesystem/entry", "1"), 9);
+					strncpy( adhocAddress, config->getStringValue("config/filesystem/net_filesystem/adhoc_address", "192.168.0.1"), 16);
+					retVal = NetHost::startNetHost(address, port, entry, password, adhocAddress);
+				}
+				else
+					retVal = NetHost::stopNetHost();
 			}
-			else
-				retVal = NetHost::stopNetHost();
 			currentValue = newValue = NetHost::getNetHostState();
 			break;
 		}
@@ -1300,21 +1306,164 @@ void PlayModeConfigItem::enterEditStatus() {
 };
 
 /********************************************************************************
+ *                      TVAspectRatio                                                *
+ ********************************************************************************/
+class TVAspectRatioConfigItem : public ConfigItem {
+private:
+	char* values[2]; 
+	char* label; 
+	int currentValue, newValue;
+public:
+	TVAspectRatioConfigItem(ConfigDialog* dialog, Image* drawImage);
+	virtual void paint(int x, int y, int w, int h) ;
+	virtual void enterEditStatus();
+};
+
+TVAspectRatioConfigItem::TVAspectRatioConfigItem(ConfigDialog* dialog, Image* drawImage) : ConfigItem(dialog, drawImage) {
+	label = "TV AspectRatio: ";
+	values[0] = "16:9";
+	values[1] = "4:3";
+	currentValue = 0;
+	currentValue = VideoMode::getTVAspectRatio();
+	newValue = currentValue;
+};
+
+void TVAspectRatioConfigItem::paint(int x, int y, int w, int h) {
+	if ( focus ) {
+		fillImageRect(drawImage, (alpha << 24) | bgHlColor, x, y, w, h);
+		mainFont->printStringToImage(drawImage, x+1, y+fontSize-1, w-2, h-2, labelHlColor, label );  
+	}
+	else
+		mainFont->printStringToImage(drawImage, x+1, y+fontSize-1, w-2, h-2, labelColor, label );
+	
+	int x1 = x+1 + strlen(label)*fontSize / 2;
+	
+	if ( editing )
+		mainFont->printStringToImage(drawImage, x1, y+fontSize-1, w-2-x1+x, h-2, valueEdColor, values[newValue]);
+	else
+		mainFont->printStringToImage(drawImage, x1, y+fontSize-1, w-2-x1+x, h-2, valueColor, values[currentValue]);
+	
+};
+
+void TVAspectRatioConfigItem::enterEditStatus() {
+	if ( focus == false) 
+		return;
+	editing = true;
+	while( true ) {
+		u32 key = ctrl_read();
+		if ( key & PSP_CTRL_CROSS ) {
+			newValue = currentValue;
+			break;
+		}
+		else if ( key & PSP_CTRL_CIRCLE ) {
+			if ( newValue != currentValue) {
+				VideoMode::setTVAspectRatio(newValue);
+				setGraphicsTVAspectRatio(newValue);
+			}
+			currentValue = newValue = VideoMode::getTVAspectRatio();
+			break;
+		}
+		else if ( (key & PSP_CTRL_LEFT) || (key & PSP_CTRL_UP) ) {
+			newValue = (newValue > 0 ? (newValue-1) : 0);
+		}
+		else if ( (key & PSP_CTRL_RIGHT) || (key & PSP_CTRL_DOWN) ) {
+			newValue = (newValue < 1 ? (newValue+1) : 1);
+		}
+		dialog->paint();
+		sceKernelDelayThread(12500);
+	};
+	editing = false;
+};
+
+/********************************************************************************
+ *                      VideoMode                                                *
+ ********************************************************************************/
+class VideoModeConfigItem : public ConfigItem {
+private:
+	char* values[4]; 
+	char* label; 
+	int currentValue, newValue;
+public:
+	VideoModeConfigItem(ConfigDialog* dialog, Image* drawImage);
+	virtual void paint(int x, int y, int w, int h) ;
+	virtual void enterEditStatus();
+};
+
+VideoModeConfigItem::VideoModeConfigItem(ConfigDialog* dialog, Image* drawImage) : ConfigItem(dialog, drawImage) {
+	label = "Video Mode: ";
+	values[0] = "PSP LCD";
+	values[1] = "Composite";
+	values[2] = "Component Interlace";
+	values[3] = "Component Progressive";
+	currentValue = 0;
+	currentValue = VideoMode::getVideoMode();
+	newValue = currentValue;
+};
+
+void VideoModeConfigItem::paint(int x, int y, int w, int h) {
+	if ( focus ) {
+		fillImageRect(drawImage, (alpha << 24) | bgHlColor, x, y, w, h);
+		mainFont->printStringToImage(drawImage, x+1, y+fontSize-1, w-2, h-2, labelHlColor, label );  
+	}
+	else
+		mainFont->printStringToImage(drawImage, x+1, y+fontSize-1, w-2, h-2, labelColor, label );
+	
+	int x1 = x+1 + strlen(label)*fontSize / 2;
+	
+	if ( editing )
+		mainFont->printStringToImage(drawImage, x1, y+fontSize-1, w-2-x1+x, h-2, valueEdColor, values[newValue]);
+	else
+		mainFont->printStringToImage(drawImage, x1, y+fontSize-1, w-2-x1+x, h-2, valueColor, values[currentValue]);
+	
+};
+
+void VideoModeConfigItem::enterEditStatus() {
+	if ( focus == false) 
+		return;
+	editing = true;
+	while( true ) {
+		u32 key = ctrl_read();
+		if ( key & PSP_CTRL_CROSS ) {
+			newValue = currentValue;
+			break;
+		}
+		else if ( key & PSP_CTRL_CIRCLE ) {
+			if ( newValue != currentValue) {
+				if ( VideoMode::setVideoMode(newValue) == newValue ) {
+					setGraphicsVideoMode(VideoMode::getVideoMode());
+				}
+			}
+			currentValue = newValue = VideoMode::getVideoMode();
+			break;
+		}
+		else if ( (key & PSP_CTRL_LEFT) || (key & PSP_CTRL_UP) ) {
+			newValue = (newValue > 0 ? (newValue-1) : 0);
+		}
+		else if ( (key & PSP_CTRL_RIGHT) || (key & PSP_CTRL_DOWN) ) {
+			newValue = (newValue < 3 ? (newValue+1) : 3);
+		}
+		dialog->paint();
+		sceKernelDelayThread(12500);
+	};
+	editing = false;
+};
+
+/********************************************************************************
  *                      ConfigDialog                                            *
  ********************************************************************************/
-#define PPA_CONFIG_ITEMS 14
+#define PPA_CONFIG_ITEMS 16
 
 #define CONFIG_DIALOG_X		60
-#define CONFIG_DIALOG_Y		16	
+#define CONFIG_DIALOG_Y		8	
 #define CONFIG_DIALOG_W		360
-#define CONFIG_DIALOG_H		240
+#define CONFIG_DIALOG_H		256
 #define CONFIG_DIALOG_R		6
 #define CONFIG_DIALOG_ITEM_X    90
-#define CONFIG_DIALOG_ITEM_Y	36
+#define CONFIG_DIALOG_ITEM_Y	32
 #define CONFIG_DIALOG_ITEM_W	300
-#define CONFIG_DIALOG_ITEM_H	200
+#define CONFIG_DIALOG_ITEM_H	224
 
-ConfigDialog::ConfigDialog() {
+ConfigDialog::ConfigDialog(Image* mainWindow, Image* mainDrawImage) {
 	
 	itemBottom = itemTop = itemCurrent = itemCount = 0;
 	itemCount = PPA_CONFIG_ITEMS;
@@ -1324,12 +1473,16 @@ ConfigDialog::ConfigDialog() {
 	for(i = 0; i < itemCount; i++) 
 		items[i] = NULL;
 	
-	screenSnapshot = createImage(PSP_SCREEN_WIDTH, PSP_SCREEN_HEIGHT);
+//	screenSnapshot = createImage(PSP_SCREEN_WIDTH, PSP_SCREEN_HEIGHT);
+	this->mainWindow = mainWindow;
+	this->mainDrawImage = mainDrawImage;
 	drawImage = createImage(PSP_SCREEN_WIDTH, PSP_SCREEN_HEIGHT);
 };
 
 ConfigDialog::~ConfigDialog() {
-	freeImage(screenSnapshot);
+//	freeImage(screenSnapshot);
+	mainWindow = NULL;
+	mainDrawImage = NULL;
 	freeImage(drawImage);
 	int i;
 	for(i = 0; i < itemCount; i++) 
@@ -1341,12 +1494,12 @@ ConfigDialog::~ConfigDialog() {
 };
 
 bool ConfigDialog::init() {
-	if ( screenSnapshot == NULL )
-		return false;
+//	if ( screenSnapshot == NULL )
+//		return false;
 	if ( drawImage == NULL )
 		return false;
 		
-	makeScreenSnapshot(screenSnapshot);
+//	makeScreenSnapshot(screenSnapshot);
 	
 	items[0] = new CpuSpeedConfigItem(this, this->drawImage);
 	items[1] = new SubCharsetConfigItem(this, this->drawImage);
@@ -1362,6 +1515,8 @@ bool ConfigDialog::init() {
 	items[11] = new NetPortConfigItem(this, this->drawImage);
 	items[12] = new NetHostConfigItem(this, this->drawImage);
 	items[13] = new PlayModeConfigItem(this, this->drawImage);
+	items[14] = new TVAspectRatioConfigItem(this, this->drawImage);
+	items[15] = new VideoModeConfigItem(this, this->drawImage);
 	
 	mainFont = FtFontManager::getInstance()->getMainFont();
 	fontSize = (Config::getInstance())->getIntegerValue("config/windows/font/size",12);
@@ -1427,7 +1582,7 @@ void ConfigDialog::paint() {
 	
 	clearImage(drawImage, 0);
 	
-	//fillImageRect(drawImage, (alpha << 24) | bgColor, CONFIG_DIALOG_X, CONFIG_DIALOG_Y, CONFIG_DIALOG_W, CONFIG_DIALOG_H);
+//	fillImageRect(drawImage, (alpha << 24) | bgColor, CONFIG_DIALOG_X, CONFIG_DIALOG_Y, CONFIG_DIALOG_W, CONFIG_DIALOG_H);
 	fillImageEllipse(drawImage, (alpha << 24) | bgColor, CONFIG_DIALOG_X, CONFIG_DIALOG_Y, CONFIG_DIALOG_W, CONFIG_DIALOG_H, CONFIG_DIALOG_R);
 	
 	int titleX = CONFIG_DIALOG_X + (CONFIG_DIALOG_W - strlen(title)*fontSize/2)/2;
@@ -1450,9 +1605,10 @@ void ConfigDialog::paint() {
 		}
 	}
 			
-	blitImageToScreen(0, 0, screenSnapshot->imageWidth, screenSnapshot->imageHeight, screenSnapshot, 0, 0);
+//	blitImageToScreen(0, 0, screenSnapshot->imageWidth, screenSnapshot->imageHeight, screenSnapshot, 0, 0);
+	blitImageToScreen(0, 0, mainWindow->imageWidth, mainWindow->imageHeight, mainWindow, 0, 0);
+	blitAlphaImageToScreen(0, 0, mainDrawImage->imageWidth, mainDrawImage->imageHeight, mainDrawImage, 0, 0);
 	blitAlphaImageToScreen(0, 0, drawImage->imageWidth, drawImage->imageHeight, drawImage, 0, 0);
-	sceDisplayWaitVblankStart();
 	flipScreen();
 };
 

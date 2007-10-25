@@ -96,8 +96,8 @@ struct pmp_play_struct
 
 #include "pmp_stat.h"
 void pmp_play_safe_constructor(struct pmp_play_struct *p);
-char *pmp_play_open(struct pmp_play_struct *p, char *s, int usePos);
-void pmp_play_close(struct pmp_play_struct *p, int usePos);
+char *pmp_play_open(struct pmp_play_struct *p, char *s, int usePos, int pspType, int tvAspectRatio, int videoMode);
+void pmp_play_close(struct pmp_play_struct *p, int usePos, int pspType);
 char *pmp_play_start(volatile struct pmp_play_struct *p);
 
 

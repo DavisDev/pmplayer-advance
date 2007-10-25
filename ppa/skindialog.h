@@ -32,7 +32,9 @@ private:
 	char skinShortPath[512];
 	char* skinName;
 	directory_item_struct *skinItems;
-	Image* screenSnapshot;
+//	Image* screenSnapshot;
+	Image* mainWindow;
+	Image* mainDrawImage;
 	Image* drawImage;
 	int itemBottom, itemTop, itemCurrent, itemCount;
 	FtFont* mainFont;
@@ -42,7 +44,7 @@ private:
 	char help[256];
 public:
 	
-	SkinDialog();
+	SkinDialog(Image* mainWindow, Image* mainDrawImage);
 	~SkinDialog();
 	bool init(const char* skinPath, char* skinName);
 	bool execute();

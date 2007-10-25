@@ -60,11 +60,13 @@ static file_type_ext_struct skinFilter[] = {
 	{NULL, FS_UNKNOWN_FILE}
 };
 
-SkinDialog::SkinDialog() {
+SkinDialog::SkinDialog(Image* mainWindow, Image* mainDrawImage) {
 	
 	skinItems = NULL;
 	itemBottom = itemTop = itemCurrent = itemCount = 0;
-	screenSnapshot = createImage(PSP_SCREEN_WIDTH, PSP_SCREEN_HEIGHT);
+//	screenSnapshot = createImage(PSP_SCREEN_WIDTH, PSP_SCREEN_HEIGHT);
+	this->mainWindow = mainWindow;
+	this->mainDrawImage = mainDrawImage;
 	drawImage = createImage(PSP_SCREEN_WIDTH, PSP_SCREEN_HEIGHT);
 };
 
@@ -72,14 +74,16 @@ SkinDialog::~SkinDialog() {
 	if ( skinItems ) {
 		free(skinItems);
 	}
-	freeImage(screenSnapshot);
+//	freeImage(screenSnapshot);
+	mainWindow = NULL;
+	mainDrawImage = NULL;
 	freeImage(drawImage);
 	mainFont = NULL;
 };
 
 bool SkinDialog::init(const char* skinPath, char* skinName) {
-	if ( screenSnapshot == NULL )
-		return false;
+//	if ( screenSnapshot == NULL )
+//		return false;
 	if ( drawImage == NULL )
 		return false;
 	memset(this->skinPath, 0, 512);
@@ -92,7 +96,7 @@ bool SkinDialog::init(const char* skinPath, char* skinName) {
 	if ( itemCount < 2) 
 		return false;
 	itemTop = itemCurrent = 1;	
-	makeScreenSnapshot(screenSnapshot);
+//	makeScreenSnapshot(screenSnapshot);
 	
 	mainFont = FtFontManager::getInstance()->getMainFont();
 	fontSize = (Config::getInstance())->getIntegerValue("config/windows/font/size",12);
@@ -183,9 +187,10 @@ void SkinDialog::paint() {
 		}
 	}
 			
-	blitImageToScreen(0, 0, screenSnapshot->imageWidth, screenSnapshot->imageHeight, screenSnapshot, 0, 0);
+//	blitImageToScreen(0, 0, screenSnapshot->imageWidth, screenSnapshot->imageHeight, screenSnapshot, 0, 0);
+	blitImageToScreen(0, 0, mainWindow->imageWidth, mainWindow->imageHeight, mainWindow, 0, 0);
+	blitAlphaImageToScreen(0, 0, mainDrawImage->imageWidth, mainDrawImage->imageHeight, mainDrawImage, 0, 0);
 	blitAlphaImageToScreen(0, 0, drawImage->imageWidth, drawImage->imageHeight, drawImage, 0, 0);
-	sceDisplayWaitVblankStart();
 	flipScreen();
 };
 

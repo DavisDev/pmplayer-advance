@@ -133,6 +133,7 @@ int gu_font_utf16le_height_get( short* s );
 int gu_font_height_get( char* s );
 int gu_font_height();							// same as gu_char_height_get( 'I' )+3
 
+void gu_font_output_set(int x, int y, int w, int h);
 
 void gu_font_printf( int x, int y, int flags, char* fmt, ... );	// This only works with non UTF-16 encodings
 void gu_font_print( int x, int y, int flags, char* s );

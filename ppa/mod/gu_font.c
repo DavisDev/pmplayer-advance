@@ -36,10 +36,10 @@ font rendering system
 #include <string.h>
 #include <malloc.h>
 #include <math.h>
-#include "../common/mem64.h"
+#include "common/mem64.h"
 
 #include "gu_font.h"
-#include "texture_subdivision.h"
+#include "common/texture_subdivision.h"
 
 static FT_Library library = 0;
 
@@ -81,6 +81,7 @@ static unsigned int			gufont_char_height = 16;
 static unsigned int			gufont_embolden_enable = 0;
 static unsigned int			gufont_align = 1;
 static unsigned int 			gufont_distance = 16;
+
 
 static int gu_font_initialized = 0;
 
@@ -129,6 +130,13 @@ typedef u32 Color;
 #define SUB_SCREEN_WIDTH 480
 #define SUB_SCREEN_HEIGHT 128
 #define SUB_SCREEN_TEXTURE_WIDTH 512
+
+static int gufont_output_width = 480;
+static int gufont_output_height = 272;
+static int gufont_output_sub_width = SUB_SCREEN_WIDTH;
+static int gufont_output_sub_height = SUB_SCREEN_HEIGHT;
+static int gufont_output_x = 0;
+static int gufont_output_y = 0;
 
 static unsigned char __attribute__((aligned(64))) sub_8888[DRAW_BUFFER_SIZE];
 static unsigned char __attribute__((aligned(64))) border_sub_8888[DRAW_BUFFER_SIZE]; 
@@ -1346,7 +1354,7 @@ void gu_font_print( int x, int y, int flags, char* s )
 	
 	if (gufont_border_enable) {
 		load_subtitle_texture(border_sub_8888);
-		texture_subdivision_constructor(&texture_subdivision, SUB_SCREEN_WIDTH, SUB_SCREEN_HEIGHT, 16, SUB_SCREEN_WIDTH, SUB_SCREEN_HEIGHT, 0, y);
+		texture_subdivision_constructor(&texture_subdivision, SUB_SCREEN_WIDTH, SUB_SCREEN_HEIGHT, 16, gufont_output_sub_width, gufont_output_sub_height, gufont_output_x, gufont_output_y + y*gufont_output_height/272);
 		do
 			{
 			texture_subdivision_get(&texture_subdivision);
@@ -1356,7 +1364,7 @@ void gu_font_print( int x, int y, int flags, char* s )
 	}
 	//*/
 	load_subtitle_texture(sub_8888);
-	texture_subdivision_constructor(&texture_subdivision, SUB_SCREEN_WIDTH, SUB_SCREEN_HEIGHT, 16, SUB_SCREEN_WIDTH, SUB_SCREEN_HEIGHT, 0, y);
+	texture_subdivision_constructor(&texture_subdivision, SUB_SCREEN_WIDTH, SUB_SCREEN_HEIGHT, 16, gufont_output_sub_width, gufont_output_sub_height, gufont_output_x, gufont_output_y + y*gufont_output_height/272);
 	do
 		{
 		texture_subdivision_get(&texture_subdivision);
@@ -1368,3 +1376,12 @@ void gu_font_print( int x, int y, int flags, char* s )
 	sceGuSetAllStatus(status);		
 	}
 	
+void gu_font_output_set(int x, int y, int w, int h)
+	{
+	gufont_output_width = w;
+	gufont_output_height = h;
+	gufont_output_sub_width = w*SUB_SCREEN_WIDTH/480;
+	gufont_output_sub_height = h*SUB_SCREEN_HEIGHT/272;
+	gufont_output_x = x;
+	gufont_output_y = y;
+	}

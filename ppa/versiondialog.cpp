@@ -54,25 +54,28 @@
 #define VERSION_DIALOG_R		6
 
 
-VersionDialog::VersionDialog() {
-	screenSnapshot = createImage(PSP_SCREEN_WIDTH, PSP_SCREEN_HEIGHT);
+VersionDialog::VersionDialog(Image* mainWindow, Image* mainDrawImage) {
+//	screenSnapshot = createImage(PSP_SCREEN_WIDTH, PSP_SCREEN_HEIGHT);
+	this->mainWindow = mainWindow;
+	this->mainDrawImage = mainDrawImage;
 	drawImage = createImage(PSP_SCREEN_WIDTH, PSP_SCREEN_HEIGHT);
 };
 
 VersionDialog::~VersionDialog() {
-	freeImage(screenSnapshot);
+//	freeImage(screenSnapshot);
+	mainWindow = NULL;
+	mainDrawImage = NULL;
 	freeImage(drawImage);
-	
 	mainFont = NULL;
 };
 
 bool VersionDialog::init() {
-	if ( screenSnapshot == NULL )
-		return false;
+//	if ( screenSnapshot == NULL )
+//		return false;
 	if ( drawImage == NULL )
 		return false;
 		
-	makeScreenSnapshot(screenSnapshot);
+//	makeScreenSnapshot(screenSnapshot);
 	
 	mainFont = FtFontManager::getInstance()->getMainFont();
 	fontSize = (Config::getInstance())->getIntegerValue("config/windows/font/size",12);
@@ -107,9 +110,10 @@ void VersionDialog::paint() {
 	mainFont->printStringToImage(drawImage, titleX, VERSION_DIALOG_Y+(fontSize+5)*2, VERSION_DIALOG_W-titleX+VERSION_DIALOG_X, fontSize+2, labelColor, PPA_VERSION);
 	mainFont->printStringToImage(drawImage, titleX, VERSION_DIALOG_Y+(fontSize+5)*3, VERSION_DIALOG_W-titleX+VERSION_DIALOG_X, fontSize+2, labelColor, PPA_COPYRIGHT);
 			
-	blitImageToScreen(0, 0, screenSnapshot->imageWidth, screenSnapshot->imageHeight, screenSnapshot, 0, 0);
+//	blitImageToScreen(0, 0, screenSnapshot->imageWidth, screenSnapshot->imageHeight, screenSnapshot, 0, 0);
+	blitImageToScreen(0, 0, mainWindow->imageWidth, mainWindow->imageHeight, mainWindow, 0, 0);
+	blitAlphaImageToScreen(0, 0, mainDrawImage->imageWidth, mainDrawImage->imageHeight, mainDrawImage, 0, 0);
 	blitAlphaImageToScreen(0, 0, drawImage->imageWidth, drawImage->imageHeight, drawImage, 0, 0);
-	sceDisplayWaitVblankStart();
 	flipScreen();
 };
 

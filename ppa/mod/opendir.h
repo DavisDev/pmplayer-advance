@@ -33,7 +33,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include <sys/unistd.h>
 #include <string.h>
 #include <ctype.h>
-#include "../common/mem64.h"
+#include "common/mem64.h"
 
 
 #define SORT_DEFAULT 0

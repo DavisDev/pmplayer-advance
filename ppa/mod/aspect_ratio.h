@@ -46,7 +46,7 @@ struct aspect_ratio_struct
 extern struct aspect_ratio_struct aspect_ratios[number_of_aspect_ratios];
 
 
-void aspect_ratio_struct_init(unsigned int width, unsigned int height);
+void aspect_ratio_struct_init(unsigned int width, unsigned int height, int psp_type, int tv_aspectratio, int video_mode);
 
 
 #endif

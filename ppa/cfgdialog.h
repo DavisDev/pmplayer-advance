@@ -47,7 +47,9 @@ typedef ConfigItem* PConfigItem;
 
 class ConfigDialog {
 private:
-	Image* screenSnapshot;
+	//Image* screenSnapshot;
+	Image* mainWindow;
+	Image* mainDrawImage;
 	Image* drawImage;
 	PConfigItem* items;
 	int itemBottom, itemTop, itemCurrent, itemCount;
@@ -58,7 +60,7 @@ private:
 	const char* help;
 public:
 	
-	ConfigDialog();
+	ConfigDialog(Image* mainWindow, Image* mainDrawImage);
 	~ConfigDialog();
 	bool init();
 	void execute();

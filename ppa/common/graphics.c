@@ -8,22 +8,72 @@
 #include "mem64.h"
 #include "graphics.h"
 #include "framebuffer.h"
+#include "texture_subdivision.h"
 
 #define IS_ALPHA(color) (((color)&0xff000000)==0xff000000?0:1)
 #ifndef PSP_FRAMEBUFFER_SIZE
-#define PSP_FRAMEBUFFER_SIZE (PSP_SCREEN_TEXTURE_WIDTH*PSP_SCREEN_HEIGHT*4)
+#define PSP_FRAMEBUFFER_SIZE 557056
 #endif
+
+#ifndef PSP_TVOUT_BUFFER_SIZE
+#define PSP_TVOUT_BUFFER_SIZE 1572864
+#endif
+#ifndef PSP_TVOUT_PSPLCD_BUFFER_SIZE
+#define PSP_TVOUT_PSPLCD_BUFFER_SIZE 835584
+#endif
+#ifndef PSP_TVOUT_480P_BUFFER_SIZE
+#define PSP_TVOUT_480P_BUFFER_SIZE 1474560
+#endif
+#ifndef PSP_TVOUT_480P_LINE_SIZE
+#define PSP_TVOUT_480P_LINE_SIZE 3072
+#endif
+
 #define MAX(X, Y) ((X) > (Y) ? (X) : (Y))
 
-typedef struct
-{
-	unsigned short u, v;
-	short x, y, z;
-} Vertex;
+
+struct vertex_struct
+	{
+	short texture_x;
+	short texture_y;
+
+	float vertex_x;
+	float vertex_y;
+	float vertex_z;
+	};
+
+typedef void (*BlitImageToScreen)(int, int, int, int, Image*, int, int);
+typedef void (*BlitAlphaImageToScreen)(int, int, int, int, Image*, int, int);
+typedef void (*CopyVramToExtraMemory)();
+typedef void (*FlipScreen)();
+
+void blitImageToScreenWithoutTVOut(int sx, int sy, int width, int height, Image* source, int dx, int dy);
+void blitImageToScreenPSP(int sx, int sy, int width, int height, Image* source, int dx, int dy);
+void blitImageToScreenTVOut(int sx, int sy, int width, int height, Image* source, int dx, int dy);
+
+void blitAlphaImageToScreenWithoutTVOut(int sx, int sy, int width, int height, Image* source, int dx, int dy);
+void blitAlphaImageToScreenPSP(int sx, int sy, int width, int height, Image* source, int dx, int dy);
+void blitAlphaImageToScreenTVOut(int sx, int sy, int width, int height, Image* source, int dx, int dy);
+
+void copyVramToExtraMemoryPSP();
+void copyVramToExtraMemoryTVOutInterlace();
+void copyVramToExtraMemoryTVOutProgressive();
+
+void flipScreenWithoutTVOutSupported();
+void flipScreenWithTVOutSupported();
 
 unsigned int __attribute__((aligned(16))) list[262144];
+static int pspType = 0;
+static int videoMode = 0;
+static int tvAspectRatio = 0; //0=16:9; 1=4:3
+static int tvWidth = 704;
+static int tvHeight = 480;
 static int displayBufferNumber;
 static int initialized = 0;
+static void* frameBuffer[2];
+static BlitImageToScreen pBlitImageToScreen = blitImageToScreenWithoutTVOut;
+static BlitAlphaImageToScreen pBlitAlphaImageToScreen = blitAlphaImageToScreenWithoutTVOut;
+static CopyVramToExtraMemory pCopyVramToExtraMemory = copyVramToExtraMemoryPSP;
+static FlipScreen pFlipScreen = flipScreenWithoutTVOutSupported;
 
 static int getNextPower2(int width){
 	int b = width;
@@ -72,36 +122,168 @@ static void drawLine(int x0, int y0, int x1, int y1, int color, Color* destinati
 	}
 }
 
-void initGraphics(){
+static void guStart(){
+	sceGuStart(GU_DIRECT, list);
+}
+
+static void guSetupPSPLCD() {
+	guStart();
+	sceGuDrawBuffer(GU_PSM_8888, 0, PSP_TVOUT_TEXTURE_WIDTH);
+	sceGuDispBuffer(PSP_SCREEN_WIDTH, PSP_SCREEN_HEIGHT, 0, PSP_TVOUT_TEXTURE_WIDTH);
+	sceGuOffset(2048 - (PSP_SCREEN_WIDTH >> 1), 2048 - (PSP_SCREEN_HEIGHT >> 1));
+	sceGuViewport(2048, 2048, PSP_SCREEN_WIDTH, PSP_SCREEN_HEIGHT);
+	sceGuScissor(0, 0, PSP_SCREEN_WIDTH, PSP_SCREEN_HEIGHT);
+	sceGuEnable(GU_SCISSOR_TEST);
+	sceGuDisable(GU_CULL_FACE);
+	sceGuDisable(GU_DEPTH_TEST);	// Disable Z-compare
+	sceGuDepthMask(GU_TRUE);		// Disable Z-writes
+	sceGuDisable(GU_COLOR_TEST);
+	sceGuDisable(GU_ALPHA_TEST);
+	sceGuDisable(GU_LIGHTING);
+	sceGuEnable(GU_TEXTURE_2D);
+	sceGuFinish();
+	sceGuSync(0, 0);
+	
+	memset(frameBuffer[0], 0, PSP_TVOUT_BUFFER_SIZE);
+	memset(frameBuffer[1], 0, PSP_TVOUT_BUFFER_SIZE);
+}
+
+static void guSetup480P() {
+	guStart();
+	sceGuDrawBuffer(GU_PSM_8888, 0, PSP_TVOUT_TEXTURE_WIDTH);
+	sceGuDispBuffer(PSP_TVOUT_WIDTH, PSP_TVOUT_HEIGHT, 0, PSP_TVOUT_TEXTURE_WIDTH);
+	sceGuOffset(2048 - (PSP_TVOUT_WIDTH >> 1), 2048 - (PSP_TVOUT_HEIGHT >> 1));
+	sceGuViewport(2048, 2048, PSP_TVOUT_WIDTH, PSP_TVOUT_HEIGHT);
+	sceGuScissor(0, 0, PSP_TVOUT_WIDTH, PSP_TVOUT_HEIGHT);
+	sceGuEnable(GU_SCISSOR_TEST);
+	sceGuDisable(GU_CULL_FACE);
+	sceGuDisable(GU_DEPTH_TEST);	// Disable Z-compare
+	sceGuDepthMask(GU_TRUE);		// Disable Z-writes
+	sceGuDisable(GU_COLOR_TEST);
+	sceGuDisable(GU_ALPHA_TEST);
+	sceGuDisable(GU_LIGHTING);
+	sceGuEnable(GU_TEXTURE_2D);
+	sceGuFinish();
+	sceGuSync(0, 0);
+	
+	memset(frameBuffer[0], 0, PSP_TVOUT_BUFFER_SIZE);
+	memset(frameBuffer[1], 0, PSP_TVOUT_BUFFER_SIZE);
+}
+
+static void guDrawSprite(struct texture_subdivision_struct *t){
+	struct vertex_struct *v = sceGuGetMemory(2 * sizeof(struct vertex_struct));
+
+	v[0].texture_x = t->output_texture_x_start;
+	v[0].texture_y = t->output_texture_y_start;
+	v[0].vertex_x  = (int) t->output_vertex_x_start;
+	v[0].vertex_y  = t->output_vertex_y_start;
+	v[0].vertex_z  = 0.0;
+
+	v[1].texture_x = t->output_texture_x_end;
+	v[1].texture_y = t->output_texture_y_end;
+	v[1].vertex_x  = (int) t->output_vertex_x_end;
+	v[1].vertex_y  = t->output_vertex_y_end;
+	v[1].vertex_z  = 0.0;
+
+	sceGuDrawArray(GU_SPRITES, GU_TEXTURE_16BIT | GU_VERTEX_32BITF | GU_TRANSFORM_2D, 2, 0, v);
+}
+
+void setGraphicsTVAspectRatio(int ar) {
+	tvAspectRatio = ar;
+	if ( tvAspectRatio == 0 ) {
+		tvWidth = 704;
+		tvHeight = 480;
+	}
+	else {
+		tvWidth = 704;
+		tvHeight = 360;
+	}
+}
+
+void initGraphics(int type, int mode){
+	pspType = type;
+	if ( m33IsTVOutSupported(pspType) ) {
+		pFlipScreen = flipScreenWithTVOutSupported;
+		initGraphicsWithTVoutSupported();
+		setGraphicsVideoMode(mode);
+	}
+	else{
+		pFlipScreen = flipScreenWithoutTVOutSupported;
+		initGraphicsWithoutTVoutSupported();
+	}
+}
+
+void setGraphicsVideoMode(int mode) {
+	if ( initialized && m33IsTVOutSupported(pspType) && (videoMode != mode) ) {
+		if ( mode == 0 ) {
+			guSetupPSPLCD();
+			pBlitImageToScreen = blitImageToScreenPSP;
+			pBlitAlphaImageToScreen = blitAlphaImageToScreenPSP;
+			pCopyVramToExtraMemory = copyVramToExtraMemoryPSP;
+		}
+		else if ( mode == 1 ) {
+			guSetup480P();
+			pBlitImageToScreen = blitImageToScreenTVOut;
+			pBlitAlphaImageToScreen = blitAlphaImageToScreenTVOut;
+			pCopyVramToExtraMemory = copyVramToExtraMemoryTVOutInterlace;
+		}
+		else if ( mode == 2 ) {
+			guSetup480P();
+			pBlitImageToScreen = blitImageToScreenTVOut;
+			pBlitAlphaImageToScreen = blitAlphaImageToScreenTVOut;
+			pCopyVramToExtraMemory = copyVramToExtraMemoryTVOutInterlace;
+		}
+		else if ( mode == 3 ) {
+			guSetup480P();
+			pBlitImageToScreen = blitImageToScreenTVOut;
+			pBlitAlphaImageToScreen = blitAlphaImageToScreenTVOut;
+			pCopyVramToExtraMemory = copyVramToExtraMemoryTVOutProgressive;
+		}
+		videoMode = mode;
+	}
+}
+
+void initGraphicsWithTVoutSupported() {
+	displayBufferNumber = 0;
+	frameBuffer[0] = (void*)0x0a000000;
+	frameBuffer[1] = (void*)(0x0a000000 + PSP_TVOUT_BUFFER_SIZE);
+	
+	sceGuInit();
+	
+	guSetupPSPLCD();
+	
+	sceDisplayWaitVblankStart();
+	sceGuDisplay(GU_TRUE);
+	
+	sceDisplayWaitVblankStart();
+	sceDisplaySetFrameBuf(frameBuffer[displayBufferNumber], PSP_TVOUT_TEXTURE_WIDTH, PSP_DISPLAY_PIXEL_FORMAT_8888, PSP_DISPLAY_SETBUF_IMMEDIATE);
+	
+	pBlitImageToScreen = blitImageToScreenPSP;
+	pBlitAlphaImageToScreen = blitAlphaImageToScreenPSP;
+	pCopyVramToExtraMemory = copyVramToExtraMemoryPSP;
+	videoMode = 0;
+	initialized = 1;
+}
+	
+void initGraphicsWithoutTVoutSupported() {
 	displayBufferNumber = 0;
 
 	sceGuInit();
-
+	
 	guStart();
-	sceGuDrawBuffer(GU_PSM_8888, (void*)PSP_FRAMEBUFFER_SIZE, PSP_SCREEN_TEXTURE_WIDTH);
-	sceGuDispBuffer(PSP_SCREEN_WIDTH, PSP_SCREEN_HEIGHT, (void*)0, PSP_SCREEN_TEXTURE_WIDTH);
-	sceGuClear(GU_COLOR_BUFFER_BIT | GU_DEPTH_BUFFER_BIT);
-	sceGuDepthBuffer((void*) (PSP_FRAMEBUFFER_SIZE*2), PSP_SCREEN_TEXTURE_WIDTH);
-	sceGuOffset(2048 - (PSP_SCREEN_WIDTH / 2), 2048 - (PSP_SCREEN_HEIGHT / 2));
+	sceGuDrawBuffer(GU_PSM_8888, PSP_FRAMEBUFFER_SIZE, PSP_SCREEN_TEXTURE_WIDTH);
+	sceGuDispBuffer(PSP_SCREEN_WIDTH, PSP_SCREEN_HEIGHT, 0, PSP_SCREEN_TEXTURE_WIDTH);
+	sceGuOffset(2048 - (PSP_SCREEN_WIDTH >> 1), 2048 - (PSP_SCREEN_HEIGHT >> 1));
 	sceGuViewport(2048, 2048, PSP_SCREEN_WIDTH, PSP_SCREEN_HEIGHT);
-	sceGuDepthRange(0xc350, 0x2710);
 	sceGuScissor(0, 0, PSP_SCREEN_WIDTH, PSP_SCREEN_HEIGHT);
 	sceGuEnable(GU_SCISSOR_TEST);
-	sceGuAlphaFunc(GU_GREATER, 0, 0xff);
-	sceGuEnable(GU_ALPHA_TEST);
-	sceGuDepthFunc(GU_GEQUAL);
-	sceGuEnable(GU_DEPTH_TEST);
-	sceGuFrontFace(GU_CW);
-	sceGuShadeModel(GU_SMOOTH);
-	sceGuEnable(GU_CULL_FACE);
+	sceGuDisable(GU_CULL_FACE);
+	sceGuDisable(GU_DEPTH_TEST);	// Disable Z-compare
+	sceGuDepthMask(GU_TRUE);		// Disable Z-writes
+	sceGuDisable(GU_COLOR_TEST);
+	sceGuDisable(GU_ALPHA_TEST);
+	sceGuDisable(GU_LIGHTING);
 	sceGuEnable(GU_TEXTURE_2D);
-	sceGuEnable(GU_CLIP_PLANES);
-	sceGuTexMode(GU_PSM_8888, 0, 0, 0);
-	sceGuTexFunc(GU_TFX_REPLACE, GU_TCC_RGBA);
-	sceGuTexFilter(GU_NEAREST, GU_NEAREST);
-	sceGuAmbientColor(0xffffffff);
-	sceGuEnable(GU_BLEND);
-	sceGuBlendFunc(GU_ADD, GU_SRC_ALPHA, GU_ONE_MINUS_SRC_ALPHA, 0, 0);
 	sceGuFinish();
 	sceGuSync(0, 0);
 
@@ -113,107 +295,178 @@ void initGraphics(){
 void disableGraphics(){
 	sceGuTerm();
 	initialized = 0;
-}
-
-Color* getVramDrawBuffer(){
-	Color* vram = (Color*) globalVramBase;
-	if (displayBufferNumber == 0) vram += PSP_FRAMEBUFFER_SIZE / sizeof(Color);
-	return vram;
-}
-
-Color* getVramDisplayBuffer(){
-	Color* vram = (Color*) globalVramBase;
-	if (displayBufferNumber == 1) vram += PSP_FRAMEBUFFER_SIZE / sizeof(Color);
-	return vram;
-}
-
-void guStart(){
-	sceGuStart(GU_DIRECT, list);
+	videoMode = 0;
+	pspType = 0;
 }
 
 void flipScreen(){
+	pFlipScreen();
+}
+
+void flipScreenWithoutTVOutSupported() {
 	if (!initialized) return;
+	sceDisplayWaitVblankStart();
 	sceGuSwapBuffers();
 	displayBufferNumber ^= 1;
 }
 
-void clearScreen(Color color){
+void flipScreenWithTVOutSupported() {
 	if (!initialized) return;
-	guStart();
-	sceGuClearDepth(0);
-	sceGuClearColor(color);
-	sceGuClear(GU_COLOR_BUFFER_BIT|GU_DEPTH_BUFFER_BIT);
-	sceGuFinish();
-	sceGuSync(0, 0);
+	pCopyVramToExtraMemory();
+	sceDisplayWaitVblankStart();
+	sceDisplaySetFrameBuf(frameBuffer[displayBufferNumber], PSP_TVOUT_TEXTURE_WIDTH, PSP_DISPLAY_PIXEL_FORMAT_8888, PSP_DISPLAY_SETBUF_IMMEDIATE);
+	displayBufferNumber ^= 1;
 }
 
-void putPixelToScreen(Color color, int x, int y){
-	Color* vram = getVramDrawBuffer();
-	vram[PSP_SCREEN_TEXTURE_WIDTH * y + x] = color;
-}
-
-Color getPixelFromScreen(int x, int y){
-	Color* vram = getVramDrawBuffer();
-	return vram[PSP_SCREEN_TEXTURE_WIDTH * y + x];
-}
-
-void drawLineInScreen(Color color, int x0, int y0, int x1, int y1){
-	drawLine(x0, y0, x1, y1, color, getVramDrawBuffer(), PSP_SCREEN_TEXTURE_WIDTH);
-}
-
-void fillScreenRect(Color color, int x0, int y0, int width, int height){
-	if (!initialized) return;
-	int skipX = PSP_SCREEN_TEXTURE_WIDTH - width;
-	int x, y;
-	Color* data = getVramDrawBuffer() + x0 + y0 * PSP_SCREEN_TEXTURE_WIDTH;
-	for (y = 0; y < height; y++, data += skipX) {
-		for (x = 0; x < width; x++, data++) *data = color;
-	}
-}
-
+//---------------BlitImageToScreen-----------------------//
 void blitImageToScreen(int sx, int sy, int width, int height, Image* source, int dx, int dy){
+	pBlitImageToScreen(sx, sy, width, height, source, dx, dy);
+}
+
+void blitImageToScreenWithoutTVOut(int sx, int sy, int width, int height, Image* source, int dx, int dy){
 	if (!initialized) return;
-	Color* vram = getVramDrawBuffer();
+	
 	sceKernelDcacheWritebackInvalidateAll();
 	guStart();
-	sceGuCopyImage(GU_PSM_8888, sx, sy, width, height, source->textureWidth, source->data, dx, dy, PSP_SCREEN_TEXTURE_WIDTH, vram);
+	sceGuDisable(GU_BLEND);
+	sceGuTexMode(GU_PSM_8888, 0, 0, 0);
+	sceGuTexImage(0, source->textureWidth, source->textureHeight, source->textureWidth, (void*) source->data);
+	sceGuTexFunc(GU_TFX_REPLACE, GU_TCC_RGB);
+	sceGuTexFilter(GU_NEAREST, GU_NEAREST);
+	sceGuTexWrap(GU_CLAMP, GU_CLAMP);
+	
+	struct texture_subdivision_struct texture_subdivision;
+	texture_subdivision_constructor(&texture_subdivision, width, height, 16, width, height, dx, dy);
+	do
+		{
+		texture_subdivision_get(&texture_subdivision);
+		guDrawSprite(&texture_subdivision);
+		}
+	while (texture_subdivision.output_last == 0);
+	
 	sceGuFinish();
 	sceGuSync(0,0);
 }
 
+void blitImageToScreenPSP(int sx, int sy, int width, int height, Image* source, int dx, int dy){
+	blitImageToScreenWithoutTVOut(sx, sy, width, height, source, dx, dy);
+}
+	
+void blitImageToScreenTVOut(int sx, int sy, int width, int height, Image* source, int dx, int dy){
+	if (!initialized) return;
+	
+	sceKernelDcacheWritebackInvalidateAll();
+	guStart();
+	sceGuDisable(GU_BLEND);
+	sceGuTexMode(GU_PSM_8888, 0, 0, 0);
+	sceGuTexImage(0, source->textureWidth, source->textureHeight, source->textureWidth, (void*) source->data);
+	sceGuTexFunc(GU_TFX_REPLACE, GU_TCC_RGB);
+	sceGuTexFilter(GU_LINEAR, GU_LINEAR);
+	sceGuTexWrap(GU_CLAMP, GU_CLAMP);
+	
+	struct texture_subdivision_struct texture_subdivision;
+	texture_subdivision_constructor(&texture_subdivision, width, height, 16, width*tvWidth/PSP_SCREEN_WIDTH, height*tvHeight/PSP_SCREEN_HEIGHT, dx*tvWidth/PSP_SCREEN_WIDTH+(PSP_TVOUT_WIDTH-tvWidth)/2, dy*tvHeight/PSP_SCREEN_HEIGHT+(PSP_TVOUT_HEIGHT-tvHeight)/2);
+	do
+		{
+		texture_subdivision_get(&texture_subdivision);
+		guDrawSprite(&texture_subdivision);
+		}
+	while (texture_subdivision.output_last == 0);
+	
+	sceGuFinish();
+	sceGuSync(0,0);
+}
+
+//---------------BlitAlphaImageToScreen-----------------------//
 void blitAlphaImageToScreen(int sx, int sy, int width, int height, Image* source, int dx, int dy){
+	pBlitAlphaImageToScreen(sx, sy, width, height, source, dx, dy);
+}
+
+void blitAlphaImageToScreenWithoutTVOut(int sx, int sy, int width, int height, Image* source, int dx, int dy){
 	if (!initialized) return;
 
 	sceKernelDcacheWritebackInvalidateAll();
+
 	guStart();
+	sceGuEnable(GU_BLEND);
+	sceGuBlendFunc(GU_ADD, GU_SRC_ALPHA, GU_ONE_MINUS_SRC_ALPHA, 0, 0);
+	sceGuTexMode(GU_PSM_8888, 0, 0, 0);
 	sceGuTexImage(0, source->textureWidth, source->textureHeight, source->textureWidth, (void*) source->data);
-	float u = 1.0f / ((float)source->textureWidth);
-	float v = 1.0f / ((float)source->textureHeight);
-	sceGuTexScale(u, v);
+	sceGuTexFunc(GU_TFX_REPLACE, GU_TCC_RGBA);
+	sceGuTexFilter(GU_NEAREST, GU_NEAREST);
+	sceGuTexWrap(GU_CLAMP, GU_CLAMP);
 	
-	int j = 0;
-	while (j < width) {
-		Vertex* vertices = (Vertex*) sceGuGetMemory(2 * sizeof(Vertex));
-		int sliceWidth = 64;
-		if (j + sliceWidth > width) sliceWidth = width - j;
-		vertices[0].u = sx + j;
-		vertices[0].v = sy;
-		vertices[0].x = dx + j;
-		vertices[0].y = dy;
-		vertices[0].z = 0;
-		vertices[1].u = sx + j + sliceWidth;
-		vertices[1].v = sy + height;
-		vertices[1].x = dx + j + sliceWidth;
-		vertices[1].y = dy + height;
-		vertices[1].z = 0;
-		sceGuDrawArray(GU_SPRITES, GU_TEXTURE_16BIT | GU_VERTEX_16BIT | GU_TRANSFORM_2D, 2, 0, vertices);
-		j += sliceWidth;
-	}
+	struct texture_subdivision_struct texture_subdivision;
+	texture_subdivision_constructor(&texture_subdivision, width, height, 16, width, height, dx, dy);
+	do
+		{
+		texture_subdivision_get(&texture_subdivision);
+		guDrawSprite(&texture_subdivision);
+		}
+	while (texture_subdivision.output_last == 0);
 	
 	sceGuFinish();
-	sceGuSync(0, 0);
+	sceGuSync(0,0);
 }
 
+void blitAlphaImageToScreenPSP(int sx, int sy, int width, int height, Image* source, int dx, int dy){
+	blitAlphaImageToScreenWithoutTVOut(sx, sy, width, height, source, dx, dy);
+}
+
+void blitAlphaImageToScreenTVOut(int sx, int sy, int width, int height, Image* source, int dx, int dy){
+	if (!initialized) return;
+
+	sceKernelDcacheWritebackInvalidateAll();
+
+	guStart();
+	sceGuEnable(GU_BLEND);
+	sceGuBlendFunc(GU_ADD, GU_SRC_ALPHA, GU_ONE_MINUS_SRC_ALPHA, 0, 0);
+	sceGuTexMode(GU_PSM_8888, 0, 0, 0);
+	sceGuTexImage(0, source->textureWidth, source->textureHeight, source->textureWidth, (void*) source->data);
+	sceGuTexFunc(GU_TFX_REPLACE, GU_TCC_RGBA);
+	sceGuTexFilter(GU_LINEAR, GU_LINEAR);
+	sceGuTexWrap(GU_CLAMP, GU_CLAMP);
+	
+	struct texture_subdivision_struct texture_subdivision;
+	texture_subdivision_constructor(&texture_subdivision, width, height, 16, width*tvWidth/PSP_SCREEN_WIDTH, height*tvHeight/PSP_SCREEN_HEIGHT, dx*tvWidth/PSP_SCREEN_WIDTH+(PSP_TVOUT_WIDTH-tvWidth)/2, dy*tvHeight/PSP_SCREEN_HEIGHT+(PSP_TVOUT_HEIGHT-tvHeight)/2);
+	do
+		{
+		texture_subdivision_get(&texture_subdivision);
+		guDrawSprite(&texture_subdivision);
+		}
+	while (texture_subdivision.output_last == 0);
+	
+	sceGuFinish();
+	sceGuSync(0,0);
+}
+
+//---------------CopyVramToExtraMemory-----------------------//
+void copyVramToExtraMemoryPSP(){
+	sceKernelDcacheWritebackInvalidateAll();
+	memcpy(frameBuffer[displayBufferNumber], globalVramBase, PSP_TVOUT_PSPLCD_BUFFER_SIZE);
+}
+void copyVramToExtraMemoryTVOutInterlace(){
+	sceKernelDcacheWritebackInvalidateAll();
+	void* s0 = globalVramBase;
+	void* d0 = frameBuffer[displayBufferNumber];
+	void* d1 = d0 + 262*PSP_TVOUT_480P_LINE_SIZE;
+	int i;
+	for(i = 0; i<240; i++) {
+		memcpy(d0, s0, PSP_TVOUT_480P_LINE_SIZE);
+		d0 += PSP_TVOUT_480P_LINE_SIZE;
+		s0 += PSP_TVOUT_480P_LINE_SIZE;
+		memcpy(d1, s0, PSP_TVOUT_480P_LINE_SIZE);
+		d1 += PSP_TVOUT_480P_LINE_SIZE;
+		s0 += PSP_TVOUT_480P_LINE_SIZE; 
+	}
+}
+void copyVramToExtraMemoryTVOutProgressive(){
+	sceKernelDcacheWritebackInvalidateAll();
+	memcpy(frameBuffer[displayBufferNumber], globalVramBase, PSP_TVOUT_480P_BUFFER_SIZE);
+}
+
+
+//---------------Image functions-----------------------//
 Image* createImage(int width, int height){
 	Image* image = (Image*) malloc_64(sizeof(Image));
 	if (!image) return NULL;
@@ -221,7 +474,7 @@ Image* createImage(int width, int height){
 	image->imageHeight = height;
 	image->textureWidth = getNextPower2(width);
 	image->textureHeight = getNextPower2(height);
-	image->data = (Color*) memalign(32, image->textureWidth * image->textureHeight * sizeof(Color));
+	image->data = (Color*) memalign(64, image->textureWidth * image->textureHeight * sizeof(Color));
 	if (!image->data) {
 		free(image);
 		return NULL;
@@ -298,11 +551,5 @@ void putImageToImage(Image* src, Image* dest, int dx, int dy, int dw, int dh) {
 		}
 }
 
-void makeScreenSnapshot(Image* dest) {
-	if ( dest->imageWidth != PSP_SCREEN_WIDTH || dest->imageHeight != PSP_SCREEN_HEIGHT)
-		return;
-	Color* vram = getVramDrawBuffer();
-	memcpy(dest->data, vram, PSP_FRAMEBUFFER_SIZE);
-}
 
 
