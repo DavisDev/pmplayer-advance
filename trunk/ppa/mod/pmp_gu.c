@@ -42,6 +42,7 @@ static unsigned int previous_aspect_ratio;
 static unsigned int previous_zoom;
 static unsigned int previous_subtitle;
 static unsigned int previous_info;
+static unsigned int previous_interface;
 static f_pmp_gu_draw p_pmp_gu_draw;
 
 void pmp_gu_draw_without_tvout_supported(unsigned int aspect_ratio, unsigned int zoom, unsigned int luminosity_boost, unsigned int show_interface, unsigned int show_subtitle, unsigned int subtitle_format, unsigned int frame_number, void *video_frame_buffer);
@@ -55,11 +56,17 @@ void pmp_gu_init_previous_values()
 	previous_zoom         = 0xffffffff;
 	previous_subtitle     = 1;
 	previous_info         = 1;
+	previous_interface    = 0;
 	}
 
 
 void pmp_gu_end()
 	{
+	sceGuStart(GU_DIRECT, pmp_gu_list);
+	sceGuClearColor(0);
+	sceGuClear(GU_COLOR_BUFFER_BIT);
+	sceGuFinish();
+	sceGuSync(0, 0);
 	}
 
 
@@ -109,6 +116,11 @@ void pmp_gu_start_tvout_progressive()
 
 void pmp_gu_start(int psp_type, int tv_aspectratio, int video_mode)
 	{
+	sceGuStart(GU_DIRECT, pmp_gu_list);
+	sceGuClearColor(0);
+	sceGuClear(GU_COLOR_BUFFER_BIT);
+	sceGuFinish();
+	sceGuSync(0, 0);
 	if (!m33IsTVOutSupported(psp_type))
 		{
 		gu_font_output_set(0, 0, 480, 272);
@@ -233,15 +245,17 @@ void pmp_gu_draw_without_tvout_supported(unsigned int aspect_ratio, unsigned int
 		
 		
 	sceGuStart(GU_DIRECT, pmp_gu_list);
-	if ((previous_aspect_ratio != aspect_ratio) || (previous_zoom != zoom) || 
+	if ((previous_aspect_ratio != aspect_ratio) || (previous_zoom != zoom) || (previous_interface != show_interface) ||
 	    ((vertex_width < 480 || vertex_height < 272) && (previous_subtitle || previous_info)))
 		{
+		sceGuClearColor(0);
 		sceGuClear(GU_COLOR_BUFFER_BIT);
 
 		previous_aspect_ratio = aspect_ratio;
 		previous_zoom         = zoom;
 		previous_subtitle     = 0;
 		previous_info         = 0;
+		previous_interface = show_interface;
 		}
 
 
@@ -350,7 +364,7 @@ void pmp_gu_draw_psplcd(unsigned int aspect_ratio, unsigned int zoom, unsigned i
 		
 		
 	sceGuStart(GU_DIRECT, pmp_gu_list);
-	if ((previous_aspect_ratio != aspect_ratio) || (previous_zoom != zoom) || 
+	if ((previous_aspect_ratio != aspect_ratio) || (previous_zoom != zoom) || (previous_interface != show_interface) ||
 	    ((vertex_width < 480 || vertex_height < 272) && (previous_subtitle || previous_info)))
 		{
 		sceGuClear(GU_COLOR_BUFFER_BIT);
@@ -359,6 +373,7 @@ void pmp_gu_draw_psplcd(unsigned int aspect_ratio, unsigned int zoom, unsigned i
 		previous_zoom         = zoom;
 		previous_subtitle     = 0;
 		previous_info         = 0;
+		previous_interface = show_interface;
 		}
 
 
@@ -468,7 +483,7 @@ void pmp_gu_draw_tvout_interlace(unsigned int aspect_ratio, unsigned int zoom, u
 		
 		
 	sceGuStart(GU_DIRECT, pmp_gu_list);
-	if ((previous_aspect_ratio != aspect_ratio) || (previous_zoom != zoom) || 
+	if ((previous_aspect_ratio != aspect_ratio) || (previous_zoom != zoom) || (previous_interface != show_interface) ||
 	    ((vertex_width < 704 || vertex_height < 480) && (previous_subtitle || previous_info)))
 		{
 		sceGuClear(GU_COLOR_BUFFER_BIT);
@@ -477,6 +492,7 @@ void pmp_gu_draw_tvout_interlace(unsigned int aspect_ratio, unsigned int zoom, u
 		previous_zoom         = zoom;
 		previous_subtitle     = 0;
 		previous_info         = 0;
+		previous_interface = show_interface;
 		}
 
 
@@ -597,7 +613,7 @@ void pmp_gu_draw_tvout_progressive(unsigned int aspect_ratio, unsigned int zoom,
 		
 		
 	sceGuStart(GU_DIRECT, pmp_gu_list);
-	if ((previous_aspect_ratio != aspect_ratio) || (previous_zoom != zoom) || 
+	if ((previous_aspect_ratio != aspect_ratio) || (previous_zoom != zoom) || (previous_interface != show_interface) ||
 	    ((vertex_width < 704 || vertex_height < 480) && (previous_subtitle || previous_info)))
 		{
 		sceGuClear(GU_COLOR_BUFFER_BIT);
@@ -606,6 +622,7 @@ void pmp_gu_draw_tvout_progressive(unsigned int aspect_ratio, unsigned int zoom,
 		previous_zoom         = zoom;
 		previous_subtitle     = 0;
 		previous_info         = 0;
+		previous_interface = show_interface;
 		}
 
 
