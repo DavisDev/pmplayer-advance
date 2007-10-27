@@ -119,6 +119,8 @@ PmpAvcPlayer::~PmpAvcPlayer() {
 	ctrl_destroy();
 	fat_free();
 	disableGraphics();
+	sceDisplayWaitVblankStart();
+	sceGuTerm();
 	
 	FtFontManager::freeFtFontManager();
 	Skin::freeSkin();
@@ -445,7 +447,10 @@ int PmpAvcPlayer::init(char* ppaPath) {
 	pspDebugScreenPrintf("init pmpavc_kernel(GU)...\n");
 #endif
 	//TODO init Graphics
+	sceGuInit();
 	initGraphics(pspType, VideoMode::getVideoMode());
+	sceDisplayWaitVblankStart();
+	sceGuDisplay(GU_TRUE);
 	
 	return 1;
 };
@@ -682,9 +687,7 @@ void PmpAvcPlayer::run() {
 			else {
 				//TODO play pmpavc file
 				paintLoading();
-				disableGraphics();
 				playMovie(false);
-				initGraphics(pspType, VideoMode::getVideoMode());
 				filmPreviewReload = filmInformationReload = true;
 			}
 			activeTime = time(NULL);
@@ -692,9 +695,7 @@ void PmpAvcPlayer::run() {
 		else if (key & PSP_CTRL_CROSS) {
 			if ( fileItems[fileItemCurrent].filetype != FS_DIRECTORY ) {
 				paintLoading();
-				disableGraphics();
 				playMovie(true);
-				initGraphics(pspType, VideoMode::getVideoMode());
 				filmPreviewReload = filmInformationReload = true;
 			}
 			activeTime = time(NULL);

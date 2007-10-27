@@ -122,8 +122,8 @@ int SetupCallbacks(void){
 }
 int main(int argc, char **argv){
 
-#ifdef DEBUG
 	pspDebugScreenInit();
+#ifdef DEBUG
 	pspDebugScreenPrintf("PMPlayer Advance loading...\n");
 #endif
 	SetupCallbacks();

@@ -29,10 +29,10 @@ interface routines
 #define pmp_interface_h
 
 
-#define interface_height 24
+#define interface_height 32
 
 
-extern unsigned char __attribute__((aligned(16))) background_8888[49152];
+extern unsigned char __attribute__((aligned(16))) background_8888[65536];
 extern unsigned char __attribute__((aligned(16))) aspect_ratio_8888[6048];
 extern unsigned char __attribute__((aligned(16))) numbers_8888[1680];
 extern unsigned char __attribute__((aligned(16))) loop_8888[1008];

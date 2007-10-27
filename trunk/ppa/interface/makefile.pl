@@ -48,19 +48,60 @@ sub out
 			push(@v, $v->{red});
 			push(@v, $v->{green});
 			push(@v, $v->{blue});
-			push(@v, 0);
+			push(@v, 255);
 			}
 		}
 
 
-    print "unsigned char __attribute__((aligned(16))) $txt" . "[" . (4 * $p->{w} * $p->{h}) . "] = ";
+    	print "unsigned char __attribute__((aligned(16))) $txt" . "[" . (4 * $p->{w} * $p->{h}) . "] = ";
 	print "{";
 	print(join(", ", @v));
 	print "};\n";
 	}
 
+sub out_ext
+	{
+	my ($tga, $txt) = @_;
 
-out("background.tga",   "background_8888");
+
+	my @v = ();
+	my $p = tga::read_tga($tga);
+
+
+	for (0 .. $p->{h} - 1)
+		{
+		my $y = $_;
+
+		for (0 .. $p->{w} - 1)
+			{
+			my $x = $_;
+
+			my $v = tga::getpix($p, $x, $y);
+			if ($y > 23)
+				{
+				push(@v, 0);
+				push(@v, 0);
+				push(@v, 0);
+				push(@v, 0);
+				}
+			else
+				{
+				push(@v, $v->{red});
+				push(@v, $v->{green});
+				push(@v, $v->{blue});
+				push(@v, 255);
+				}
+			}
+		}
+
+
+    	print "unsigned char __attribute__((aligned(16))) $txt" . "[" . (4 * $p->{w} * $p->{h}) . "] = ";
+	print "{";
+	print(join(", ", @v));
+	print "};\n";
+	}
+
+out_ext("background.tga",   "background_8888");
 out("aspect_ratio.tga", "aspect_ratio_8888");
 out("numbers.tga",      "numbers_8888");
 out("loop.tga",         "loop_8888");
