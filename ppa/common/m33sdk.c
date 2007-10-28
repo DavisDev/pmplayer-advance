@@ -34,7 +34,7 @@ int m33KernelGetModel() {
 
 int m33IsTVOutSupported(int type){
 #ifdef DEVHOOK
-	return ( (type==PSP_MODEL_SLIM_AND_LITE) && (!(sceKernelDevkitVersion()<0x03070110)) );
+	return ( (type==PSP_MODEL_SLIM_AND_LITE) && (!(sceKernelDevkitVersion()<0x03060000)) );
 #else
 	return 0;
 #endif
