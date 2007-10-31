@@ -201,17 +201,18 @@ void PmpAvcPlayer::initSkinData() {
 	sprintf(tempPath, "%s%s", skinPath, skin->getStringValue("skin/battery_pannel/battery_status_image/charging", "charging.png"));
 	batteryCharging = loadPNGImage(tempPath);
 	
+	filmReloadEnable = true;
 	
 	//TODO init preview
 	filmPreviewVisible = skin->getBooleanValue("skin/film_preview_pannel/preview_image/visible", false);
-	filmPreviewReload = true;
+	filmPreviewReload = filmReloadEnable;
 	filmPreviewLeft = skin->getIntegerValue("skin/film_preview_pannel/preview_image/left", 0);
 	filmPreviewTop = skin->getIntegerValue("skin/film_preview_pannel/preview_image/top", 0);
 	filmPreviewWidth = skin->getIntegerValue("skin/film_preview_pannel/preview_image/width", 144);
 	filmPreviewHeight = skin->getIntegerValue("skin/film_preview_pannel/preview_image/height", 80);
 	
 	//TODO init filminformation
-	filmInformationReload = true;
+	filmInformationReload = filmReloadEnable;
 	filmAspectRatioVisible = skin->getBooleanValue("skin/film_information_pannel/aspect_ratio_label/visible", false);
 	filmAspectRatioLeft = skin->getIntegerValue("skin/film_information_pannel/aspect_ratio_label/left", 0);
 	filmAspectRatioTop = skin->getIntegerValue("skin/film_information_pannel/aspect_ratio_label/top", 0);
@@ -447,6 +448,23 @@ int PmpAvcPlayer::init(char* ppaPath) {
 	pspDebugScreenPrintf("init pmpavc_kernel(GU)...\n");
 #endif
 	//TODO init Graphics
+	if ( stricmp("4:3", config->getStringValue("config/tvout/aspect_ratio", "16:9") ) == 0 ) {
+		VideoMode::setTVAspectRatio(1);
+		setGraphicsTVAspectRatio(1);
+	}
+	else {
+		VideoMode::setTVAspectRatio(0);
+		setGraphicsTVAspectRatio(0);
+	}
+	char overScanValue[16+1];
+	memset( overScanValue, 0, 16+1 );
+	strncpy( overScanValue, config->getStringValue("config/tvout/over_scan", "8.0.8.0"), 16);
+	int osLeft, osTop, osRight, osBottom;
+	osLeft = osTop = osRight = osBottom = 0;
+	sscanf(overScanValue, "%d.%d.%d.%d", &osLeft, &osTop, &osRight, &osBottom);
+	VideoMode::setTVOverScan(osLeft, osTop, osRight, osBottom);
+	setGraphicsTVOverScan(osLeft, osTop, osRight, osBottom);
+	setGraphicsTVOutScreen();
 	sceGuInit();
 	initGraphics(pspType, VideoMode::getVideoMode());
 	sceDisplayWaitVblankStart();
@@ -492,12 +510,16 @@ void PmpAvcPlayer::run() {
 		//}
 		if ( (key & PSP_CTRL_LTRIGGER) && (key & PSP_CTRL_UP) ) {
 			fileItemCurrent = 0;
-			filmPreviewReload = filmInformationReload = true;
+			filmPreviewReload = filmInformationReload = filmReloadEnable;
 			activeTime = time(NULL);
 		}
 		else if ( (key & PSP_CTRL_LTRIGGER) && (key & PSP_CTRL_DOWN) ) {
 			fileItemCurrent = fileItemCount - 1;
-			filmPreviewReload = filmInformationReload = true;
+			filmPreviewReload = filmInformationReload = filmReloadEnable;
+			activeTime = time(NULL);
+		}
+		else if ( (key & PSP_CTRL_LTRIGGER) && (key & PSP_CTRL_SQUARE) ) {
+			filmReloadEnable = !filmReloadEnable;
 			activeTime = time(NULL);
 		}
 		else if ( (key & PSP_CTRL_LTRIGGER) && (key & PSP_CTRL_SELECT) ) {
@@ -603,7 +625,7 @@ void PmpAvcPlayer::run() {
 //							}
 							if (fileItemCurrent >= fileItemCount)
 								fileItemCurrent = 0;
-							filmPreviewReload = filmInformationReload = true;
+							filmPreviewReload = filmInformationReload = filmReloadEnable;
 						}
 					}
 					delete dialog;
@@ -616,7 +638,7 @@ void PmpAvcPlayer::run() {
 			memset(fileShortPath, 0, 512);
 			listDirectory();
 			fileItemCurrent = fileItemTop = 0;
-			filmPreviewReload = filmInformationReload = true;
+			filmPreviewReload = filmInformationReload = filmReloadEnable;
 			activeTime = time(NULL);
 		}
 		else if( (key & PSP_CTRL_UP) || (key & CTRL_BACK) ) {
@@ -626,7 +648,7 @@ void PmpAvcPlayer::run() {
 			else {
 				fileItemCurrent = fileItemCount - 1;
 			}
-			filmPreviewReload = filmInformationReload = true;
+			filmPreviewReload = filmInformationReload = filmReloadEnable;
 			activeTime = time(NULL);
 		}
 		else if( (key & PSP_CTRL_DOWN) || (key & CTRL_FORWARD) ){
@@ -635,7 +657,7 @@ void PmpAvcPlayer::run() {
 			}
 			else 
 				fileItemCurrent = 0;
-			filmPreviewReload = filmInformationReload = true;
+			filmPreviewReload = filmInformationReload = filmReloadEnable;
 			activeTime = time(NULL);
 		}
 		else if (key & PSP_CTRL_CIRCLE) {
@@ -682,13 +704,13 @@ void PmpAvcPlayer::run() {
 				else {
 					fileItemCurrent = 0;
 				}
-				filmPreviewReload = filmInformationReload = true;
+				filmPreviewReload = filmInformationReload = filmReloadEnable;
 			}
 			else {
 				//TODO play pmpavc file
 				paintLoading();
 				playMovie(false);
-				filmPreviewReload = filmInformationReload = true;
+				filmPreviewReload = filmInformationReload = filmReloadEnable;
 			}
 			activeTime = time(NULL);
 		}
@@ -696,7 +718,7 @@ void PmpAvcPlayer::run() {
 			if ( fileItems[fileItemCurrent].filetype != FS_DIRECTORY ) {
 				paintLoading();
 				playMovie(true);
-				filmPreviewReload = filmInformationReload = true;
+				filmPreviewReload = filmInformationReload = filmReloadEnable;
 			}
 			activeTime = time(NULL);
 		}
@@ -739,6 +761,8 @@ void PmpAvcPlayer::paint() {
 	paintFilmPreview();
 	paintFilmInformation();
 	
+	guStart();
+	clearScreen();
 	blitImageToScreen(0, 0, mainWindow->imageWidth, mainWindow->imageHeight, mainWindow, 0, 0);
 	blitAlphaImageToScreen(0, 0, drawImage->imageWidth, drawImage->imageHeight, drawImage, 0, 0);
 	flipScreen();
@@ -1029,6 +1053,8 @@ void PmpAvcPlayer::paintLoading() {
 	sprintf(tempPath, "%s%s", skinPath, Skin::getInstance()->getStringValue("skin/extra/loading_image", "loading.png") );
 	Image* img = loadPNGImage(tempPath);
 	if ( img ) {
+		guStart();
+		clearScreen();
 		blitAlphaImageToScreen(0, 0, img->imageWidth, img->imageHeight, img, 
 			(PSP_SCREEN_WIDTH - img->imageWidth)/2, (PSP_SCREEN_HEIGHT - img->imageHeight)/2);
 		flipScreen();
@@ -1041,6 +1067,8 @@ void PmpAvcPlayer::showPadHelp() {
 	sprintf(tempPath, "%s%s", skinPath, Skin::getInstance()->getStringValue("skin/extra/pad_help_image", "pad.png") );
 	Image* img = loadPNGImage(tempPath);
 	if ( img ) {
+		guStart();
+		clearScreen();
 		blitImageToScreen(0, 0, img->imageWidth, img->imageHeight, img, 0, 0 );
 		flipScreen();
 		freeImage(img);
@@ -1116,10 +1144,14 @@ void PmpAvcPlayer::playMovie(bool resume) {
 	
 	char* result = NULL;
 	
-	if ( resume )
-		result = pmp_play(pmpFileName, 1, pspType, VideoMode::getTVAspectRatio(), VideoMode::getVideoMode() );
-	else
-		result = pmp_play(pmpFileName, 0, pspType, VideoMode::getTVAspectRatio(), VideoMode::getVideoMode());
+	int left, top, right, bottom;
+	VideoMode::getTVOverScan(left, top, right, bottom);
+	if ( resume ) {
+		result = pmp_play(pmpFileName, 1, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode() );
+	}
+	else {
+		result = pmp_play(pmpFileName, 0, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode());
+	}
 	sceKernelDcacheWritebackInvalidateAll();
 	sceKernelDelayThread(1000000);
 	if ( result ) {
@@ -1142,7 +1174,9 @@ void PmpAvcPlayer::playMovie(bool resume) {
 				fileItemCurrent++;
 				memset(pmpFileName, 0, 512);
 				sprintf(pmpFileName, "%s%s", fileShortPath, fileItems[fileItemCurrent].shortname); 
-				result = pmp_play(pmpFileName, 0, pspType, VideoMode::getTVAspectRatio(), VideoMode::getVideoMode());
+				int left, top, right, bottom;
+				VideoMode::getTVOverScan(left, top, right, bottom);
+				result = pmp_play(pmpFileName, 0, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode());
 				sceKernelDcacheWritebackInvalidateAll();
 				sceKernelDelayThread(1000000);
 				if ( result )
@@ -1157,7 +1191,9 @@ void PmpAvcPlayer::playMovie(bool resume) {
 			fileItemCurrent++;
 			memset(pmpFileName, 0, 512);
 			sprintf(pmpFileName, "%s%s", fileShortPath, fileItems[fileItemCurrent].shortname); 
-			result = pmp_play(pmpFileName, 0, pspType, VideoMode::getTVAspectRatio(), VideoMode::getVideoMode());
+			int left, top, right, bottom;
+			VideoMode::getTVOverScan(left, top, right, bottom);
+			result = pmp_play(pmpFileName, 0, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode());
 			sceKernelDcacheWritebackInvalidateAll();
 			sceKernelDelayThread(1000000); 
 			if ( result )

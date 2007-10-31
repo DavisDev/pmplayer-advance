@@ -109,7 +109,9 @@ void VersionDialog::paint() {
 	mainFont->printStringToImage(drawImage, titleX, VERSION_DIALOG_Y+fontSize+5, VERSION_DIALOG_W-titleX+VERSION_DIALOG_X, fontSize+2, labelColor, PPA_NAME);
 	mainFont->printStringToImage(drawImage, titleX, VERSION_DIALOG_Y+(fontSize+5)*2, VERSION_DIALOG_W-titleX+VERSION_DIALOG_X, fontSize+2, labelColor, PPA_VERSION);
 	mainFont->printStringToImage(drawImage, titleX, VERSION_DIALOG_Y+(fontSize+5)*3, VERSION_DIALOG_W-titleX+VERSION_DIALOG_X, fontSize+2, labelColor, PPA_COPYRIGHT);
-			
+	
+	guStart();
+	clearScreen();		
 //	blitImageToScreen(0, 0, screenSnapshot->imageWidth, screenSnapshot->imageHeight, screenSnapshot, 0, 0);
 	blitImageToScreen(0, 0, mainWindow->imageWidth, mainWindow->imageHeight, mainWindow, 0, 0);
 	blitAlphaImageToScreen(0, 0, mainDrawImage->imageWidth, mainDrawImage->imageHeight, mainDrawImage, 0, 0);

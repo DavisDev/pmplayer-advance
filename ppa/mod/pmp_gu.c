@@ -43,6 +43,10 @@ static unsigned int previous_zoom;
 static unsigned int previous_subtitle;
 static unsigned int previous_info;
 static unsigned int previous_interface;
+static unsigned int output_left;
+static unsigned int output_top;
+static unsigned int output_width;
+static unsigned int output_height;
 static f_pmp_gu_draw p_pmp_gu_draw;
 
 void pmp_gu_draw_without_tvout_supported(unsigned int aspect_ratio, unsigned int zoom, unsigned int luminosity_boost, unsigned int show_interface, unsigned int show_subtitle, unsigned int subtitle_format, unsigned int frame_number, void *video_frame_buffer);
@@ -114,7 +118,7 @@ void pmp_gu_start_tvout_progressive()
 	sceKernelDcacheWritebackInvalidateAll();
 	}
 
-void pmp_gu_start(int psp_type, int tv_aspectratio, int video_mode)
+void pmp_gu_start(int psp_type, int tv_aspectratio, int tv_overscan_left, int tv_overscan_top, int tv_overscan_right, int tv_overscan_bottom, int video_mode)
 	{
 	sceGuStart(GU_DIRECT, pmp_gu_list);
 	sceGuClearColor(0);
@@ -123,26 +127,31 @@ void pmp_gu_start(int psp_type, int tv_aspectratio, int video_mode)
 	sceGuSync(0, 0);
 	if (!m33IsTVOutSupported(psp_type))
 		{
-		gu_font_output_set(0, 0, 480, 272);
+		output_left = 0;
+		output_top = 0;
+		output_width = 480;
+		output_height = 272;
+		gu_font_output_set(output_left, output_top, output_width, output_height);
 		pmp_gu_start_without_tvout_supported();
 		}
 	else
 		{
 			if (video_mode == 0 )
-				{
+				{				
+				output_left = 0;
+				output_top = 0;
+				output_width = 480;
+				output_height = 272;
+				gu_font_output_set(output_left, output_top, output_width, output_height);
 				pmp_gu_start_psplcd();
-				gu_font_output_set(0, 0, 480, 272);
 				}
 			else
 				{
-				if (tv_aspectratio == 0)
-					{
-					gu_font_output_set(8, 0, 704, 480);
-					}
-				else
-					{
-					gu_font_output_set(8, 60, 704, 360);
-					}
+				output_left = tv_overscan_left;
+				output_top = tv_overscan_top;
+				output_width = 720 - tv_overscan_left - tv_overscan_right;
+				output_height = 480 - tv_overscan_top - tv_overscan_bottom;
+				gu_font_output_set(output_left, output_top, output_width, output_height);
 				if (video_mode == 1 || video_mode == 2)
 					{
 					pmp_gu_start_tvout_interlace();
@@ -230,8 +239,8 @@ void pmp_gu_draw_without_tvout_supported(unsigned int aspect_ratio, unsigned int
 	vertex_width  = zoom * vertex_width  / 100;
 	vertex_height = zoom * vertex_height / 100;
 
-	int vertex_x = (480 >> 1) - (vertex_width  >> 1);
-	int vertex_y = (272 >> 1) - (vertex_height >> 1);
+	int vertex_x = output_left + (output_width >> 1) - (vertex_width  >> 1);
+	int vertex_y = output_top + (output_height >> 1) - (vertex_height >> 1);
 
 	int filter;
 	if ((texture_width == vertex_width) && (texture_height == vertex_height))
@@ -246,7 +255,7 @@ void pmp_gu_draw_without_tvout_supported(unsigned int aspect_ratio, unsigned int
 		
 	sceGuStart(GU_DIRECT, pmp_gu_list);
 	if ((previous_aspect_ratio != aspect_ratio) || (previous_zoom != zoom) || (previous_interface != show_interface) ||
-	    ((vertex_width < 480 || vertex_height < 272) && (previous_subtitle || previous_info)))
+	    ((vertex_width < output_width || vertex_height < output_height) && (previous_subtitle || previous_info)))
 		{
 		sceGuClearColor(0);
 		sceGuClear(GU_COLOR_BUFFER_BIT);
@@ -315,7 +324,7 @@ void pmp_gu_draw_without_tvout_supported(unsigned int aspect_ratio, unsigned int
 						gu_font_print( (480-pwidth)/2, sub_distance, flags | FLAG_ALIGN_CENTER, frame->p_string);
 					//gu_font_print( (480-pwidth)/2, gu_font_height(), flags | FLAG_ALIGN_CENTER, frame->p_string);
 					
-					previous_subtitle = (pwidth<=vertex_width?(vertex_height<272?1:0):1);
+					previous_subtitle = 1;//(pwidth<=vertex_width?(vertex_height<272?1:0):1);
 					}
 			}
 		}
@@ -323,7 +332,7 @@ void pmp_gu_draw_without_tvout_supported(unsigned int aspect_ratio, unsigned int
 	if (show_interface)
 		{
 		pmp_gu_load_interface_texture(background_8888);
-		texture_subdivision_constructor(&texture_subdivision, 480, interface_height, 16, 480, interface_height, 0, 0);
+		texture_subdivision_constructor(&texture_subdivision, 480, interface_height, 16, output_width, interface_height*output_height/272, output_left, output_top);
 		do
 			{
 			texture_subdivision_get(&texture_subdivision);
@@ -349,8 +358,8 @@ void pmp_gu_draw_psplcd(unsigned int aspect_ratio, unsigned int zoom, unsigned i
 	vertex_width  = zoom * vertex_width  / 100;
 	vertex_height = zoom * vertex_height / 100;
 
-	int vertex_x = (480 >> 1) - (vertex_width  >> 1);
-	int vertex_y = (272 >> 1) - (vertex_height >> 1);
+	int vertex_x = output_left + (output_width >> 1) - (vertex_width  >> 1);
+	int vertex_y = output_top + (output_height >> 1) - (vertex_height >> 1);
 
 	int filter;
 	if ((texture_width == vertex_width) && (texture_height == vertex_height))
@@ -365,8 +374,9 @@ void pmp_gu_draw_psplcd(unsigned int aspect_ratio, unsigned int zoom, unsigned i
 		
 	sceGuStart(GU_DIRECT, pmp_gu_list);
 	if ((previous_aspect_ratio != aspect_ratio) || (previous_zoom != zoom) || (previous_interface != show_interface) ||
-	    ((vertex_width < 480 || vertex_height < 272) && (previous_subtitle || previous_info)))
+	    ((vertex_width < output_width || vertex_height < output_height) && (previous_subtitle || previous_info)))
 		{
+		sceGuClearColor(0);
 		sceGuClear(GU_COLOR_BUFFER_BIT);
 
 		previous_aspect_ratio = aspect_ratio;
@@ -433,7 +443,7 @@ void pmp_gu_draw_psplcd(unsigned int aspect_ratio, unsigned int zoom, unsigned i
 						gu_font_print( (480-pwidth)/2, sub_distance, flags | FLAG_ALIGN_CENTER, frame->p_string);
 					//gu_font_print( (480-pwidth)/2, gu_font_height(), flags | FLAG_ALIGN_CENTER, frame->p_string);
 					
-					previous_subtitle = (pwidth<=vertex_width?(vertex_height<272?1:0):1);
+					previous_subtitle = 1;//(pwidth<=vertex_width?(vertex_height<272?1:0):1);
 					}
 			}
 		}
@@ -441,7 +451,7 @@ void pmp_gu_draw_psplcd(unsigned int aspect_ratio, unsigned int zoom, unsigned i
 	if (show_interface)
 		{
 		pmp_gu_load_interface_texture(background_8888);
-		texture_subdivision_constructor(&texture_subdivision, 480, interface_height, 16, 480, interface_height, 0, 0);
+		texture_subdivision_constructor(&texture_subdivision, 480, interface_height, 16, output_width, interface_height*output_height/272, output_left, output_top);
 		do
 			{
 			texture_subdivision_get(&texture_subdivision);
@@ -468,8 +478,8 @@ void pmp_gu_draw_tvout_interlace(unsigned int aspect_ratio, unsigned int zoom, u
 	vertex_width  = zoom * vertex_width  / 100;
 	vertex_height = zoom * vertex_height / 100;
 
-	int vertex_x = (720 >> 1) - (vertex_width  >> 1);
-	int vertex_y = (480 >> 1) - (vertex_height >> 1);
+	int vertex_x = output_left + (output_width >> 1) - (vertex_width  >> 1);
+	int vertex_y = output_top + (output_height >> 1) - (vertex_height >> 1);
 
 	int filter;
 	if ((texture_width == vertex_width) && (texture_height == vertex_height))
@@ -484,8 +494,9 @@ void pmp_gu_draw_tvout_interlace(unsigned int aspect_ratio, unsigned int zoom, u
 		
 	sceGuStart(GU_DIRECT, pmp_gu_list);
 	if ((previous_aspect_ratio != aspect_ratio) || (previous_zoom != zoom) || (previous_interface != show_interface) ||
-	    ((vertex_width < 704 || vertex_height < 480) && (previous_subtitle || previous_info)))
+	    ((vertex_width < output_width || vertex_height < output_height) && (previous_subtitle || previous_info)))
 		{
+		sceGuClearColor(0);
 		sceGuClear(GU_COLOR_BUFFER_BIT);
 
 		previous_aspect_ratio = aspect_ratio;
@@ -552,7 +563,7 @@ void pmp_gu_draw_tvout_interlace(unsigned int aspect_ratio, unsigned int zoom, u
 						gu_font_print( (480-pwidth)/2, sub_distance, flags | FLAG_ALIGN_CENTER, frame->p_string);
 					//gu_font_print( (480-pwidth)/2, gu_font_height(), flags | FLAG_ALIGN_CENTER, frame->p_string);
 					
-					previous_subtitle = (pwidth<=vertex_width?(vertex_height<272?1:0):1);
+					previous_subtitle = 1;//(pwidth<=vertex_width?(vertex_height<272?1:0):1);
 					}
 			}
 		}
@@ -560,7 +571,7 @@ void pmp_gu_draw_tvout_interlace(unsigned int aspect_ratio, unsigned int zoom, u
 	if (show_interface)
 		{
 		pmp_gu_load_interface_texture(background_8888);
-		texture_subdivision_constructor(&texture_subdivision, 480, interface_height, 16, aspect_ratios[2].psp_width, interface_height*aspect_ratios[2].psp_height/272, (720-aspect_ratios[2].psp_width)/2, (480-aspect_ratios[2].psp_height)/2);
+		texture_subdivision_constructor(&texture_subdivision, 480, interface_height, 16, output_width, interface_height*output_height/272, output_left, output_top);
 		do
 			{
 			texture_subdivision_get(&texture_subdivision);
@@ -598,8 +609,8 @@ void pmp_gu_draw_tvout_progressive(unsigned int aspect_ratio, unsigned int zoom,
 	vertex_width  = zoom * vertex_width  / 100;
 	vertex_height = zoom * vertex_height / 100;
 
-	int vertex_x = (720 >> 1) - (vertex_width  >> 1);
-	int vertex_y = (480 >> 1) - (vertex_height >> 1);
+	int vertex_x = output_left + (output_width >> 1) - (vertex_width  >> 1);
+	int vertex_y = output_top + (output_height >> 1) - (vertex_height >> 1);
 
 	int filter;
 	if ((texture_width == vertex_width) && (texture_height == vertex_height))
@@ -614,8 +625,9 @@ void pmp_gu_draw_tvout_progressive(unsigned int aspect_ratio, unsigned int zoom,
 		
 	sceGuStart(GU_DIRECT, pmp_gu_list);
 	if ((previous_aspect_ratio != aspect_ratio) || (previous_zoom != zoom) || (previous_interface != show_interface) ||
-	    ((vertex_width < 704 || vertex_height < 480) && (previous_subtitle || previous_info)))
+	    ((vertex_width < output_width || vertex_height < output_height) && (previous_subtitle || previous_info)))
 		{
+		sceGuClearColor(0);
 		sceGuClear(GU_COLOR_BUFFER_BIT);
 
 		previous_aspect_ratio = aspect_ratio;
@@ -682,7 +694,7 @@ void pmp_gu_draw_tvout_progressive(unsigned int aspect_ratio, unsigned int zoom,
 						gu_font_print( (480-pwidth)/2, sub_distance, flags | FLAG_ALIGN_CENTER, frame->p_string);
 					//gu_font_print( (480-pwidth)/2, gu_font_height(), flags | FLAG_ALIGN_CENTER, frame->p_string);
 					
-					previous_subtitle = (pwidth<=vertex_width?(vertex_height<272?1:0):1);
+					previous_subtitle = 1;//(pwidth<=vertex_width?(vertex_height<272?1:0):1);
 					}
 			}
 		}
@@ -690,7 +702,7 @@ void pmp_gu_draw_tvout_progressive(unsigned int aspect_ratio, unsigned int zoom,
 	if (show_interface)
 		{
 		pmp_gu_load_interface_texture(background_8888);
-		texture_subdivision_constructor(&texture_subdivision, 480, interface_height, 16, aspect_ratios[2].psp_width, interface_height*aspect_ratios[2].psp_height/272, (720-aspect_ratios[2].psp_width)/2, (480-aspect_ratios[2].psp_height)/2);
+		texture_subdivision_constructor(&texture_subdivision, 480, interface_height, 16, output_width, interface_height*output_height/272, output_left, output_top);
 		do
 			{
 			texture_subdivision_get(&texture_subdivision);

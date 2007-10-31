@@ -186,7 +186,9 @@ void SkinDialog::paint() {
 			//items[i]->paint(SKIN_DIALOG_ITEM_X, SKIN_DIALOG_ITEM_Y + i*(fontSize+2), SKIN_DIALOG_ITEM_W, fontSize + 2 );
 		}
 	}
-			
+	
+	guStart();
+	clearScreen();
 //	blitImageToScreen(0, 0, screenSnapshot->imageWidth, screenSnapshot->imageHeight, screenSnapshot, 0, 0);
 	blitImageToScreen(0, 0, mainWindow->imageWidth, mainWindow->imageHeight, mainWindow, 0, 0);
 	blitAlphaImageToScreen(0, 0, mainDrawImage->imageWidth, mainDrawImage->imageHeight, mainDrawImage, 0, 0);

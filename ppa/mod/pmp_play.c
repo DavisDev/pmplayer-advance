@@ -636,14 +636,14 @@ char *pmp_play_start(volatile struct pmp_play_struct *p)
 	}
 
 
-char *pmp_play_open(struct pmp_play_struct *p, char *s, int usePos, int pspType, int tvAspectRatio, int videoMode)
+char *pmp_play_open(struct pmp_play_struct *p, char *s, int usePos, int pspType, int tvAspectRatio, int tvWidth, int tvHeight, int videoMode)
 	{
 	pmp_play_safe_constructor(p);
 	p->subtitle = 0;
 	p->subtitle_count = 0;
 
 	
-	char *result = pmp_decode_open(&p->decoder, s, pspType, tvAspectRatio, videoMode);
+	char *result = pmp_decode_open(&p->decoder, s, pspType, tvAspectRatio, tvWidth, tvHeight, videoMode);
 	if (result != 0)
 		{
 		pmp_play_close(p, 0, pspType);

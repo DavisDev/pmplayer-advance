@@ -66,46 +66,45 @@ void aspect_ratio_struct_init_psplcd(unsigned int width, unsigned int height)
 		}
 	}
 
-void aspect_ratio_struct_init_tvout(unsigned int width, unsigned int height, int tv_aspectratio)
+void aspect_ratio_struct_init_tvout(unsigned int width, unsigned int height, int tv_aspectratio, int tv_width, int tv_height)
 	{
 	aspect_ratios[0].width  = width;
 	aspect_ratios[0].height = height;
-	
-	int tvout_width, tvout_height;
-	if (tv_aspectratio == 0 )
-		{
-		tvout_width = 704;
-		tvout_height = 480;
-		}
-	else
-		{
-		tvout_width = 704;
-		tvout_height = 360;
-		}
 
 	int i = 0;
-	for (; i < number_of_aspect_ratios; i++)
+	if ( tv_aspectratio == 0 ) // tv ar is 16:9
 		{
-		// width / height > 480 / 272
-
-		if (272 * aspect_ratios[i].width > 480 * aspect_ratios[i].height)
+		for (; i < number_of_aspect_ratios; i++)
 			{
-			// height / width = psp_height / psp_width
-
-			aspect_ratios[i].psp_width  = tvout_width;
-			aspect_ratios[i].psp_height = 480 * aspect_ratios[i].height / aspect_ratios[i].width * tvout_height / 272;
+			// width / height > 480 / 272
+	
+			if (272 * aspect_ratios[i].width > 480 * aspect_ratios[i].height)
+				{
+				// height / width = psp_height / psp_width
+	
+				aspect_ratios[i].psp_width  = tv_width;
+				aspect_ratios[i].psp_height = 480 * aspect_ratios[i].height / aspect_ratios[i].width * tv_height / 272;
+				}
+			else
+				{
+				// width / height = psp_width / psp_height
+	
+				aspect_ratios[i].psp_height = tv_height;
+				aspect_ratios[i].psp_width  = 272 * aspect_ratios[i].width / aspect_ratios[i].height * tv_width / 480;
+				}
 			}
-		else
+		}
+	else // tv ar is 4:3
+		{
+		for (; i < number_of_aspect_ratios; i++)
 			{
-			// width / height = psp_width / psp_height
-
-			aspect_ratios[i].psp_height = tvout_height;
-			aspect_ratios[i].psp_width  = 272 * aspect_ratios[i].width / aspect_ratios[i].height * tvout_width / 480;
+			aspect_ratios[i].psp_width = tv_width;
+			aspect_ratios[i].psp_height = (tv_height * aspect_ratios[i].height * 4) / (aspect_ratios[i].width * 3);
 			}
 		}
 	}
 
-void aspect_ratio_struct_init(unsigned int width, unsigned int height, int psp_type, int tv_aspectratio, int video_mode)
+void aspect_ratio_struct_init(unsigned int width, unsigned int height, int psp_type, int tv_aspectratio, int tv_width, int tv_height, int video_mode)
 	{
 	if( !m33IsTVOutSupported(psp_type) )
 		aspect_ratio_struct_init_psplcd(width, height);
@@ -114,6 +113,6 @@ void aspect_ratio_struct_init(unsigned int width, unsigned int height, int psp_t
 		if ( video_mode == 0 )
 			aspect_ratio_struct_init_psplcd(width, height);
 		else
-			aspect_ratio_struct_init_tvout(width, height, tv_aspectratio);
+			aspect_ratio_struct_init_tvout(width, height, tv_aspectratio, tv_width, tv_height);
 		}
 	}

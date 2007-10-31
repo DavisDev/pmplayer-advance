@@ -148,7 +148,9 @@ void MessageDialog::paint() {
 	
 	int tipsX = MESSAGE_DIALOG_X + (MESSAGE_DIALOG_W - strlen(keyTips)*fontSize/2)/2;
 	mainFont->printStringToImage(drawImage, tipsX, MESSAGE_DIALOG_Y+MESSAGE_DIALOG_H-4-2*fontSize+fontSize-1, MESSAGE_DIALOG_W-tipsX+MESSAGE_DIALOG_X, fontSize+2, labelColor, keyTips);
-			
+	
+	guStart();
+	clearScreen();		
 //	blitImageToScreen(0, 0, screenSnapshot->imageWidth, screenSnapshot->imageHeight, screenSnapshot, 0, 0);
 	blitImageToScreen(0, 0, mainWindow->imageWidth, mainWindow->imageHeight, mainWindow, 0, 0);
 	blitAlphaImageToScreen(0, 0, mainDrawImage->imageWidth, mainDrawImage->imageHeight, mainDrawImage, 0, 0);

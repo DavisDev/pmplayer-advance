@@ -50,6 +50,12 @@ void disableGraphics();
 void setGraphicsVideoMode(int mode);
 
 void setGraphicsTVAspectRatio(int ar);
+void setGraphicsTVOverScan(int left, int top, int right, int bottom);
+void setGraphicsTVOutScreen();
+
+void guStart();
+
+void clearScreen();
 
 void flipScreen();
 

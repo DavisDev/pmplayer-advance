@@ -77,7 +77,7 @@ void pmp_decode_close(struct pmp_decode_struct *p, int pspType)
 	}
 
 
-char *pmp_decode_open(struct pmp_decode_struct *p, char *s, int pspType, int tvAspectRatio, int videoMode)
+char *pmp_decode_open(struct pmp_decode_struct *p, char *s, int pspType, int tvAspectRatio, int tvWidth, int tvHeight, int videoMode)
 	{
 	pmp_decode_safe_constructor(p);
 
@@ -109,7 +109,7 @@ char *pmp_decode_open(struct pmp_decode_struct *p, char *s, int pspType, int tvA
 
 
 
-	aspect_ratio_struct_init(p->reader.file.header.video.width, p->reader.file.header.video.height, pspType, tvAspectRatio, videoMode);
+	aspect_ratio_struct_init(p->reader.file.header.video.width, p->reader.file.header.video.height, pspType, tvAspectRatio, tvWidth, tvHeight, videoMode);
 
 
 	cpu_clock_set_maximum();
