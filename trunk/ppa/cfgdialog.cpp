@@ -1323,8 +1323,17 @@ TVAspectRatioConfigItem::TVAspectRatioConfigItem(ConfigDialog* dialog, Image* dr
 	label = "TV AspectRatio: ";
 	values[0] = "16:9";
 	values[1] = "4:3";
-	currentValue = 0;
-	currentValue = VideoMode::getTVAspectRatio();
+		
+	Config* config = Config::getInstance();
+	const char* configValue = config->getStringValue("config/tvout/aspect_ratio", "16:9");
+	int i;
+	for( i = 0; i< 2; i++)
+		if ( stricmp(values[i], configValue) == 0 ) {
+			currentValue = i;
+			break;
+		}
+	if (i == 2)
+		currentValue = 0;
 	newValue = currentValue;
 };
 
@@ -1357,8 +1366,11 @@ void TVAspectRatioConfigItem::enterEditStatus() {
 		}
 		else if ( key & PSP_CTRL_CIRCLE ) {
 			if ( newValue != currentValue) {
+				Config* config = Config::getInstance();
+				config->setStringValue("config/tvout/aspect_ratio", values[newValue]);
 				VideoMode::setTVAspectRatio(newValue);
 				setGraphicsTVAspectRatio(newValue);
+				setGraphicsTVOutScreen();
 			}
 			currentValue = newValue = VideoMode::getTVAspectRatio();
 			break;
@@ -1368,6 +1380,141 @@ void TVAspectRatioConfigItem::enterEditStatus() {
 		}
 		else if ( (key & PSP_CTRL_RIGHT) || (key & PSP_CTRL_DOWN) ) {
 			newValue = (newValue < 1 ? (newValue+1) : 1);
+		}
+		dialog->paint();
+		sceKernelDelayThread(12500);
+	};
+	editing = false;
+};
+
+/********************************************************************************
+ *                      TV OverScan                                              *
+ ********************************************************************************/
+class TVOverScanConfigItem : public ConfigItem {
+private:
+	char* label; 
+	char currentValue[16+1];
+	u8 newValue[4];
+	int valueIndex;
+public:
+	TVOverScanConfigItem(ConfigDialog* dialog, Image* drawImage);
+	virtual void paint(int x, int y, int w, int h) ;
+	virtual void enterEditStatus();
+};
+
+TVOverScanConfigItem::TVOverScanConfigItem(ConfigDialog* dialog, Image* drawImage) : ConfigItem(dialog, drawImage) {
+	label = "TV OverScan(L.T.R.B): ";
+
+	Config* config = Config::getInstance();
+	memset( currentValue, 0, 16+1 );
+	strncpy( currentValue, config->getStringValue("config/tvout/over_scan", "8.0.8.0"), 16);
+	int a0, a1, a2, a3;
+	a0 = a1 = a2 = a3 = 0;
+	sscanf(currentValue, "%d.%d.%d.%d", &a0, &a1, &a2, &a3);
+	newValue[0] = (u8)a0;
+	newValue[1] = (u8)a1;
+	newValue[2] = (u8)a2;
+	newValue[3] = (u8)a3;
+	sprintf( currentValue, "%d.%d.%d.%d", newValue[0], newValue[1], newValue[2], newValue[3]);
+};
+
+void TVOverScanConfigItem::paint(int x, int y, int w, int h) {
+	if ( focus ) {
+		fillImageRect(drawImage, (alpha << 24) | bgHlColor, x, y, w, h);
+		mainFont->printStringToImage(drawImage, x+1, y+fontSize-1, w-2, h-2, labelHlColor, label );  
+	}
+	else
+		mainFont->printStringToImage(drawImage, x+1, y+fontSize-1, w-2, h-2, labelColor, label );
+	
+	int x1 = x+1 + strlen(label)*fontSize / 2;
+	
+	if ( editing ) {
+		char s0[4], s1[4], s2[4], s3[4];
+		memset(s0, 0, 4);
+		sprintf(s0, "%d", newValue[0]);
+		memset(s1, 0, 4);
+		sprintf(s1, "%d", newValue[1]);
+		memset(s2, 0, 4);
+		sprintf(s2, "%d", newValue[2]);
+		memset(s3, 0, 4);
+		sprintf(s3, "%d", newValue[3]);
+		int sx0, sx1, sx2, sx3;
+		sx0 = x1;
+		sx1 = sx0 + strlen(s0)*fontSize / 2 + fontSize / 2;
+		sx2 = sx1 + strlen(s1)*fontSize / 2 + fontSize / 2;
+		sx3 = sx2 + strlen(s2)*fontSize / 2 + fontSize / 2;
+		if ( valueIndex == 0 )
+			mainFont->printStringToImage(drawImage, sx0, y+fontSize-1, w-2-sx0+x, h-2, valueEdColor, s0);
+		else
+			mainFont->printStringToImage(drawImage, sx0, y+fontSize-1, w-2-sx0+x, h-2, valueColor, s0);
+		
+		mainFont->printStringToImage(drawImage, sx1-fontSize / 2, y+fontSize-1, fontSize / 2, h-2, valueColor, ".");
+		
+		if ( valueIndex == 1 )
+			mainFont->printStringToImage(drawImage, sx1, y+fontSize-1, w-2-sx1+x, h-2, valueEdColor, s1);
+		else
+			mainFont->printStringToImage(drawImage, sx1, y+fontSize-1, w-2-sx1+x, h-2, valueColor, s1);
+		
+		mainFont->printStringToImage(drawImage, sx2-fontSize / 2, y+fontSize-1, fontSize / 2, h-2, valueColor, ".");
+		
+		if ( valueIndex == 2 )
+			mainFont->printStringToImage(drawImage, sx2, y+fontSize-1, w-2-sx2+x, h-2, valueEdColor, s2);
+		else
+			mainFont->printStringToImage(drawImage, sx2, y+fontSize-1, w-2-sx2+x, h-2, valueColor, s2);
+		
+		mainFont->printStringToImage(drawImage, sx3-fontSize / 2, y+fontSize-1, fontSize / 2, h-2, valueColor, ".");
+		
+		if ( valueIndex == 3 )
+			mainFont->printStringToImage(drawImage, sx3, y+fontSize-1, w-2-sx3+x, h-2, valueEdColor, s3);
+		else
+			mainFont->printStringToImage(drawImage, sx3, y+fontSize-1, w-2-sx3+x, h-2, valueColor, s3);
+	}
+	else {
+		mainFont->printStringToImage(drawImage, x1, y+fontSize-1, w-2-x1+x, h-2, valueColor, currentValue);
+	}
+};
+
+void TVOverScanConfigItem::enterEditStatus() {
+	if ( focus == false) 
+		return;
+	editing = true;
+	valueIndex = 0;
+	while( true ) {
+		u32 key = ctrl_read();
+		if ( key & PSP_CTRL_CROSS ) {
+			int a0, a1, a2, a3;
+			a0 = a1 = a2 = a3 = 0;
+			sscanf(currentValue, "%d.%d.%d.%d", &a0, &a1, &a2, &a3);
+			newValue[0] = (u8)a0;
+			newValue[1] = (u8)a1;
+			newValue[2] = (u8)a2;
+			newValue[3] = (u8)a3;
+			break;
+		}
+		else if ( key & PSP_CTRL_CIRCLE ) {
+			char valueString[16+1];
+			memset(valueString, 0, 16+1);
+			sprintf(valueString, "%d.%d.%d.%d", newValue[0], newValue[1], newValue[2], newValue[3]);
+			Config* config = Config::getInstance();
+			config->setStringValue("config/tvout/over_scan", valueString);
+			memset( currentValue, 0, 16+1);
+			strncpy(currentValue, valueString, 16);
+			VideoMode::setTVOverScan(newValue[0], newValue[1], newValue[2], newValue[3]);
+			setGraphicsTVOverScan(newValue[0], newValue[1], newValue[2], newValue[3]);
+			setGraphicsTVOutScreen();
+			break;
+		}
+		else if ( key & PSP_CTRL_LEFT) {
+			if ( valueIndex > 0 ) valueIndex--;
+		}
+		else if ( key & PSP_CTRL_RIGHT) {
+			if ( valueIndex < 3 ) valueIndex++;
+		}
+		else if ( key & PSP_CTRL_UP ) {
+			if ( newValue[valueIndex] > 0 ) newValue[valueIndex]--;
+		}
+		else if ( key & PSP_CTRL_DOWN ) {
+			if ( newValue[valueIndex] < 50 ) newValue[valueIndex]++;
 		}
 		dialog->paint();
 		sceKernelDelayThread(12500);
@@ -1451,17 +1598,17 @@ void VideoModeConfigItem::enterEditStatus() {
 /********************************************************************************
  *                      ConfigDialog                                            *
  ********************************************************************************/
-#define PPA_CONFIG_ITEMS 16
+#define PPA_CONFIG_ITEMS 17
 
 #define CONFIG_DIALOG_X		60
-#define CONFIG_DIALOG_Y		8	
+#define CONFIG_DIALOG_Y		4	
 #define CONFIG_DIALOG_W		360
-#define CONFIG_DIALOG_H		256
+#define CONFIG_DIALOG_H		264
 #define CONFIG_DIALOG_R		6
 #define CONFIG_DIALOG_ITEM_X    90
-#define CONFIG_DIALOG_ITEM_Y	32
+#define CONFIG_DIALOG_ITEM_Y	24
 #define CONFIG_DIALOG_ITEM_W	300
-#define CONFIG_DIALOG_ITEM_H	224
+#define CONFIG_DIALOG_ITEM_H	238
 
 ConfigDialog::ConfigDialog(Image* mainWindow, Image* mainDrawImage) {
 	
@@ -1516,7 +1663,8 @@ bool ConfigDialog::init() {
 	items[12] = new NetHostConfigItem(this, this->drawImage);
 	items[13] = new PlayModeConfigItem(this, this->drawImage);
 	items[14] = new TVAspectRatioConfigItem(this, this->drawImage);
-	items[15] = new VideoModeConfigItem(this, this->drawImage);
+	items[15] = new TVOverScanConfigItem(this, this->drawImage);
+	items[16] = new VideoModeConfigItem(this, this->drawImage);
 	
 	mainFont = FtFontManager::getInstance()->getMainFont();
 	fontSize = (Config::getInstance())->getIntegerValue("config/windows/font/size",12);
@@ -1604,7 +1752,9 @@ void ConfigDialog::paint() {
 			items[i]->paint(CONFIG_DIALOG_ITEM_X, CONFIG_DIALOG_ITEM_Y + i*(fontSize+2), CONFIG_DIALOG_ITEM_W, fontSize + 2 );
 		}
 	}
-			
+	
+	guStart();	
+	clearScreen();	
 //	blitImageToScreen(0, 0, screenSnapshot->imageWidth, screenSnapshot->imageHeight, screenSnapshot, 0, 0);
 	blitImageToScreen(0, 0, mainWindow->imageWidth, mainWindow->imageHeight, mainWindow, 0, 0);
 	blitAlphaImageToScreen(0, 0, mainDrawImage->imageWidth, mainDrawImage->imageHeight, mainDrawImage, 0, 0);

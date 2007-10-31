@@ -22,4 +22,5 @@
 	</filesystem> 
 	<!-- play_mode : "single", "group", "all" -->
 	<player play_mode="group" idle_time="300" />
+	<tvout aspect_ratio="16:9" over_scan="8.0.8.0" />
 </config>

@@ -64,7 +64,7 @@ extern void *pmp_gu_rgb_buffer;
 
 
 void pmp_gu_init_previous_values();
-void pmp_gu_start(int psp_type, int tv_aspectratio, int video_mode);
+void pmp_gu_start(int psp_type, int tv_aspectratio, int tv_overscan_left, int tv_overscan_top, int tv_overscan_right, int tv_overscan_bottom, int video_mode);
 void pmp_gu_end();
 void pmp_gu_wait();
 void pmp_gu_draw(unsigned int aspect_ratio, unsigned int zoom, unsigned int luminosity_boost, unsigned int show_interface, unsigned int show_subtitle, unsigned int subtitle_format, unsigned int frame_number, void *video_frame_buffer);

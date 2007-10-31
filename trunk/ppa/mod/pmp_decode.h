@@ -91,7 +91,7 @@ struct pmp_decode_struct
 
 
 void pmp_decode_safe_constructor(struct pmp_decode_struct *p);
-char *pmp_decode_open(struct pmp_decode_struct *p, char *s, int pspType, int tvAspectRatio, int videoMode);
+char *pmp_decode_open(struct pmp_decode_struct *p, char *s, int pspType, int tvAspectRatio, int tvWidth, int tvHeight, int videoMode);
 void pmp_decode_close(struct pmp_decode_struct *p, int pspType);
 //modify by cooleyes 2007/02/01
 char *pmp_decode_get(struct pmp_decode_struct *p, unsigned int frame_number, unsigned int audio_stream, int audio_channel, int decode_audio, unsigned int volume_boost, unsigned int aspect_ratio, unsigned int zoom, unsigned int luminosity_boost, unsigned int show_interface, unsigned int show_subtitle, unsigned int subtitle_format, unsigned int loop);

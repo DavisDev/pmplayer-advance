@@ -36,7 +36,7 @@ this lib should be used to play .pmp files
 extern "C" {
 #endif
 
-char *pmp_play(char *s, int usePos, int pspType, int tvAspectRatio, int videoMode);
+char *pmp_play(char *s, int usePos, int pspType, int tvAspectRatio, int tvOverScanLeft, int tvOverScanTop, int tvOverScanRight, int tvOverScanBottom, int videoMode);
 
 #ifdef __cplusplus
 }

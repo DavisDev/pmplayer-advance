@@ -26,6 +26,11 @@ class VideoMode {
 	static int videoMode;
 	static int pspType;
 	static int tvAspectRatio;
+	static int tvOverScanLeft;
+	static int tvOverScanTop;
+	static int tvOverScanRight;
+	static int tvOverScanBottom;
+	
 private:
 	VideoMode() {};
 public:
@@ -34,6 +39,8 @@ public:
 	static int getVideoMode() { return videoMode; };
 	static void setTVAspectRatio(int ar) { tvAspectRatio = ar; };
 	static int getTVAspectRatio() { return tvAspectRatio; };
+	static void setTVOverScan(int left, int top, int right, int bottom) { tvOverScanLeft = left; tvOverScanTop = top, tvOverScanRight = right; tvOverScanBottom = bottom; };
+	static void getTVOverScan(int& left, int& top, int& right, int& bottom) { left = tvOverScanLeft; top = tvOverScanTop; right = tvOverScanRight; bottom = tvOverScanBottom; };
 };
 
 #endif

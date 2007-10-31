@@ -72,6 +72,8 @@ private:
 	int filmPreviewLeft, filmPreviewTop, filmPreviewWidth, filmPreviewHeight;
 	Image*  filmPreviewImage;
 	
+	bool filmReloadEnable;
+	
 	bool isSuspended;
 	time_t activeTime;
 	int idleSecond;

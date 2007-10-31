@@ -41,6 +41,10 @@ int pspDveMgrSetVideoOut(int u, int mode, int width, int height, int x, int y, i
 
 int VideoMode::videoMode = 0; //0:PSP, 1:composite, 2:component interlace, 3:component progressive
 int VideoMode::tvAspectRatio = 0; //0=16:9, 1=4:3
+int VideoMode::tvOverScanLeft = 8;
+int VideoMode::tvOverScanTop = 0;
+int VideoMode::tvOverScanRight = 8;
+int VideoMode::tvOverScanBottom = 0;
 int VideoMode::pspType = 0;
 
 bool VideoMode::init(int type, const char* prx) {

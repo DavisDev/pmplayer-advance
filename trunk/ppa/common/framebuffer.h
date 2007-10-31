@@ -4,5 +4,6 @@
 #include <psptypes.h>
 
 extern u32* globalVramBase;
+extern u32* globalCachedVramBase;
 
 #endif
