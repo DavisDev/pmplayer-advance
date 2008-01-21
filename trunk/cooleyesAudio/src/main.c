@@ -13,6 +13,7 @@ PSP_MODULE_INFO("cooleyesAudio", 0x1006, VERS, REVS);
 PSP_MAIN_THREAD_ATTR(0);
 
 int sceAudioSetFrequency371(int frequency);
+int sceAudioSetFrequency380(int frequency);
 
 int cooleyesAudioSetFrequency(int devkitVersion, int frequency) {
 	u32 k1; 
@@ -20,8 +21,10 @@ int cooleyesAudioSetFrequency(int devkitVersion, int frequency) {
    	int ret; 
 	if (devkitVersion < 0x03070110)
 		ret = sceAudioSetFrequency(frequency);
-	else
+	else if ( devkitVersion == 0x03070110 )
 		ret = sceAudioSetFrequency371(frequency);
+	else
+		ret = sceAudioSetFrequency380(frequency);
 	pspSdkSetK1(k1);
 	return ret;
 }
