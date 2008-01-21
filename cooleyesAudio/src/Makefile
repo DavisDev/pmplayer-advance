@@ -1,5 +1,5 @@
 TARGET = cooleyesAudio
-OBJS = main.o sceAudio_driver371.o
+OBJS = main.o sceAudio_driver3xx.o
 
 INCDIR = 
 CFLAGS = -O2 -G0 -Wall
