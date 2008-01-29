@@ -110,7 +110,7 @@ bool NetHost::startNetHost(const char* address, const char* port, const char* en
 			sprintf(prxName, "%s%s", basePath, PRX_NAME302);
 		else if ((fwVer > 0x030002FF) && (fwVer < 0x03070110))
 			sprintf(prxName, "%s%s", basePath, PRX_NAME310);
-		else if (fwVer == 0x03070110)
+		else if (fwVer >= 0x03070110)
 			sprintf(prxName, "%s%s", basePath, PRX_NAME371);
 		
 		char* argv[5];
