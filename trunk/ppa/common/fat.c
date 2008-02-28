@@ -3,8 +3,11 @@
 #include <stdio.h>
 #include <pspkernel.h>
 #include "fat.h"
+#ifdef PSPFW3XX
+#include "libminiconv.h"
+#else
 #include "miniconv.h"
-
+#endif
 
 static int fatfd = -1;
 static t_fat_dbr dbr;
@@ -248,12 +251,18 @@ static int fat_get_longname(p_fat_entry entrys, u32 cur, char * longnamestr)
 		return 0;
 	longname[255] = 0;
 	memset(longnamestr, 0, 256);
-	//charsets_ucs_conv((const u8 *)longname, (u8 *)longnamestr);
+#ifdef PSPFW3XX
+	char* temp = miniConvUTF16LEConv(longname);
+	if(temp) {
+		strncpy(longnamestr, temp, 255);
+	}
+#else
 	char* temp = utf16le_to_utf8(longname);
 	if(temp) {
 		strncpy(longnamestr, temp, 255);
 		free(temp);
 	}
+#endif
 	return 1;
 }
 

@@ -28,6 +28,9 @@
 #include <pspdisplay.h>
 #include <psputility.h>
 #include "common/ctrl.h"
+#ifdef PSPFW3XX
+#include "common/libminiconv.h"
+#endif
 #include "common/directory.h"
 #include "common/graphics.h"
 
@@ -172,7 +175,10 @@ void CpuSpeedConfigItem::enterEditStatus() {
  ********************************************************************************/
 class SubCharsetConfigItem : public ConfigItem {
 private:
+#ifndef PSPFW3XX
 	char* values[6]; 
+#endif
+	int count;
 	char* label; 
 	int currentValue, newValue;
 public:
@@ -183,22 +189,30 @@ public:
 
 SubCharsetConfigItem::SubCharsetConfigItem(ConfigDialog* dialog, Image* drawImage) : ConfigItem(dialog, drawImage) {
 	label = "Subtitles Charset: ";
+#ifdef PSPFW3XX
+	count = miniConvGetConvCount();
+#else
 	values[0] = "UTF-8";
 	values[1] = "GBK";
 	values[2] = "BIG5";
 	values[3] = "SHIFT-JIS";
 	values[4] = "EUC-KR";
 	values[5] = "MS-EE";
-	
+	count = 6;
+#endif
 	Config* config = Config::getInstance();
 	const char* configValue = config->getStringValue("config/subtitles/charset/value", "UTF-8");
 	int i;
-	for( i = 0; i< 6; i++)
+	for( i = 0; i< count; i++)
+#ifdef PSPFW3XX
+		if ( stricmp(miniConvGetConvCharset(i), configValue) == 0 ) {
+#else
 		if ( stricmp(values[i], configValue) == 0 ) {
+#endif
 			currentValue = i;
 			break;
 		}
-	if (i == 6)
+	if (i == count)
 		currentValue = 0;
 	newValue = currentValue;
 };
@@ -214,9 +228,15 @@ void SubCharsetConfigItem::paint(int x, int y, int w, int h) {
 	int x1 = x+1 + strlen(label)*fontSize / 2;
 	
 	if ( editing )
+#ifdef PSPFW3XX
+		mainFont->printStringToImage(drawImage, x1, y+fontSize-1, w-2-x1+x, h-2, valueEdColor, miniConvGetConvCharset(newValue));
+	else
+		mainFont->printStringToImage(drawImage, x1, y+fontSize-1, w-2-x1+x, h-2, valueColor, miniConvGetConvCharset(currentValue));
+#else
 		mainFont->printStringToImage(drawImage, x1, y+fontSize-1, w-2-x1+x, h-2, valueEdColor, values[newValue]);
 	else
 		mainFont->printStringToImage(drawImage, x1, y+fontSize-1, w-2-x1+x, h-2, valueColor, values[currentValue]);
+#endif
 };
 
 void SubCharsetConfigItem::enterEditStatus() {
@@ -231,8 +251,13 @@ void SubCharsetConfigItem::enterEditStatus() {
 		}
 		else if ( key & PSP_CTRL_CIRCLE ) {
 			Config* config = Config::getInstance();
+#ifdef PSPFW3XX
+			config->setStringValue("config/subtitles/charset/value", miniConvGetConvCharset(newValue));
+			miniConvSetSubtitleConv( miniConvGetConvCharset(newValue) );
+#else
 			config->setStringValue("config/subtitles/charset/value", values[newValue]);
 			set_pmp_subrip_charset( values[newValue] );
+#endif
 			currentValue = newValue;
 			break;
 		}
@@ -240,7 +265,7 @@ void SubCharsetConfigItem::enterEditStatus() {
 			newValue = (newValue > 0 ? (newValue-1) : 0);
 		}
 		else if ( (key & PSP_CTRL_RIGHT) || (key & PSP_CTRL_DOWN) ) {
-			newValue = (newValue < 5 ? (newValue+1) : 5);
+			newValue = (newValue < (count-1) ? (newValue+1) : (count-1));
 		}
 		dialog->paint();
 		sceKernelDelayThread(12500);
@@ -559,7 +584,10 @@ void SubDistanceConfigItem::enterEditStatus() {
  ********************************************************************************/
 class FilesystemCharsetConfigItem : public ConfigItem {
 private:
+#ifndef PSPFW3XX
 	char* values[6]; 
+#endif
+	int count;
 	char* label; 
 	int currentValue, newValue;
 public:
@@ -570,22 +598,31 @@ public:
 
 FilesystemCharsetConfigItem::FilesystemCharsetConfigItem(ConfigDialog* dialog, Image* drawImage) : ConfigItem(dialog, drawImage) {
 	label = "FileSystem Charset: ";
+#ifdef PSPFW3XX
+	count = miniConvGetConvCount();
+#else
 	values[0] = "UTF-8";
 	values[1] = "GBK";
 	values[2] = "BIG5";
 	values[3] = "SHIFT-JIS";
 	values[4] = "EUC-KR";
 	values[5] = "MS-EE";
+	count = 6;
+#endif
 	
 	Config* config = Config::getInstance();
 	const char* configValue = config->getStringValue("config/filesystem/charset/value", "UTF-8");
 	int i;
-	for( i = 0; i< 6; i++)
+	for( i = 0; i< count; i++)
+#ifdef PSPFW3XX
+		if ( stricmp(miniConvGetConvCharset(i), configValue) == 0 ) {
+#else
 		if ( stricmp(values[i], configValue) == 0 ) {
+#endif
 			currentValue = i;
 			break;
 		}
-	if (i == 6)
+	if (i == count)
 		currentValue = 0;
 	newValue = currentValue;
 };
@@ -601,9 +638,15 @@ void FilesystemCharsetConfigItem::paint(int x, int y, int w, int h) {
 	int x1 = x+1 + strlen(label)*fontSize / 2;
 	
 	if ( editing )
+#ifdef PSPFW3XX
+		mainFont->printStringToImage(drawImage, x1, y+fontSize-1, w-2-x1+x, h-2, valueEdColor, miniConvGetConvCharset(newValue));
+	else
+		mainFont->printStringToImage(drawImage, x1, y+fontSize-1, w-2-x1+x, h-2, valueColor, miniConvGetConvCharset(currentValue));
+#else
 		mainFont->printStringToImage(drawImage, x1, y+fontSize-1, w-2-x1+x, h-2, valueEdColor, values[newValue]);
 	else
 		mainFont->printStringToImage(drawImage, x1, y+fontSize-1, w-2-x1+x, h-2, valueColor, values[currentValue]);
+#endif
 };
 
 void FilesystemCharsetConfigItem::enterEditStatus() {
@@ -618,8 +661,13 @@ void FilesystemCharsetConfigItem::enterEditStatus() {
 		}
 		else if ( key & PSP_CTRL_CIRCLE ) {
 			Config* config = Config::getInstance();
+#ifdef PSPFW3XX
+			config->setStringValue("config/filesystem/charset/value", miniConvGetConvCharset(newValue));
+			miniConvSetFileSystemConv( miniConvGetConvCharset(newValue) );
+#else
 			config->setStringValue("config/filesystem/charset/value", values[newValue]);
 			set_usb_net_directory_charset( values[newValue] );
+#endif
 			currentValue = newValue;
 			break;
 		}
@@ -627,7 +675,7 @@ void FilesystemCharsetConfigItem::enterEditStatus() {
 			newValue = (newValue > 0 ? (newValue-1) : 0);
 		}
 		else if ( (key & PSP_CTRL_RIGHT) || (key & PSP_CTRL_DOWN) ) {
-			newValue = (newValue < 5 ? (newValue+1) : 5);
+			newValue = (newValue < (count-1) ? (newValue+1) : (count-1));
 		}
 		dialog->paint();
 		sceKernelDelayThread(12500);

@@ -43,6 +43,9 @@
 #include "nethost.h"
 #include "videomode.h"
 
+#ifdef PSPFW3XX
+#include "common/libminiconv.h"
+#endif
 #include "common/fat.h"
 #include "common/directory.h"
 #include "common/ctrl.h"
@@ -271,6 +274,16 @@ int PmpAvcPlayer::init(char* ppaPath) {
         }
 #endif
 
+#ifdef PSPFW3XX
+#ifdef DEBUG	
+	pspDebugScreenPrintf("load miniconv.prx...\n");
+#endif
+        mod = pspSdkLoadStartModule("miniconv.prx", PSP_MEMORY_PARTITION_USER);
+	if (mod < 0){
+        	return 0;
+        }
+#endif
+
 	memset(tempPath, 0, 1024);
 	sprintf(tempPath, "%s%s", applicationPath, "dvemgr.prx");
 #ifdef DEBUG	
@@ -360,9 +373,11 @@ int PmpAvcPlayer::init(char* ppaPath) {
 	fileShowHidden = 0;//( config->getBooleanValue("config/filesystem/file_filter/show_hidden", false) ? 1 : 0 );
 	fileShowHidden = 0;//( config->getBooleanValue("config/filesystem/file_filter/show_unknown", false) ? 1 : 0 );
 		
-	
+#ifdef PSPFW3XX
+	miniConvSetFileSystemConv( config->getStringValue("config/filesystem/charset/value", "UTF-8") );
+#else	
 	set_usb_net_directory_charset( config->getStringValue("config/filesystem/charset/value", "UTF-8") );
-	
+#endif	
 	const char* last_path = config->getStringValue("config/filesystem/browser/last_path", "");
 	base64decode((unsigned char*)filePath, last_path, strlen(last_path));
 	base64decode((unsigned char*)fileShortPath, last_path, strlen(last_path));
@@ -440,8 +455,11 @@ int PmpAvcPlayer::init(char* ppaPath) {
 			gu_font_align_set(1);
 			
 		gu_font_distance_set(sub_distance);
-		
+#ifdef PSPFW3XX		
+		miniConvSetSubtitleConv(config->getStringValue("config/subtitles/charset/value","UTF-8"));
+#else
 		set_pmp_subrip_charset(config->getStringValue("config/subtitles/charset/value","UTF-8"));
+#endif
 	}
 //*/
 #ifdef DEBUG
