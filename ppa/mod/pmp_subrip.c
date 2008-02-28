@@ -29,6 +29,9 @@ subrip subtitle format parser
 #include "pmp_subrip.h"
 #include "common/mem64.h"
 
+#ifdef PSPFW3XX
+#include "common/libminiconv.h"
+#else
 #include "common/miniconv.h"
 
 static utf8_convert_function utf8_convertor = NULL;
@@ -47,7 +50,7 @@ void set_pmp_subrip_charset(const char* charset) {
 	else
 		utf8_convertor = NULL;
 }
-
+#endif
 
 struct pmp_sub_frame_struct* pmp_sub_parse_subrip( FILE *f, unsigned int rate, unsigned int scale )
 	{
@@ -108,6 +111,14 @@ struct pmp_sub_frame_struct* pmp_sub_parse_subrip( FILE *f, unsigned int rate, u
 		p->p_string[j++]='\n';
 		}
 	p->p_string[j-1] = '\0';
+#ifdef PSPFW3XX
+	if ( miniConvHaveSubtitleConv() ){
+		char* temp_str = miniConvSubtitleConv(p->p_string);
+		if( temp_str != NULL ) {
+			strncpy(p->p_string, temp_str, max_subtitle_string-1);
+		}
+	}
+#else
 	//add by cooleyes 2006/12/15
 	if ( utf8_convertor != NULL){
 		char* temp_str = utf8_convertor(p->p_string);
@@ -117,7 +128,7 @@ struct pmp_sub_frame_struct* pmp_sub_parse_subrip( FILE *f, unsigned int rate, u
 		}
 	}
 	//add end
-	
+#endif	
 	return(p);
 	}
 

@@ -1,5 +1,5 @@
 /* 
- *	Copyright (C) 2006 cooleyes
+ *	Copyright (C) 2008 cooleyes
  *	eyes.cooleyes@gmail.com 
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -18,51 +18,27 @@
  *  http://www.gnu.org/copyleft/gpl.html
  *
  */
-#ifndef __DIRECTORY_H__
-#define __DIRECTORY_H__
 
-typedef enum {
-//*/
-	FS_DIRECTORY = 0,
-	FS_PMP_FILE,
-	FS_UNKNOWN_FILE
-//*/
-} file_type_enum;
-
-typedef struct {
-	const char * ext;
-	file_type_enum filetype;
-} file_type_ext_struct;
-
-typedef struct {
-	char shortname[256];
-	char longname[256];
-	char* compname; 
-	u32 filesize;
-	u16 cdate;
-	u16 ctime;
-	u16 mdate;
-	u16 mtime;
-	file_type_enum filetype;
-} directory_item_struct;
+#ifndef  __LIB_MINI_CONV_H__
+#define __LIB_MINI_CONV_H__
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#ifndef PSPFW3XX
-void set_usb_net_directory_charset(const char* charset);
-#endif
-
-file_type_enum directory_get_filetype(const char* filename, file_type_ext_struct* file_type_ext_table);
-
-int open_directory(const char* dir, char* sdir, int show_hidden, int show_unknown, file_type_ext_struct* file_type_ext_table, directory_item_struct** list); 
-
-int is_next_movie(const char* prev, const char* next);
-
+char* miniConvUTF16LEConv(const unsigned short* utf16le);
+char* miniConvUTF16BEConv(const unsigned short* utf16be);
+int miniConvGetConvCount();
+char* miniConvGetConvCharset(int index);
+void miniConvSetFileSystemConv(const char* charset);
+int miniConvHaveFileSystemConv();
+char* miniConvFileSystemConv(const unsigned char* s);
+void miniConvSetSubtitleConv(const char* charset);
+int miniConvHaveSubtitleConv();
+char* miniConvSubtitleConv(const unsigned char* s);
+void miniConvFreeMemory(void* mem);
 #ifdef __cplusplus
 }
 #endif
 
 #endif
-

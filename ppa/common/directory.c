@@ -24,6 +24,9 @@
 #include <pspkernel.h>
 #include "fat.h"
 #include "directory.h"
+#ifdef PSPFW3XX
+#include "libminiconv.h"
+#else
 #include "miniconv.h"
 
 static utf8_convert_function utf8_convertor = NULL;
@@ -42,6 +45,7 @@ void set_usb_net_directory_charset(const char* charset) {
 	else
 		utf8_convertor = NULL;
 }
+#endif
 
 static const char * get_file_ext(const char * filename){
 	int len = strlen(filename);
@@ -213,6 +217,14 @@ int open_usb_net_directory(const char* dir, char* sdir, int show_hidden, int sho
 			(*list)[cur_count].filetype = FS_DIRECTORY;
 			strcpy((*list)[cur_count].shortname, temp_dir.d_name);
 			strcpy((*list)[cur_count].longname, temp_dir.d_name);
+#ifdef PSPFW3XX	
+			if ( miniConvHaveFileSystemConv() ){
+				char* temp_str = miniConvFileSystemConv(temp_dir.d_name);
+				if( temp_str != NULL ) {
+					strcpy((*list)[cur_count].longname, temp_str);
+				}
+			}		
+#else			
 			if ( utf8_convertor != NULL){
 				char* temp_str = utf8_convertor(temp_dir.d_name);
 				if( temp_str != NULL ) {
@@ -220,6 +232,7 @@ int open_usb_net_directory(const char* dir, char* sdir, int show_hidden, int sho
 					free(temp_str);
 				}
 			}
+#endif
 			(*list)[cur_count].compname = (*list)[cur_count].shortname;
 		}
 		else {
@@ -229,6 +242,14 @@ int open_usb_net_directory(const char* dir, char* sdir, int show_hidden, int sho
 			(*list)[cur_count].filetype = ft;
 			strcpy((*list)[cur_count].shortname, temp_dir.d_name);
 			strcpy((*list)[cur_count].longname, temp_dir.d_name);
+#ifdef PSPFW3XX	
+			if ( miniConvHaveFileSystemConv() ){
+				char* temp_str = miniConvFileSystemConv(temp_dir.d_name);
+				if( temp_str != NULL ) {
+					strcpy((*list)[cur_count].longname, temp_str);
+				}
+			}
+#else
 			if ( utf8_convertor != NULL){
 				char* temp_str = utf8_convertor(temp_dir.d_name);
 				if( temp_str != NULL ) {
@@ -236,6 +257,7 @@ int open_usb_net_directory(const char* dir, char* sdir, int show_hidden, int sho
 					free(temp_str);
 				}
 			}
+#endif
 			(*list)[cur_count].compname = (*list)[cur_count].shortname;
 			(*list)[cur_count].filesize = temp_dir.d_stat.st_size;
 		}
