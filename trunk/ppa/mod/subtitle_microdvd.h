@@ -23,13 +23,13 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 microdvd subtitle format parser
 */
 
-#ifndef pmp_microdvd_h__
-#define pmp_microdvd_h__
+#ifndef subtitle_microdvd_h__
+#define subtitle_microdvd_h__
 
 #include <stdio.h>
-#include "pmp_parse.h"
+#include "subtitle_parse.h"
 
-struct pmp_sub_frame_struct* pmp_sub_parse_microdvd( FILE *f, unsigned int rate, unsigned int scale );
+struct subtitle_frame_struct* subtitle_parse_microdvd( FILE *f, unsigned int rate, unsigned int scale );
 
 
 #endif

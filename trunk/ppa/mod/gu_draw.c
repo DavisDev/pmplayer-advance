@@ -25,7 +25,7 @@ gu routines
 */
 
 
-#include "pmp_gu.h"
+#include "gu_draw.h"
 
 
 unsigned int __attribute__((aligned(16))) pmp_gu_list[262144];
@@ -305,8 +305,8 @@ void pmp_gu_draw_without_tvout_supported(unsigned int aspect_ratio, unsigned int
 		int flags = 0;
 		int pwidth = 0;
 
-		struct pmp_sub_frame_struct *frame = 0;
-		if (pmp_sub_parse_get_frame(&subtitle_parser[show_subtitle-1], &frame, frame_number)==0)
+		struct subtitle_frame_struct *frame = 0;
+		if (subtitle_parse_get_frame(&subtitle_parser[show_subtitle-1], &frame, frame_number)==0)
 			{
 				if (frame!=0)
 					{
@@ -424,8 +424,8 @@ void pmp_gu_draw_psplcd(unsigned int aspect_ratio, unsigned int zoom, unsigned i
 		int flags = 0;
 		int pwidth = 0;
 
-		struct pmp_sub_frame_struct *frame = 0;
-		if (pmp_sub_parse_get_frame(&subtitle_parser[show_subtitle-1], &frame, frame_number)==0)
+		struct subtitle_frame_struct *frame = 0;
+		if (subtitle_parse_get_frame(&subtitle_parser[show_subtitle-1], &frame, frame_number)==0)
 			{
 				if (frame!=0)
 					{
@@ -544,8 +544,8 @@ void pmp_gu_draw_tvout_interlace(unsigned int aspect_ratio, unsigned int zoom, u
 		int flags = 0;
 		int pwidth = 0;
 
-		struct pmp_sub_frame_struct *frame = 0;
-		if (pmp_sub_parse_get_frame(&subtitle_parser[show_subtitle-1], &frame, frame_number)==0)
+		struct subtitle_frame_struct *frame = 0;
+		if (subtitle_parse_get_frame(&subtitle_parser[show_subtitle-1], &frame, frame_number)==0)
 			{
 				if (frame!=0)
 					{
@@ -675,8 +675,8 @@ void pmp_gu_draw_tvout_progressive(unsigned int aspect_ratio, unsigned int zoom,
 		int flags = 0;
 		int pwidth = 0;
 
-		struct pmp_sub_frame_struct *frame = 0;
-		if (pmp_sub_parse_get_frame(&subtitle_parser[show_subtitle-1], &frame, frame_number)==0)
+		struct subtitle_frame_struct *frame = 0;
+		if (subtitle_parse_get_frame(&subtitle_parser[show_subtitle-1], &frame, frame_number)==0)
 			{
 				if (frame!=0)
 					{

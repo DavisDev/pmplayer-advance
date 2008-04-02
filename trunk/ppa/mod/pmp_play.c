@@ -67,7 +67,7 @@ void pmp_play_close(struct pmp_play_struct *p, int usePos, int pspType)
 
 	int i = 0;
 	for (i=0; i<p->subtitle_count; i++)
-		pmp_sub_parse_close( &subtitle_parser[i] );
+		subtitle_parse_close( &subtitle_parser[i] );
 	
 	//if (usePos) pmp_stat_save( p );
 	pmp_stat_save( p );
@@ -666,8 +666,8 @@ char *pmp_play_open(struct pmp_play_struct *p, char *s, int usePos, int pspType,
 		strncpy(video_directory, s, divchar-s+1);
 		strncpy(video_filename, divchar+1, 512); 
 	}
-	if (pmp_sub_parse_search( video_directory, video_filename, p->decoder.reader.file.header.video.rate, p->decoder.reader.file.header.video.scale, &p->subtitle_count)==0) p->subtitle = 1;
-	//if (pmp_sub_parse_search( video_directory, s, p->decoder.reader.file.header.video.rate, p->decoder.reader.file.header.video.scale, &p->subtitle_count)==0) p->subtitle = 1;
+	if (subtitle_parse_search( video_directory, video_filename, p->decoder.reader.file.header.video.rate, p->decoder.reader.file.header.video.scale, &p->subtitle_count)==0) p->subtitle = 1;
+	//if (subtitle_parse_search( video_directory, s, p->decoder.reader.file.header.video.rate, p->decoder.reader.file.header.video.scale, &p->subtitle_count)==0) p->subtitle = 1;
 	//modify end 
 	
 #ifdef DEVHOOK
