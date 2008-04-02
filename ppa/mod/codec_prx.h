@@ -19,8 +19,8 @@
  *
  */
  
-#ifndef __DECODER_PRX__
-#define __DECODER_PRX__
+#ifndef __CODEC_PRX__
+#define __CODEC_PRX__
 
 #include <pspsdk.h>
 
@@ -28,7 +28,7 @@
 extern "C" {
 #endif
 
-char *prx_static_init();
+char *load_codec_prx();
 
 #ifdef __cplusplus
 }

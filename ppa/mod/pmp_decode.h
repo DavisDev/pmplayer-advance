@@ -37,13 +37,13 @@ av decoding in a ring buffer
 #include "common/mem64.h"
 #include "common/m33sdk.h"
 #include "aspect_ratio.h"
-#include "pmp_gu.h"
-#include "pmp_interface.h"
-#include "avc.h"
-#include "mp4v.h"
+#include "gu_draw.h"
+#include "movie_interface.h"
+#include "avcdecoder.h"
+#include "mp4vdecoder.h"
 #include "cpu_clock.h"
 
-#include "pmp_parse.h"
+#include "subtitle_parse.h"
 #include "gu_font.h"
 
 #define FF_INPUT_BUFFER_PADDING_SIZE 8

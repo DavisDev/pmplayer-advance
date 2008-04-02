@@ -19,7 +19,7 @@
  *
  */
  
-#include "mp4v.h"
+#include "mp4vdecoder.h"
 
 void mp4v_safe_constructor(struct mp4v_struct *p){
 	p->mpeg_init = -1;

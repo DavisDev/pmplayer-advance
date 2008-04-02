@@ -54,10 +54,10 @@
 
 //#include "avformat.h"
 
-#include "mod/pmp_sub_charset.h"
+#include "mod/subtitle_charset.h"
 #include "mod/cpu_clock.h"
 #include "mod/pmp.h"
-#include "mod/decoder_prx.h"
+#include "mod/codec_prx.h"
 
 #include "mod/gu_font.h"
 
@@ -407,7 +407,7 @@ int PmpAvcPlayer::init(char* ppaPath) {
 	pspDebugScreenPrintf("init pmpavc_kernel(avcodec)...\n");
 #endif
 	char* result;
-	result = prx_static_init();
+	result = load_codec_prx();
 	if (result!=0){
 #ifdef DEBUG
 		pspDebugScreenPrintf("%s\n",result);
@@ -458,7 +458,7 @@ int PmpAvcPlayer::init(char* ppaPath) {
 #ifdef PSPFW3XX		
 		miniConvSetSubtitleConv(config->getStringValue("config/subtitles/charset/value","UTF-8"));
 #else
-		set_pmp_subrip_charset(config->getStringValue("config/subtitles/charset/value","UTF-8"));
+		set_movie_subrip_charset(config->getStringValue("config/subtitles/charset/value","UTF-8"));
 #endif
 	}
 //*/
