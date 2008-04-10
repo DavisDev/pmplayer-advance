@@ -57,8 +57,12 @@
 #include "mod/subtitle_charset.h"
 #include "mod/cpu_clock.h"
 #include "mod/pmp.h"
-#include "mod/codec_prx.h"
 
+#ifdef PSPFW3XX
+#include "mod/mp4.h"
+#endif
+
+#include "mod/codec_prx.h"
 #include "mod/gu_font.h"
 
 
@@ -66,6 +70,9 @@
 
 file_type_ext_struct pmpFileFilter[] = {
 	{"pmp", FS_PMP_FILE},
+#ifdef PSPFW3XX
+	{"mp4", FS_MP4_FILE},
+#endif
 	{NULL, FS_UNKNOWN_FILE}
 };
 
@@ -407,7 +414,7 @@ int PmpAvcPlayer::init(char* ppaPath) {
 	pspDebugScreenPrintf("init pmpavc_kernel(avcodec)...\n");
 #endif
 	char* result;
-	result = load_codec_prx();
+	result = load_codec_prx(applicationPath);
 	if (result!=0){
 #ifdef DEBUG
 		pspDebugScreenPrintf("%s\n",result);
@@ -725,7 +732,6 @@ void PmpAvcPlayer::run() {
 				filmPreviewReload = filmInformationReload = filmReloadEnable;
 			}
 			else {
-				//TODO play pmpavc file
 				paintLoading();
 				playMovie(false);
 				filmPreviewReload = filmInformationReload = filmReloadEnable;
@@ -928,7 +934,7 @@ void PmpAvcPlayer::paintFilmPreview(){
 			filmPreviewImage = NULL;
 		}
 		
-		if ( fileItems[fileItemCurrent].filetype == FS_PMP_FILE ) {
+		if ( fileItems[fileItemCurrent].filetype == FS_PMP_FILE || fileItems[fileItemCurrent].filetype == FS_MP4_FILE ) {
 			char previewFileName[512];
 			memset(previewFileName, 0, 512);
 	
@@ -951,68 +957,162 @@ void PmpAvcPlayer::paintFilmPreview(){
 		putImageToImage(filmPreviewImage, drawImage, filmPreviewLeft, filmPreviewTop, filmPreviewWidth, filmPreviewHeight);
 };
 
+void PmpAvcPlayer::initFilmInformation() {
+	filmTotalFrames = 0;
+	filmWidth = 0;
+	filmHeight = 0;
+	filmScale = 1;
+	filmRate = 1;
+	filmAudioStreams = 0;
+	filmSubtitles = 0;
+}
+
+void PmpAvcPlayer::getCurrentPmpFilmInformation() {
+	char previewFileName[512];
+	memset(previewFileName, 0, 512);
+	
+	sprintf(previewFileName,"%s%s", fileShortPath, fileItems[fileItemCurrent].shortname);
+	FILE* fp = fopen(previewFileName, "rb");
+			
+	u32 inforBuffer[10];
+	memset(&inforBuffer, 0, 10*sizeof(u32));
+	fread(&inforBuffer, sizeof(u32), 10, fp);
+	fclose(fp);
+			
+	if ( inforBuffer[0] != 0x6D706D70 || inforBuffer[1] != 1 ) {
+		initFilmInformation();
+	}
+	else {			
+		filmTotalFrames = inforBuffer[3];
+		filmWidth = inforBuffer[4];
+		filmHeight = inforBuffer[5];
+		filmScale = inforBuffer[6];
+		filmRate = inforBuffer[7];
+		filmAudioStreams = inforBuffer[9];
+		filmSubtitles = 0;
+				
+		int fileNameLength = strlen(fileItems[fileItemCurrent].shortname);
+		char filename[512], subname[512], subext[5];
+		SceUID directory;
+		SceIoDirent entry;
+		directory = sceIoDopen(fileShortPath);
+		if ( !(directory < 0) ) {
+			while(1) {
+				memset(&entry, 0, sizeof(SceIoDirent));
+				int result = sceIoDread(directory, &entry);
+				if (result <= 0) break;
+				int subFileNameLength = strlen(entry.d_name);
+				if ( subFileNameLength < fileNameLength )
+					continue;
+				else{
+					memset(filename,0,512);
+					strncpy(filename, fileItems[fileItemCurrent].shortname, fileNameLength-4);
+					memset(subname,0,512);
+					strncpy(subname, entry.d_name, fileNameLength-4);
+					memset(subext,0,5);
+					strncpy(subext, &entry.d_name[subFileNameLength-4],4);
+					if ( (stricmp(filename, subname) == 0 ) && ((stricmp(subext,".sub")==0) || (stricmp(subext,".srt")==0)) )
+						filmSubtitles++;
+				}
+			}
+			sceIoDclose(directory);
+		}
+	}
+}
+
+void PmpAvcPlayer::getCurrentMp4FilmInformation() {
+	initFilmInformation();
+	
+//	char previewFileName[512];
+//	memset(previewFileName, 0, 512);
+//	
+//	sprintf(previewFileName,"%s%s", fileShortPath, fileItems[fileItemCurrent].shortname);
+//	
+//	mp4info_t* info = mp4info_open(previewFileName);
+//	if ( info == 0 ) {
+//		initFilmInformation();
+//	}
+//	else {
+//		int i;
+//		int video_track_id = -1;
+//		for(i = 0; i < info->total_tracks; i++) {
+//			mp4info_track_t* track = info->tracks[i];
+//			if (track->type != TRACK_VIDEO)
+//				continue;
+//			if ( track->video_type != 0x61766331 /*avc1*/)
+//				continue; 
+//			if ( track->width < 1 || track->height < 1 )
+//				continue;
+//			if ( track->width > 480 || track->height > 272 )
+//				continue;
+//			video_track_id = i;
+//			break;
+//		}
+//		if ( video_track_id < 0 ) {
+//			mp4info_close(info);
+//			initFilmInformation();
+//			return;
+//		} 
+//		
+//		int audio_tracks = 0;
+//		int first_audio_track_id = 0;
+//		for(i = 0; i < info->total_tracks; i++) {
+//			mp4info_track_t* track = info->tracks[i];
+//			if (track->type != TRACK_AUDIO)
+//				continue;
+//			if ( audio_tracks == 0 ) {
+//				if ( track->audio_type != 0x6D703461 /*mp4a*/)
+//					continue;
+//				if ( track->channels != 2 )
+//					continue;
+//				if ( track->samplerate != 22050 && track->samplerate != 24000 && track->samplerate != 44100 && track->samplerate != 48000 )
+//					continue;
+//				if ( track->samplebits != 16 )
+//					continue;
+//				first_audio_track_id = i;
+//				audio_tracks++;
+//			}
+//			else {
+//				mp4info_track_t* old_track = info->tracks[first_audio_track_id];
+//				if ( old_track->audio_type != track->audio_type )
+//					continue;
+//				if ( old_track->channels != track->channels )
+//					continue;
+//				if ( old_track->samplerate != track->samplerate )
+//					continue;
+//				if ( old_track->samplebits != track->samplebits )
+//					continue;
+//				audio_tracks++;
+//			}
+//			if ( audio_tracks == 6 )
+//				break;
+//		}
+//		if ( audio_tracks == 0 ) {
+//			mp4info_close(info);
+//			initFilmInformation();
+//			return;
+//		}
+//		filmTotalFrames = info->tracks[video_track_id]->stts_sample_count[0];
+//		filmWidth = info->tracks[video_track_id]->width;
+//		filmHeight = info->tracks[video_track_id]->height;
+//		filmScale = info->tracks[video_track_id]->stts_sample_duration[0];
+//		filmRate = info->tracks[video_track_id]->time_scale;
+//		filmAudioStreams = audio_tracks;
+//		mp4info_close(info);
+//		
+//		filmSubtitles = 0;
+//	}
+}
+
 void PmpAvcPlayer::paintFilmInformation() {
 	if ( !filmAspectRatioVisible && !filmFpsVisible && !filmTotalTimeVisible && !filmSubtitlesVisible )
 		return;
 	if ( filmInformationReload ) {
 		if ( fileItems[fileItemCurrent].filetype == FS_PMP_FILE ) {
-			char previewFileName[512];
-			memset(previewFileName, 0, 512);
-	
-			sprintf(previewFileName,"%s%s", fileShortPath, fileItems[fileItemCurrent].shortname);
-			FILE* fp = fopen(previewFileName, "rb");
-			
-			u32 inforBuffer[10];
-			memset(&inforBuffer, 0, 10*sizeof(u32));
-			fread(&inforBuffer, sizeof(u32), 10, fp);
-			fclose(fp);
-			
-			if ( inforBuffer[0] != 0x6D706D70 || inforBuffer[1] != 1 ) {
-				filmTotalFrames = 0;
-				filmWidth = 0;
-				filmHeight = 0;
-				filmScale = 1;
-				filmRate = 1;
-				filmAudioStreams = 0;
-				filmSubtitles = 0;
-			}
-			else {			
-				filmTotalFrames = inforBuffer[3];
-				filmWidth = inforBuffer[4];
-				filmHeight = inforBuffer[5];
-				filmScale = inforBuffer[6];
-				filmRate = inforBuffer[7];
-				filmAudioStreams = inforBuffer[9];
-				filmSubtitles = 0;
-				
-				int fileNameLength = strlen(fileItems[fileItemCurrent].shortname);
-				char filename[512], subname[512], subext[5];
-				SceUID directory;
-				SceIoDirent entry;
-				directory = sceIoDopen(fileShortPath);
-				if ( !(directory < 0) ) {
-					while(1) {
-						memset(&entry, 0, sizeof(SceIoDirent));
-						int result = sceIoDread(directory, &entry);
-						if (result <= 0) break;
-						int subFileNameLength = strlen(entry.d_name);
-						if ( subFileNameLength < fileNameLength )
-							continue;
-						else{
-							memset(filename,0,512);
-							strncpy(filename, fileItems[fileItemCurrent].shortname, fileNameLength-4);
-							memset(subname,0,512);
-							strncpy(subname, entry.d_name, fileNameLength-4);
-							memset(subext,0,5);
-							strncpy(subext, &entry.d_name[subFileNameLength-4],4);
-							if ( (stricmp(filename, subname) == 0 ) && ((stricmp(subext,".sub")==0) || (stricmp(subext,".srt")==0)) )
-								filmSubtitles++;
-						}
-					}
-					sceIoDclose(directory);
-				}
-			}
-			
+			getCurrentPmpFilmInformation();
+		}
+		else if ( fileItems[fileItemCurrent].filetype == FS_MP4_FILE ) {
+			getCurrentMp4FilmInformation();
 		}
 		filmInformationReload = false;
 	}
@@ -1156,20 +1256,26 @@ void PmpAvcPlayer::playMovie(bool resume) {
 	scePowerLock(0);
 #endif
 	
-	char pmpFileName[512];
-	memset(pmpFileName, 0, 512);
-	sprintf(pmpFileName, "%s%s", fileShortPath, fileItems[fileItemCurrent].shortname);
+	char movieFileName[512];
+	memset(movieFileName, 0, 512);
+	sprintf(movieFileName, "%s%s", fileShortPath, fileItems[fileItemCurrent].shortname);
 	
 	char* result = NULL;
 	
 	int left, top, right, bottom;
 	VideoMode::getTVOverScan(left, top, right, bottom);
-	if ( resume ) {
-		result = pmp_play(pmpFileName, 1, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode() );
-	}
-	else {
-		result = pmp_play(pmpFileName, 0, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode());
-	}
+	
+	int usePos = resume ? 1 : 0;
+	
+	if ( fileItems[fileItemCurrent].filetype == FS_PMP_FILE )
+		result = pmp_play(movieFileName, usePos, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode() );
+#ifdef PSPFW3XX
+	else if ( fileItems[fileItemCurrent].filetype == FS_MP4_FILE )
+		result = mp4_play(movieFileName, usePos, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode() );
+#endif
+	else
+		result = "unsupported movie";
+	
 	sceKernelDcacheWritebackInvalidateAll();
 	sceKernelDelayThread(1000000);
 	if ( result ) {
@@ -1190,11 +1296,19 @@ void PmpAvcPlayer::playMovie(bool resume) {
 		while(fileItemCurrent < fileItemCount - 1) {
 			if ( is_next_movie( fileItems[fileItemCurrent].longname, fileItems[fileItemCurrent+1].longname ) ) {
 				fileItemCurrent++;
-				memset(pmpFileName, 0, 512);
-				sprintf(pmpFileName, "%s%s", fileShortPath, fileItems[fileItemCurrent].shortname); 
+				memset(movieFileName, 0, 512);
+				sprintf(movieFileName, "%s%s", fileShortPath, fileItems[fileItemCurrent].shortname); 
 				int left, top, right, bottom;
 				VideoMode::getTVOverScan(left, top, right, bottom);
-				result = pmp_play(pmpFileName, 0, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode());
+				if ( fileItems[fileItemCurrent].filetype == FS_PMP_FILE )
+					result = pmp_play(movieFileName, 0, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode());
+#ifdef PSPFW3XX
+				else if ( fileItems[fileItemCurrent].filetype == FS_MP4_FILE )
+					result = mp4_play(movieFileName, 0, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode());
+#endif				
+				else
+					result = "unsupported movie";
+					
 				sceKernelDcacheWritebackInvalidateAll();
 				sceKernelDelayThread(1000000);
 				if ( result )
@@ -1207,11 +1321,18 @@ void PmpAvcPlayer::playMovie(bool resume) {
 	else if ( stricmp("all", playMode) == 0 ) {
 		while(fileItemCurrent < fileItemCount - 1) {
 			fileItemCurrent++;
-			memset(pmpFileName, 0, 512);
-			sprintf(pmpFileName, "%s%s", fileShortPath, fileItems[fileItemCurrent].shortname); 
+			memset(movieFileName, 0, 512);
+			sprintf(movieFileName, "%s%s", fileShortPath, fileItems[fileItemCurrent].shortname); 
 			int left, top, right, bottom;
 			VideoMode::getTVOverScan(left, top, right, bottom);
-			result = pmp_play(pmpFileName, 0, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode());
+			if ( fileItems[fileItemCurrent].filetype == FS_PMP_FILE )
+				result = pmp_play(movieFileName, 0, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode());
+#ifdef PSPFW3XX
+			else if ( fileItems[fileItemCurrent].filetype == FS_MP4_FILE )
+				result = mp4_play(movieFileName, 0, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode());
+#endif
+			else
+				result = "unsupported movie";
 			sceKernelDcacheWritebackInvalidateAll();
 			sceKernelDelayThread(1000000); 
 			if ( result )

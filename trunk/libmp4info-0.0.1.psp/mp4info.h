@@ -1,5 +1,5 @@
 /* 
- *	Copyright (C) 2006 cooleyes
+ *	Copyright (C) 2008 cooleyes
  *	eyes.cooleyes@gmail.com 
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -19,38 +19,24 @@
  *
  */
  
-#ifndef __mp4v_decoder_h_cooleyes__
-#define __mp4v_decoder_h_cooleyes__
+#ifndef __MP4INFO_H__
+#define __MP4INFO_H__
 
-
-#include <string.h>
-#include <pspsdk.h>
-#include "pspvideocodec.h"
-#include "pspmpeg.h"
-#include "common/mem64.h"
-#include "mpegbase.h"
-
-struct mp4v_struct
-	{
-	int      mpeg_init;
-	unsigned long* codec_buffer;
-	unsigned long* src_buffer;
-	unsigned long* dest_buffer;
-	};
-
+#include "mp4info_type.h"
 
 #ifdef __cplusplus
 extern "C" {
-#endif
+#endif /* __cplusplus */
 
-void mp4v_safe_constructor(struct mp4v_struct *p);
-void mp4v_close(struct mp4v_struct *p);
-char *mp4v_open(struct mp4v_struct *p);
-char *mp4v_get_rgb(struct mp4v_struct *p, void *source_buffer, int size, void* rgbp);
-char *mp4v_get_yuv(struct mp4v_struct *p, void *source_buffer, int size, void* y, void* u, void* v, int* y_width, int* u_width, int* v_width, int* height);
+//typedef void* mp4info_t;
+
+mp4info_t* mp4info_open(const char* filename);
+void mp4info_close(mp4info_t* info);
+
+void mp4info_dump(mp4info_t* info, const char* dumpfile);
 
 #ifdef __cplusplus
 }
-#endif
+#endif /* __cplusplus */
 
 #endif

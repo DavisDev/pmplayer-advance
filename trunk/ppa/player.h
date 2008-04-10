@@ -81,6 +81,10 @@ private:
 	void saveConfig();
 	
 	void initSkinData();
+	
+	void initFilmInformation();
+	void getCurrentPmpFilmInformation();
+	void getCurrentMp4FilmInformation();
 
 	bool listDirectory();
 	void paintFileListBox();

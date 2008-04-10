@@ -226,19 +226,6 @@ void setGraphicsTVOutScreen() {
 	}
 }
 
-void initGraphics(int type, int mode){
-	pspType = type;
-	if ( m33IsTVOutSupported(pspType) ) {
-		pFlipScreen = flipScreenWithTVOutSupported;
-		initGraphicsWithTVoutSupported();
-		setGraphicsVideoMode(mode);
-	}
-	else{
-		pFlipScreen = flipScreenWithoutTVOutSupported;
-		initGraphicsWithoutTVoutSupported();
-	}
-}
-
 void setGraphicsVideoMode(int mode) {
 	if ( initialized && m33IsTVOutSupported(pspType) && (videoMode != mode) ) {
 		if ( mode == 0 ) {
@@ -312,6 +299,19 @@ void initGraphicsWithoutTVoutSupported() {
 	sceDisplaySetFrameBuf(frameBuffer[displayBufferNumber], PSP_SCREEN_TEXTURE_WIDTH, PSP_DISPLAY_PIXEL_FORMAT_8888, PSP_DISPLAY_SETBUF_IMMEDIATE);
 			
 	initialized = 1;
+}
+
+void initGraphics(int type, int mode){
+	pspType = type;
+	if ( m33IsTVOutSupported(pspType) ) {
+		pFlipScreen = flipScreenWithTVOutSupported;
+		initGraphicsWithTVoutSupported();
+		setGraphicsVideoMode(mode);
+	}
+	else{
+		pFlipScreen = flipScreenWithoutTVOutSupported;
+		initGraphicsWithoutTVoutSupported();
+	}
 }
 
 void disableGraphics(){

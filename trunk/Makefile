@@ -36,6 +36,7 @@ eboot3xx:
 	make -C libmpeg
 	make -C pspvideocodec
 	make -C cooleyesAudio
+	make -C libmp4info-0.0.1.psp
 	make -C ppa/miniconv
 #	make -C libavutil
 #	make -C libavformat
@@ -135,6 +136,7 @@ ppa3xxzh: eboot3xx
 	rar a -ep1 release/ppa.eboot.fw3xx.`date +"%Y%m%d"`.rar ppa/PPA3xx/nethostfs_310.prx
 	rar a -ep1 release/ppa.eboot.fw3xx.`date +"%Y%m%d"`.rar ppa/PPA3xx/nethostfs_371.prx
 	rar a -ep1 release/ppa.eboot.fw3xx.`date +"%Y%m%d"`.rar ppa/PPA3xx/dvemgr.prx
+	rar a -ep1 release/ppa.eboot.fw3xx.`date +"%Y%m%d"`.rar ppa/PPA3xx/mpeg_vsh330.prx
 	rar a -ep1 release/ppa.eboot.fw3xx.`date +"%Y%m%d"`.rar ppa/PPA3xx/config.xml
 	rar a -ep1 release/ppa.all-zh.fw3xx.`date +"%Y%m%d"`.rar ppa/PPA3xx
 	cat cngba.txt | rar c release/ppa.eboot.fw3xx.`date +"%Y%m%d"`.rar
@@ -161,6 +163,7 @@ clean:
 	make -C libmpeg clean
 	make -C pspvideocodec clean
 	make -C cooleyesAudio clean
+	make -C libmp4info-0.0.1.psp clean
 #	make -C libavutil clean
 #	make -C libavformat clean
 #	make -C libavcodec clean
