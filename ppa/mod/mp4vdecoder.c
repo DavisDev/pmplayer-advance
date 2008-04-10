@@ -26,12 +26,10 @@ void mp4v_safe_constructor(struct mp4v_struct *p){
 	p->codec_buffer = 0;
 	p->src_buffer = 0;
 	p->dest_buffer = 0;
-	p->mpeg_lli = 0;
 };
 
 void mp4v_close(struct mp4v_struct *p) {
 	
-	if (p->mpeg_lli != 0) free_64(p->mpeg_lli);
 	if (p->src_buffer != 0) free_64(p->src_buffer);
 	if (p->dest_buffer != 0) free_64(p->dest_buffer);
 	if (p->codec_buffer != 0) {
@@ -46,7 +44,7 @@ void mp4v_close(struct mp4v_struct *p) {
 	mp4v_safe_constructor(p);
 };
 
-char *mp4v_open(struct mp4v_struct *p, unsigned int maximum_frame_size){
+char *mp4v_open(struct mp4v_struct *p){
 	mp4v_safe_constructor(p);
 	
 	p->mpeg_init = sceMpegInit();
@@ -109,53 +107,12 @@ char *mp4v_open(struct mp4v_struct *p, unsigned int maximum_frame_size){
 		return("mp4v_open: sceVideocodecStop failed");
 	}
 	
-	unsigned int maximum_number_of_blocks = (maximum_frame_size + DMABLOCK - 1) / DMABLOCK;
-
-	p->mpeg_lli = malloc_64(sizeof(struct SceMpegLLI) * maximum_number_of_blocks);
-	if (p->mpeg_lli == 0){
-		mp4v_close(p);
-		return("mp4v_open: malloc_64 failed on mpeg_lli");
-	}
-	
 	return(0);
 };
 
-static void CopyAu2Me(struct mp4v_struct *p, void *source_buffer, int size)
-	{
-	void *destination_buffer = (void *) MEMP4VBUF;
-
-	unsigned int i = 0;
-
-	while (1)
-		{
-		p->mpeg_lli[i].pSrc = source_buffer;
-		p->mpeg_lli[i].pDst = destination_buffer;
-
-		if (size > DMABLOCK)
-			{
-			p->mpeg_lli[i].iSize = DMABLOCK;
-			p->mpeg_lli[i].Next  = &p->mpeg_lli[i + 1];
-
-			source_buffer      += DMABLOCK;
-			destination_buffer += DMABLOCK;
-			size               -= DMABLOCK;
-			i                  ++;
-			}
-		else
-			{
-			p->mpeg_lli[i].iSize = size;
-			p->mpeg_lli[i].Next  = 0;
-
-			break;
-			}
-		}
-		
-	sceMpegbase_BEA18F91(p->mpeg_lli);
-	}
-
 char *mp4v_get_rgb(struct mp4v_struct *p, void *source_buffer, int size, void* rgbp) {
 	int res;
-	//CopyAu2Me(p, source_buffer, size);
+	
 	p->codec_buffer[9] = source_buffer;//MEMP4VBUF;
 	p->codec_buffer[10] = size;
 	p->codec_buffer[14] = 7;

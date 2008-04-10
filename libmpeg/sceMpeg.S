@@ -119,3 +119,6 @@
 #ifdef F_sceMpeg_0038
 	IMPORT_FUNC	"sceMpeg",0x988E9E12,sceMpeg_988E9E12
 #endif
+#ifdef F_sceMpeg_0039
+	IMPORT_FUNC	"sceMpeg",0x11F95CF1,sceMpegGetAvcNalAu
+#endif

@@ -21,7 +21,7 @@
  
 #include "codec_prx.h"
  
-char *load_codec_prx()
+char *load_codec_prx(const char* ppa_path)
 	{
 	int result;
 #ifdef DEVHOOK
@@ -62,7 +62,15 @@ char *load_codec_prx()
 #endif
 
 #ifdef PSPFW3XX
-	result = sceUtilityLoadAvModule(3);
+	//result = sceUtilityLoadAvModule(3);
+	char prx_path[512];
+	memset(prx_path, 0, 512);
+	sprintf(prx_path, "%s%s", ppa_path, "mpeg_vsh330.prx");
+	int status;
+	result = sceKernelLoadModule(prx_path, 0, NULL);
+	if(result >= 0) {
+		result = sceKernelStartModule(result, 0, 0, &status, NULL);
+	}
 #else
 	result = pspSdkLoadStartModule("flash0:/kd/mpeg_vsh.prx", PSP_MEMORY_PARTITION_USER);
 #endif

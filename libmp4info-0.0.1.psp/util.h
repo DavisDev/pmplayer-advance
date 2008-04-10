@@ -1,5 +1,5 @@
 /* 
- *	Copyright (C) 2006 cooleyes
+ *	Copyright (C) 2008 cooleyes
  *	eyes.cooleyes@gmail.com 
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -18,52 +18,27 @@
  *  http://www.gnu.org/copyleft/gpl.html
  *
  */
-#ifndef __DIRECTORY_H__
-#define __DIRECTORY_H__
+ 
+#ifndef __MP4INFO_UTIL_H__
+#define __MP4INFO_UTIL_H__
 
-typedef enum {
-//*/
-	FS_DIRECTORY = 0,
-	FS_PMP_FILE,
-	FS_MP4_FILE,
-	FS_UNKNOWN_FILE
-//*/
-} file_type_enum;
-
-typedef struct {
-	const char * ext;
-	file_type_enum filetype;
-} file_type_ext_struct;
-
-typedef struct {
-	char shortname[256];
-	char longname[256];
-	char* compname; 
-	u32 filesize;
-	u16 cdate;
-	u16 ctime;
-	u16 mdate;
-	u16 mtime;
-	file_type_enum filetype;
-} directory_item_struct;
+#include <pspiofilemgr.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#ifndef PSPFW3XX
-void set_usb_net_directory_charset(const char* charset);
-#endif
-
-file_type_enum directory_get_filetype(const char* filename, file_type_ext_struct* file_type_ext_table);
-
-int open_directory(const char* dir, char* sdir, int show_hidden, int show_unknown, file_type_ext_struct* file_type_ext_table, directory_item_struct** list); 
-
-int is_next_movie(const char* prev, const char* next);
+int32_t io_set_position(SceUID handle, const int32_t position);
+int32_t io_get_position(SceUID handle);
+uint32_t io_read_data(SceUID handle, uint8_t* data, const uint32_t size);
+uint64_t io_read_int64(SceUID handle);
+uint32_t io_read_int32(SceUID handle);
+uint32_t io_read_int24(SceUID handle);
+uint16_t io_read_int16(SceUID handle);
+uint8_t io_read_int8(SceUID handle);
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif
-

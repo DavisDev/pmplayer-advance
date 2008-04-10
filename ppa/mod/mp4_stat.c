@@ -1,11 +1,10 @@
 #include <pspiofilemgr.h>
-#include "pmp_stat.h"
+#include "mp4_stat.h"
 
 #undef printf
 
 
-void pmp_stat_read( char* s, int* pos, int* vol, int* aspect, int* zoom, int* lum, int* sub, int* subfmt, int* subfcol, int* subbcol )
-	{
+void mp4_stat_read( char* s, int* pos, int* vol, int* aspect, int* zoom, int* lum, int* sub, int* subfmt, int* subfcol, int* subbcol ) {
 	char filename[256];
 	snprintf( filename, 256, "%s.pos", s);
 	
@@ -24,8 +23,7 @@ void pmp_stat_read( char* s, int* pos, int* vol, int* aspect, int* zoom, int* lu
 
 	#define clamp(v,x,y) ((v<x)?(v=x):(v>y)?(v=y):v)
 	
-	if((fd = sceIoOpen( filename, PSP_O_RDONLY, 0777))>=0)
-		{
+	if((fd = sceIoOpen( filename, PSP_O_RDONLY, 0777))>=0) {
 		int val;
 		sceIoRead( fd, &val, sizeof(int) );
 		if (pos) *pos = val;
@@ -46,12 +44,11 @@ void pmp_stat_read( char* s, int* pos, int* vol, int* aspect, int* zoom, int* lu
 		sceIoRead( fd, &val, sizeof(int) );
 		if (subbcol) *subbcol = clamp(val,0,NUMBER_OF_BORDERCOLORS-1);
 		sceIoClose(fd);
-		}
 	}
+}
 
 
-void pmp_stat_load( struct pmp_play_struct *p, char* s )
-	{
+void mp4_stat_load( struct mp4_play_struct *p, char* s ) {
 	if (p==0) return;
 	
 	snprintf( p->resume_filename, 256, "%s.pos", s);
@@ -59,11 +56,10 @@ void pmp_stat_load( struct pmp_play_struct *p, char* s )
 	SceUID	fd;
 
 	// device:path
-	if((fd = sceIoOpen( p->resume_filename, PSP_O_RDONLY, 0777))>=0)
-		{
+	if((fd = sceIoOpen( p->resume_filename, PSP_O_RDONLY, 0777))>=0) {
 		sceIoRead( fd, &p->resume_pos, sizeof(int) );
 		sceIoRead( fd, &p->audio_stream, sizeof(int) );
-		if (p->audio_stream>=p->decoder.reader.file.header.audio.number_of_streams)
+		if (p->audio_stream>=p->decoder.reader.file.audio_tracks)
 			p->audio_stream = 0;
 			
 		sceIoRead( fd, &p->volume_boost, sizeof(int) );
@@ -101,19 +97,17 @@ void pmp_stat_load( struct pmp_play_struct *p, char* s )
 			p->subtitle_bordercolor = NUMBER_OF_BORDERCOLORS-1;
 
 		sceIoClose( fd );
-		}
 	}
+}
 
 
-void pmp_stat_save( struct pmp_play_struct *p )
-	{
+void mp4_stat_save( struct mp4_play_struct *p ) {
 	if (p==0) return;
 	
 	SceUID	fd;
 	
 	// device:path
-	if((fd = sceIoOpen( p->resume_filename, PSP_O_WRONLY|PSP_O_CREAT, 0777))>=0)
-		{
+	if((fd = sceIoOpen( p->resume_filename, PSP_O_WRONLY|PSP_O_CREAT, 0777))>=0) {
 		sceIoWrite( fd, &p->last_keyframe_pos, sizeof(int) );
 		//printf("pos.\n");
 		sceIoWrite( fd, &p->audio_stream, sizeof(int) );
@@ -135,10 +129,9 @@ void pmp_stat_save( struct pmp_play_struct *p )
 		sceIoWrite( fd, &p->subtitle_bordercolor, sizeof(int) );
 		//printf("sub bordercolor.\n");
 		sceIoClose( fd );
-		}
-	else
-		{
-		sceIoRemove( p->resume_filename );	// Delete the file if something got wrong, or else there's a 0kb file
-		}
-
 	}
+	else {
+		sceIoRemove( p->resume_filename );	// Delete the file if something got wrong, or else there's a 0kb file
+	}
+
+}

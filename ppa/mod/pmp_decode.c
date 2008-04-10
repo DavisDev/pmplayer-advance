@@ -99,7 +99,7 @@ char *pmp_decode_open(struct pmp_decode_struct *p, char *s, int pspType, int tvA
 	if ( p->video_format == 1 )
 		result = avc_open(&p->avc, p->reader.file.maximum_packet_size);
 	else
-		result = mp4v_open(&p->mp4v, p->reader.file.maximum_packet_size);
+		result = mp4v_open(&p->mp4v);
 	if (result != 0)
 		{
 		pmp_decode_close(p, pspType);
