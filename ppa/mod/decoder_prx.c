@@ -19,9 +19,9 @@
  *
  */
  
-#include "codec_prx.h"
+#include "decoder_prx.h"
  
-char *load_codec_prx()
+char *prx_static_init()
 	{
 	int result;
 #ifdef DEVHOOK

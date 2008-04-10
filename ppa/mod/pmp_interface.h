@@ -25,8 +25,8 @@ interface routines
 */
 
 
-#ifndef movie_interface_h
-#define movie_interface_h
+#ifndef pmp_interface_h
+#define pmp_interface_h
 
 
 #define interface_height 32

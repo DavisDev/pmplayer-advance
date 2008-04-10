@@ -29,7 +29,7 @@ this lib should be used to play .pmp files
 #define pmp_h
 
 
-#include "gu_draw.h"
+#include "pmp_gu.h"
 #include "pmp_play.h"
 
 #ifdef __cplusplus

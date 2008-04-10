@@ -27,17 +27,17 @@ subtitle parsing layer
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
-#include "subtitle_parse.h"
-#include "subtitle_subrip.h"
-#include "subtitle_microdvd.h"
+#include "pmp_parse.h"
+#include "pmp_subrip.h"
+#include "pmp_microdvd.h"
 #include "common/mem64.h"
 #include "opendir.h"
 
 
 
-struct subtitle_frame_struct* (*subtitle_parse_line)( FILE *f, unsigned int rate, unsigned int scale ) = 0;	// function pointer to line parsing
+struct pmp_sub_frame_struct* (*pmp_sub_parse_line)( FILE *f, unsigned int rate, unsigned int scale ) = 0;	// function pointer to line parsing
 
-struct subtitle_parse_struct subtitle_parser[MAX_SUBTITLES];
+struct pmp_sub_parse_struct subtitle_parser[MAX_SUBTITLES];
 
 
 int strconv( char* s, const char a, const char b )
@@ -58,7 +58,7 @@ int strconv( char* s, const char a, const char b )
 	}
 
 
-void subtitle_frame_safe_constructor(struct subtitle_frame_struct *p)
+void pmp_sub_frame_safe_constructor(struct pmp_sub_frame_struct *p)
 	{
 		p->p_start_frame = 0;
 		p->p_end_frame = 0;
@@ -69,9 +69,9 @@ void subtitle_frame_safe_constructor(struct subtitle_frame_struct *p)
 	}
 	
 
-void subtitle_frame_safe_destructor(struct subtitle_frame_struct *p)
+void pmp_sub_frame_safe_destructor(struct pmp_sub_frame_struct *p)
 	{
-		if (p->next != 0) subtitle_frame_safe_destructor(p->next);
+		if (p->next != 0) pmp_sub_frame_safe_destructor(p->next);
 		p->next = 0;
 		p->prev = 0;
 		free_64( p );
@@ -79,9 +79,9 @@ void subtitle_frame_safe_destructor(struct subtitle_frame_struct *p)
 	}
 
 
-void subtitle_parse_safe_constructor(struct subtitle_parse_struct *p)
+void pmp_sub_parse_safe_constructor(struct pmp_sub_parse_struct *p)
 	{
-		if (p->p_sub_frame != 0) subtitle_frame_safe_destructor(p->p_sub_frame);
+		if (p->p_sub_frame != 0) pmp_sub_frame_safe_destructor(p->p_sub_frame);
 		p->p_sub_frame = 0;
 		p->p_num_sub_frames = 0;
 		p->p_cur_sub_frame = 0;
@@ -90,17 +90,17 @@ void subtitle_parse_safe_constructor(struct subtitle_parse_struct *p)
 	}
 	
 
-void subtitle_parse_close(struct subtitle_parse_struct *p)
+void pmp_sub_parse_close(struct pmp_sub_parse_struct *p)
 	{
 		if (p==0) return;
 	    if (p->p_in != 0)        fclose(p->p_in);
-		if (p->p_sub_frame != 0) subtitle_frame_safe_destructor(p->p_sub_frame);
+		if (p->p_sub_frame != 0) pmp_sub_frame_safe_destructor(p->p_sub_frame);
 		
-		subtitle_parse_safe_constructor( p );
+		pmp_sub_parse_safe_constructor( p );
 	}
 
 
-char *subtitle_parse_search(char *folder, char *filename, unsigned int rate, unsigned int scale, unsigned int *num_subtitles)
+char *pmp_sub_parse_search(char *folder, char *filename, unsigned int rate, unsigned int scale, unsigned int *num_subtitles)
 	{
 		struct opendir_struct directory;
 		
@@ -125,7 +125,7 @@ char *subtitle_parse_search(char *folder, char *filename, unsigned int rate, uns
 		if (result != 0)
 			{
 			opendir_close(&directory);
-			return("subtitle_parse_search: directory empty or doesn't exist.");
+			return("pmp_sub_parse_search: directory empty or doesn't exist.");
 			}
 		
 		int i = 0;
@@ -139,8 +139,8 @@ char *subtitle_parse_search(char *folder, char *filename, unsigned int rate, uns
 				char sub_name[1024];
 				memset(sub_name,0,1024);
 				sprintf(sub_name,"%s%s", folder, directory.directory_entry[i].d_name);
-				if (subtitle_parse_open( &subtitle_parser[*num_subtitles], sub_name, rate, scale )==0)
-				//if (subtitle_parse_open( &subtitle_parser[*num_subtitles], directory.directory_entry[i].d_name, rate, scale )==0)
+				if (pmp_sub_parse_open( &subtitle_parser[*num_subtitles], sub_name, rate, scale )==0)
+				//if (pmp_sub_parse_open( &subtitle_parser[*num_subtitles], directory.directory_entry[i].d_name, rate, scale )==0)
 				//modify end
 					{
 					(*num_subtitles)++;
@@ -153,50 +153,50 @@ char *subtitle_parse_search(char *folder, char *filename, unsigned int rate, uns
 		if (*num_subtitles)
 			return(0);
 		else
-			return("subtitle_parse_search: no subtitles found.");
+			return("pmp_sub_parse_search: no subtitles found.");
 	}
 
 
-char *subtitle_parse_open(struct subtitle_parse_struct *p, char *s, unsigned int rate, unsigned int scale)
+char *pmp_sub_parse_open(struct pmp_sub_parse_struct *p, char *s, unsigned int rate, unsigned int scale)
 	{
-		if (p==0) return("subtitle_parse_open: p not initialized");
-		subtitle_parse_safe_constructor(p);
+		if (p==0) return("pmp_sub_parse_open: p not initialized");
+		pmp_sub_parse_safe_constructor(p);
 		
 		p->p_in = fopen(s, "rb");
 		if (p->p_in == 0)
 			{
-			subtitle_parse_close(p);
-			return("subtitle_parse_open: can't open file");
+			pmp_sub_parse_close(p);
+			return("pmp_sub_parse_open: can't open file");
 			}
 	
 		strncpy(p->filename, s, 1024);
 		p->filename[1023]='\0';
 		
-		struct subtitle_frame_struct *new_frame = 0;
-		p->p_sub_frame = (struct subtitle_frame_struct*)malloc_64( sizeof(struct subtitle_frame_struct) );
+		struct pmp_sub_frame_struct *new_frame = 0;
+		p->p_sub_frame = (struct pmp_sub_frame_struct*)malloc_64( sizeof(struct pmp_sub_frame_struct) );
 		if (p->p_sub_frame==0)
 			{
-			subtitle_parse_close(p);
-			return("subtitle_parse_open: malloc_64 failed on p_sub_frame");
+			pmp_sub_parse_close(p);
+			return("pmp_sub_parse_open: malloc_64 failed on p_sub_frame");
 			}
-		subtitle_frame_safe_constructor(p->p_sub_frame);
+		pmp_sub_frame_safe_constructor(p->p_sub_frame);
 		p->p_cur_sub_frame = p->p_sub_frame;
 		
-		struct subtitle_frame_struct *cur_frame = p->p_sub_frame;
+		struct pmp_sub_frame_struct *cur_frame = p->p_sub_frame;
 		
 		/* subtitle format selection here */
 		char *ext = p->filename+strlen(p->filename)-3;
 		if (strncmp(strupr(ext),"SUB",3)==0)
-			subtitle_parse_line = &subtitle_parse_microdvd;
+			pmp_sub_parse_line = &pmp_sub_parse_microdvd;
 		else if (strncmp(strupr(ext),"SRT",3)==0)
-			subtitle_parse_line = &subtitle_parse_subrip;
+			pmp_sub_parse_line = &pmp_sub_parse_subrip;
 		else
 			{
-			subtitle_parse_close(p);
-			return("subtitle_parse_open: unknown subtitle format");
+			pmp_sub_parse_close(p);
+			return("pmp_sub_parse_open: unknown subtitle format");
 			}
 
-		while ((new_frame=subtitle_parse_line( p->p_in, rate, scale ))!=0)
+		while ((new_frame=pmp_sub_parse_line( p->p_in, rate, scale ))!=0)
 			{
 			if (new_frame->p_start_frame<=cur_frame->p_end_frame) new_frame->p_start_frame=cur_frame->p_end_frame+1;
 			cur_frame->next = new_frame;
@@ -211,17 +211,17 @@ char *subtitle_parse_open(struct subtitle_parse_struct *p, char *s, unsigned int
 		p->p_in = 0;
 		
 		if (p->p_num_sub_frames==0)
-			return("subtitle_parse_open: no subtitle frames parsed");
+			return("pmp_sub_parse_open: no subtitle frames parsed");
 
 		return(0);
 	}
 
 
-char* subtitle_parse_get_frame(struct subtitle_parse_struct *p, struct subtitle_frame_struct **f, unsigned int frame )
+char* pmp_sub_parse_get_frame(struct pmp_sub_parse_struct *p, struct pmp_sub_frame_struct **f, unsigned int frame )
 	{
 		*f = 0;
-		if (p==0) return("subtitle_parse_get_frame: p not initialized");
-		if (p->p_sub_frame==0) return("subtitle_parse_get_frame: p_sub_frame not initialized");
+		if (p==0) return("pmp_sub_parse_get_frame: p not initialized");
+		if (p->p_sub_frame==0) return("pmp_sub_parse_get_frame: p_sub_frame not initialized");
 	
 		if (p->p_cur_sub_frame==0) p->p_cur_sub_frame = p->p_sub_frame;
 		

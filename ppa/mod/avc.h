@@ -23,8 +23,8 @@ http://forums.ps2dev.org/viewtopic.php?t=5820
 */
 
 
-#ifndef avcdecoder_h
-#define avcdecoder_h
+#ifndef avc_h
+#define avc_h
 
 
 #include <string.h>

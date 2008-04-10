@@ -19,8 +19,8 @@
  *
  */
  
-#ifndef __mp4v_decoder_h_cooleyes__
-#define __mp4v_decoder_h_cooleyes__
+#ifndef __mp4v_h_cooleyes__
+#define __mp4v_h_cooleyes__
 
 
 #include <string.h>

@@ -23,12 +23,10 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 subrip subtitle format parser
 */
 
-//a little modify by cooleyes
-
 #include<psptypes.h>
 #include<string.h>
 
-#include "subtitle_subrip.h"
+#include "pmp_subrip.h"
 #include "common/mem64.h"
 
 #ifdef PSPFW3XX
@@ -38,7 +36,7 @@ subrip subtitle format parser
 
 static utf8_convert_function utf8_convertor = NULL;
 
-void set_movie_subrip_charset(const char* charset) {
+void set_pmp_subrip_charset(const char* charset) {
 	if ( stricmp(charset, "GBK") == 0)
 		utf8_convertor = gbk_to_utf8;
 	else if (stricmp(charset, "BIG5") == 0)
@@ -54,11 +52,11 @@ void set_movie_subrip_charset(const char* charset) {
 }
 #endif
 
-struct subtitle_frame_struct* subtitle_parse_subrip( FILE *f, unsigned int rate, unsigned int scale )
+struct pmp_sub_frame_struct* pmp_sub_parse_subrip( FILE *f, unsigned int rate, unsigned int scale )
 	{
 	if (!f) return(0);
 	
-	struct subtitle_frame_struct *p = (struct subtitle_frame_struct*)malloc_64( sizeof(struct subtitle_frame_struct) );
+	struct pmp_sub_frame_struct *p = (struct pmp_sub_frame_struct*)malloc_64( sizeof(struct pmp_sub_frame_struct) );
 	if (p==0) return(0);
 	p->p_string[0] = '\0';
 	

@@ -24,15 +24,15 @@ microdvd subtitle format parser
 */
 
 
-#include "subtitle_microdvd.h"
+#include "pmp_microdvd.h"
 #include "common/mem64.h"
 
 
-struct subtitle_frame_struct* subtitle_parse_microdvd( FILE *f, unsigned int rate, unsigned int scale )
+struct pmp_sub_frame_struct* pmp_sub_parse_microdvd( FILE *f, unsigned int rate, unsigned int scale )
 	{
 	if (!f) return(0);
 	
-	struct subtitle_frame_struct *p = (struct subtitle_frame_struct*)malloc_64( sizeof(struct subtitle_frame_struct) );
+	struct pmp_sub_frame_struct *p = (struct pmp_sub_frame_struct*)malloc_64( sizeof(struct pmp_sub_frame_struct) );
 	if (p==0) return(0);
 	p->p_string[0] = '\0';
 	

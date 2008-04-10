@@ -35,7 +35,7 @@
 #include "common/graphics.h"
 
 #include "mod/cpu_clock.h"
-#include "mod/subtitle_charset.h"
+#include "mod/pmp_sub_charset.h"
 #include "mod/gu_font.h"
 
 
@@ -256,7 +256,7 @@ void SubCharsetConfigItem::enterEditStatus() {
 			miniConvSetSubtitleConv( miniConvGetConvCharset(newValue) );
 #else
 			config->setStringValue("config/subtitles/charset/value", values[newValue]);
-			set_movie_subrip_charset( values[newValue] );
+			set_pmp_subrip_charset( values[newValue] );
 #endif
 			currentValue = newValue;
 			break;

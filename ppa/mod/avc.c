@@ -23,7 +23,7 @@ http://forums.ps2dev.org/viewtopic.php?t=5820
 */
 
 
-#include "avcdecoder.h"
+#include "avc.h"
 
 void avc_safe_constructor(struct avc_struct *p)
 	{

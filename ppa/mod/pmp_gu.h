@@ -25,8 +25,8 @@ gu routines
 */
 
 
-#ifndef gu_draw_h
-#define gu_draw_h
+#ifndef pmp_gu_h
+#define pmp_gu_h
 
 
 #define number_of_luminosity_boosts 16
@@ -38,8 +38,8 @@ gu routines
 #include "aspect_ratio.h"
 #include "common/texture_subdivision.h"
 #include "common/m33sdk.h"
-#include "movie_interface.h"
-#include "subtitle_parse.h"
+#include "pmp_interface.h"
+#include "pmp_parse.h"
 #include "gu_font.h"
 
 

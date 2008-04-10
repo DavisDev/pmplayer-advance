@@ -41,8 +41,8 @@ this play the file (av output and basic functions - pause, seek ... )
 #include <psppower.h>
 #include "pmp_decode.h"
 #include "aspect_ratio.h"
-#include "gu_draw.h"
-#include "subtitle_parse.h"
+#include "pmp_gu.h"
+#include "pmp_parse.h"
 
 
 struct pmp_play_struct
