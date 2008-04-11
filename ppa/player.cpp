@@ -1023,85 +1023,112 @@ void PmpAvcPlayer::getCurrentPmpFilmInformation() {
 void PmpAvcPlayer::getCurrentMp4FilmInformation() {
 	initFilmInformation();
 	
-//	char previewFileName[512];
-//	memset(previewFileName, 0, 512);
-//	
-//	sprintf(previewFileName,"%s%s", fileShortPath, fileItems[fileItemCurrent].shortname);
-//	
-//	mp4info_t* info = mp4info_open(previewFileName);
-//	if ( info == 0 ) {
-//		initFilmInformation();
-//	}
-//	else {
-//		int i;
-//		int video_track_id = -1;
-//		for(i = 0; i < info->total_tracks; i++) {
-//			mp4info_track_t* track = info->tracks[i];
-//			if (track->type != TRACK_VIDEO)
-//				continue;
-//			if ( track->video_type != 0x61766331 /*avc1*/)
-//				continue; 
-//			if ( track->width < 1 || track->height < 1 )
-//				continue;
-//			if ( track->width > 480 || track->height > 272 )
-//				continue;
-//			video_track_id = i;
-//			break;
-//		}
-//		if ( video_track_id < 0 ) {
-//			mp4info_close(info);
-//			initFilmInformation();
-//			return;
-//		} 
-//		
-//		int audio_tracks = 0;
-//		int first_audio_track_id = 0;
-//		for(i = 0; i < info->total_tracks; i++) {
-//			mp4info_track_t* track = info->tracks[i];
-//			if (track->type != TRACK_AUDIO)
-//				continue;
-//			if ( audio_tracks == 0 ) {
-//				if ( track->audio_type != 0x6D703461 /*mp4a*/)
-//					continue;
+	char previewFileName[512];
+	memset(previewFileName, 0, 512);
+	
+	sprintf(previewFileName,"%s%s", fileShortPath, fileItems[fileItemCurrent].shortname);
+	
+	mp4info_t* info = mp4info_open(previewFileName);
+	if ( info == 0 ) {
+		initFilmInformation();
+	}
+	else {
+		int i;
+		int video_track_id = -1;
+		for(i = 0; i < info->total_tracks; i++) {
+			mp4info_track_t* track = info->tracks[i];
+			if (track->type != TRACK_VIDEO)
+				continue;
+			if ( track->video_type != 0x61766331 /*avc1*/)
+				continue; 
+			if ( track->width < 1 || track->height < 1 )
+				continue;
+			if ( track->width > 480 || track->height > 272 )
+				continue;
+			video_track_id = i;
+			break;
+		}
+		if ( video_track_id < 0 ) {
+			mp4info_close(info);
+			initFilmInformation();
+			return;
+		} 
+		
+		int audio_tracks = 0;
+		int first_audio_track_id = 0;
+		for(i = 0; i < info->total_tracks; i++) {
+			mp4info_track_t* track = info->tracks[i];
+			if (track->type != TRACK_AUDIO)
+				continue;
+			if ( audio_tracks == 0 ) {
+				if ( track->audio_type != 0x6D703461 /*mp4a*/)
+					continue;
 //				if ( track->channels != 2 )
 //					continue;
-//				if ( track->samplerate != 22050 && track->samplerate != 24000 && track->samplerate != 44100 && track->samplerate != 48000 )
-//					continue;
-//				if ( track->samplebits != 16 )
-//					continue;
-//				first_audio_track_id = i;
-//				audio_tracks++;
-//			}
-//			else {
-//				mp4info_track_t* old_track = info->tracks[first_audio_track_id];
-//				if ( old_track->audio_type != track->audio_type )
-//					continue;
+				if ( track->samplerate != 22050 && track->samplerate != 24000 && track->samplerate != 44100 && track->samplerate != 48000 )
+					continue;
+				if ( track->samplebits != 16 )
+					continue;
+				first_audio_track_id = i;
+				audio_tracks++;
+			}
+			else {
+				mp4info_track_t* old_track = info->tracks[first_audio_track_id];
+				if ( old_track->audio_type != track->audio_type )
+					continue;
 //				if ( old_track->channels != track->channels )
 //					continue;
-//				if ( old_track->samplerate != track->samplerate )
-//					continue;
-//				if ( old_track->samplebits != track->samplebits )
-//					continue;
-//				audio_tracks++;
-//			}
-//			if ( audio_tracks == 6 )
-//				break;
-//		}
-//		if ( audio_tracks == 0 ) {
-//			mp4info_close(info);
-//			initFilmInformation();
-//			return;
-//		}
-//		filmTotalFrames = info->tracks[video_track_id]->stts_sample_count[0];
-//		filmWidth = info->tracks[video_track_id]->width;
-//		filmHeight = info->tracks[video_track_id]->height;
-//		filmScale = info->tracks[video_track_id]->stts_sample_duration[0];
-//		filmRate = info->tracks[video_track_id]->time_scale;
-//		filmAudioStreams = audio_tracks;
-//		mp4info_close(info);
-//		
-//		filmSubtitles = 0;
-//	}
+				if ( old_track->samplerate != track->samplerate )
+					continue;
+				if ( old_track->samplebits != track->samplebits )
+					continue;
+				audio_tracks++;
+			}
+			if ( audio_tracks == 6 )
+				break;
+		}
+		if ( audio_tracks == 0 ) {
+			mp4info_close(info);
+			initFilmInformation();
+			return;
+		}
+		filmTotalFrames = info->tracks[video_track_id]->stts_sample_count[0];
+		filmWidth = info->tracks[video_track_id]->width;
+		filmHeight = info->tracks[video_track_id]->height;
+		filmScale = info->tracks[video_track_id]->stts_sample_duration[0];
+		filmRate = info->tracks[video_track_id]->time_scale;
+		filmAudioStreams = audio_tracks;
+		mp4info_close(info);
+		
+		filmSubtitles = 0;
+		
+		int fileNameLength = strlen(fileItems[fileItemCurrent].shortname);
+		char filename[512], subname[512], subext[5];
+		SceUID directory;
+		SceIoDirent entry;
+		directory = sceIoDopen(fileShortPath);
+		if ( !(directory < 0) ) {
+			while(1) {
+				memset(&entry, 0, sizeof(SceIoDirent));
+				int result = sceIoDread(directory, &entry);
+				if (result <= 0) break;
+				int subFileNameLength = strlen(entry.d_name);
+				if ( subFileNameLength < fileNameLength )
+					continue;
+				else{
+					memset(filename,0,512);
+					strncpy(filename, fileItems[fileItemCurrent].shortname, fileNameLength-4);
+					memset(subname,0,512);
+					strncpy(subname, entry.d_name, fileNameLength-4);
+					memset(subext,0,5);
+					strncpy(subext, &entry.d_name[subFileNameLength-4],4);
+					if ( (stricmp(filename, subname) == 0 ) && ((stricmp(subext,".sub")==0) || (stricmp(subext,".srt")==0)) )
+						filmSubtitles++;
+				}
+			}
+			sceIoDclose(directory);
+		}
+	}
 }
 
 void PmpAvcPlayer::paintFilmInformation() {
@@ -1116,7 +1143,7 @@ void PmpAvcPlayer::paintFilmInformation() {
 		}
 		filmInformationReload = false;
 	}
-	if ( fileItems[fileItemCurrent].filetype == FS_PMP_FILE ) {
+	if ( fileItems[fileItemCurrent].filetype == FS_PMP_FILE || fileItems[fileItemCurrent].filetype == FS_MP4_FILE ) {
 		FtFont* mainFont = FtFontManager::getInstance()->getMainFont();
 		Color color = Skin::getInstance()->getColorValue("skin/font_color/color", 0xFFFFFF);
 		char stringBuffer[64];

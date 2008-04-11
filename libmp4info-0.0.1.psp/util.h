@@ -24,18 +24,29 @@
 
 #include <pspiofilemgr.h>
 
+#define CACHE_BUFFER_SIZE 4096
+
+typedef struct {
+	SceUID handle;
+	int32_t length;
+	int32_t cache_first_position;
+	int32_t cache_last_position;
+	int32_t current_position;
+	uint8_t cache_buffer[CACHE_BUFFER_SIZE];
+} cache_io_t;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-int32_t io_set_position(SceUID handle, const int32_t position);
-int32_t io_get_position(SceUID handle);
-uint32_t io_read_data(SceUID handle, uint8_t* data, const uint32_t size);
-uint64_t io_read_int64(SceUID handle);
-uint32_t io_read_int32(SceUID handle);
-uint32_t io_read_int24(SceUID handle);
-uint16_t io_read_int16(SceUID handle);
-uint8_t io_read_int8(SceUID handle);
+int32_t io_set_position(void* handle, const int32_t position);
+int32_t io_get_position(void* handle);
+uint32_t io_read_data(void* handle, uint8_t* data, const uint32_t size);
+uint64_t io_read_int64(void* handle);
+uint32_t io_read_int32(void* handle);
+uint32_t io_read_int24(void* handle);
+uint16_t io_read_int16(void* handle);
+uint8_t io_read_int8(void* handle);
 
 #ifdef __cplusplus
 }

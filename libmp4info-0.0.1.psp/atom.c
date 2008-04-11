@@ -53,7 +53,7 @@ static uint32_t atom_get_type(uint8_t *data) {
 	return result;
 }
 
-static uint64_t atom_read_header(SceUID handle, uint32_t *atom_type, uint32_t *header_size) {
+static uint64_t atom_read_header(void* handle, uint32_t *atom_type, uint32_t *header_size) {
     uint64_t size;
     uint32_t ret;
     uint8_t atom_header[8];
