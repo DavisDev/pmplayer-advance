@@ -102,23 +102,24 @@ char *mp4_decode_open(struct mp4_decode_struct *p, char *s, int pspType, int tvA
 		
 		i = 0;
 		for (; i < p->number_of_frame_buffers; i++) {
-			p->video_frame_buffers[i] = (void*)(0x0a000000 + (i+1)*1572864);
-			memset(p->video_frame_buffers[i], 0, 1572864);
+			p->video_frame_size = 1572864;
+			p->video_frame_buffers[i] = (void*)(0x0a000000 + (i+1)*p->video_frame_size);
+			memset(p->video_frame_buffers[i], 0, p->video_frame_size);
 		}
 	}
 	else {
 		p->output_texture_width = 512;
 		p->number_of_frame_buffers = 0;
-	
+		p->video_frame_size = 557056;
 		i = 0;
 		for (; i < maximum_frame_buffers; i++) {
-			p->video_frame_buffers[i] = malloc_64(557056);
+			p->video_frame_buffers[i] = malloc_64(p->video_frame_size);
 	
 			if (p->video_frame_buffers[i] == 0) {
 				break;
 			}
 	
-			memset(p->video_frame_buffers[i], 0, 557056);
+			memset(p->video_frame_buffers[i], 0, p->video_frame_size);
 	
 			p->number_of_frame_buffers ++;
 		}
@@ -225,10 +226,10 @@ char *mp4_decode_get(struct mp4_decode_struct *p, unsigned int frame_number, uns
 
 
 	sceKernelDcacheWritebackInvalidateAll();
-	int y_width, u_width, v_width, height;
+	int keep_last = 0;
 	
 	if (p->video_format==0x61766331 /*avc1*/)
-		result = mp4_avc_get(&p->avc, (frame_number==0?3:0), packet.video_buffer, packet.video_length, pmp_gu_rgb_buffer);
+		result = mp4_avc_get(&p->avc, (frame_number==0?3:0), packet.video_buffer, packet.video_length, pmp_gu_rgb_buffer, &keep_last);
 	else
 		result = mp4v_get_rgb(&p->mp4v, packet.video_buffer, packet.video_length, pmp_gu_rgb_buffer); 
 	if (result != 0){
@@ -254,7 +255,11 @@ char *mp4_decode_get(struct mp4_decode_struct *p, unsigned int frame_number, uns
 	sceKernelDcacheWritebackInvalidateAll();
 	
 	pmp_gu_draw(aspect_ratio, zoom, luminosity_boost, show_interface, show_subtitle, subtitle_format, frame_number, p->video_frame_buffers[p->current_buffer_number]);
-
+	
+	if(keep_last) {
+		unsigned int last_buffer_number = (p->current_buffer_number + p->number_of_frame_buffers - 1) % p->number_of_frame_buffers; 
+		memcpy(p->video_frame_buffers[p->current_buffer_number], p->video_frame_buffers[last_buffer_number], p->video_frame_size);
+	}
 
 	p->output_frame_buffers[p->current_buffer_number].number_of_audio_frames = (p->reader.file.audio_double_sample ? packet.number_of_audio_parts :  packet.number_of_audio_frames);
 	p->output_frame_buffers[p->current_buffer_number].first_delay            = packet.first_delay;

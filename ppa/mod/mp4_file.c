@@ -195,9 +195,9 @@ char *mp4_file_open(struct mp4_file_struct *p, char *s) {
 	p->video_rate = p->info->tracks[p->video_track_id]->time_scale;
 	p->video_scale = p->info->tracks[p->video_track_id]->stts_sample_duration[0];
 	
-	p->audio_actual_rate = p->info->tracks[p->audio_track_ids[0]]->time_scale;
-	p->audio_rate = p->audio_actual_rate * (p->audio_double_sample?2:1) ;
-	p->audio_scale = p->info->tracks[p->audio_track_ids[0]]->stts_sample_duration[0];
+	p->audio_actual_rate = p->info->tracks[p->audio_track_ids[0]]->samplerate;
+	p->audio_rate = p->info->tracks[p->audio_track_ids[0]]->time_scale ;
+	p->audio_scale = p->info->tracks[p->audio_track_ids[0]]->stts_sample_duration[0] / (p->audio_double_sample?2:1);
 	p->audio_stereo = (p->info->tracks[p->audio_track_ids[0]]->channels == 2 ? 1 : 0);
 	
 	unsigned int minimum_number_of_audio_frames = 0;

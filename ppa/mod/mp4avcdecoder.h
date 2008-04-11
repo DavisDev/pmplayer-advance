@@ -132,7 +132,7 @@ extern "C" {
 void mp4_avc_safe_constructor(struct mp4_avc_struct *p);
 void mp4_avc_close(struct mp4_avc_struct *p);
 char *mp4_avc_open(struct mp4_avc_struct *p, int mpeg_mode, void* sps_buffer, int sps_size, void* pps_buffer, int pps_size);
-char *mp4_avc_get(struct mp4_avc_struct *p, int mode, void *source_buffer, int size, void *destination_buffer);
+char *mp4_avc_get(struct mp4_avc_struct *p, int mode, void *source_buffer, int size, void *destination_buffer, int* keep_last);
 
 #ifdef __cplusplus
 }
