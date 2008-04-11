@@ -76,7 +76,7 @@ typedef struct {
 } mp4info_track_t;
 
 typedef struct {
-	SceUID handle;
+	void* handle;
 	
 	int32_t time_scale;
 	int32_t duration;

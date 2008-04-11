@@ -191,9 +191,13 @@ char *mp4_file_open(struct mp4_file_struct *p, char *s) {
 	
 	p->video_width = p->info->tracks[p->video_track_id]->width;
 	p->video_height = p->info->tracks[p->video_track_id]->height;
-	p->number_of_video_frames = p->info->tracks[p->video_track_id]->stts_sample_count[0];
+	p->number_of_video_frames = 0;
+	for( i = 0; i < p->info->tracks[p->video_track_id]->stts_entry_count; i++)
+		p->number_of_video_frames += p->info->tracks[p->video_track_id]->stts_sample_count[i];
+	//p->number_of_video_frames = p->info->tracks[p->video_track_id]->stts_sample_count[0];
 	p->video_rate = p->info->tracks[p->video_track_id]->time_scale;
-	p->video_scale = p->info->tracks[p->video_track_id]->stts_sample_duration[0];
+	p->video_scale = p->info->tracks[p->video_track_id]->duration / p->number_of_video_frames;
+	//p->video_scale = p->info->tracks[p->video_track_id]->stts_sample_duration[0];
 	
 	p->audio_actual_rate = p->info->tracks[p->audio_track_ids[0]]->samplerate;
 	p->audio_rate = p->audio_actual_rate * (p->audio_double_sample?2:1) ;
