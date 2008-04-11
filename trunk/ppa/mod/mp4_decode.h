@@ -45,7 +45,8 @@ struct mp4_decode_struct {
 
 	void *video_frame_buffers[maximum_frame_buffers];
 	void *audio_frame_buffers[maximum_frame_buffers];
-
+	
+	unsigned int video_frame_size;
 	unsigned int audio_frame_size;
 	unsigned int number_of_frame_buffers;
 

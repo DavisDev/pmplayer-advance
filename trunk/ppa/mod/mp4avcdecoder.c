@@ -117,7 +117,7 @@ char *mp4_avc_open(struct mp4_avc_struct *p, int mpeg_mode, void* sps_buffer, in
 }
 	
 
-char *mp4_avc_get(struct mp4_avc_struct *p, int mode, void *source_buffer, int size, void *destination_buffer) {
+char *mp4_avc_get(struct mp4_avc_struct *p, int mode, void *source_buffer, int size, void *destination_buffer, int* keep_last) {
 	
 	Mp4AvcNalStruct nal;
 	nal.sps_buffer = p->mpeg_sps_pps_buffer;
@@ -159,7 +159,10 @@ char *mp4_avc_get(struct mp4_avc_struct *p, int mode, void *source_buffer, int s
 		if ( sceMpegBaseCscAvc(destination_buffer, 0, 512, &csc) != 0 ) {
 			return("avc_get: sceMpegBaseCscAvc failed");
 		}
+		*keep_last = 0;
 	}
+	else
+		*keep_last = 1;
 	
 	return(0);
 }
