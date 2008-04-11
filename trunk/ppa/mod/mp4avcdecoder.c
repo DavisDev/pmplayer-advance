@@ -144,8 +144,8 @@ char *mp4_avc_get(struct mp4_avc_struct *p, int mode, void *source_buffer, int s
 	}
 	if ( pic_num > 0 ) {
 		Mp4AvcCscStruct csc;
-		csc.height = detail2->info_buffer->height >> 4;
-		csc.width = detail2->info_buffer->width >> 4;
+		csc.height = (detail2->info_buffer->height+15) >> 4;
+		csc.width = (detail2->info_buffer->width+15) >> 4;
 		csc.mode0 = 0;
 		csc.mode1 = 0;
 		csc.buffer0 = detail2->yuv_buffer->buffer0 ;

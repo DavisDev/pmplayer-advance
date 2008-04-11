@@ -1279,6 +1279,9 @@ void PmpAvcPlayer::playMovie(bool resume) {
 	sceKernelDcacheWritebackInvalidateAll();
 	sceKernelDelayThread(1000000);
 	if ( result ) {
+//		FILE* log = fopen("ms0:/playlog.txt","w+");
+//		fprintf(log, "%s\n", result);
+//		fclose(log);
 #ifdef ENABLE_SUSPEND	
 		scePowerUnlock(0);
 #endif

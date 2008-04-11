@@ -106,8 +106,8 @@ char *mp4_file_open(struct mp4_file_struct *p, char *s) {
 		if ( p->audio_tracks == 0 ) {
 			if ( track->audio_type != 0x6D703461 /*mp4a*/)
 				continue;
-			if ( track->channels != 2 )
-				continue;
+//			if ( track->channels != 2 )
+//				continue;
 			if ( track->samplerate != 22050 && track->samplerate != 24000 && track->samplerate != 44100 && track->samplerate != 48000 )
 				continue;
 			if ( track->samplebits != 16 )
@@ -122,8 +122,8 @@ char *mp4_file_open(struct mp4_file_struct *p, char *s) {
 			mp4info_track_t* old_track = p->info->tracks[p->audio_track_ids[p->audio_tracks-1]];
 			if ( old_track->audio_type != track->audio_type )
 				continue;
-			if ( old_track->channels != track->channels )
-				continue;
+//			if ( old_track->channels != track->channels )
+//				continue;
 			if ( old_track->samplerate != track->samplerate )
 				continue;
 			if ( old_track->samplebits != track->samplebits )
@@ -196,9 +196,10 @@ char *mp4_file_open(struct mp4_file_struct *p, char *s) {
 	p->video_scale = p->info->tracks[p->video_track_id]->stts_sample_duration[0];
 	
 	p->audio_actual_rate = p->info->tracks[p->audio_track_ids[0]]->samplerate;
-	p->audio_rate = p->info->tracks[p->audio_track_ids[0]]->time_scale ;
-	p->audio_scale = p->info->tracks[p->audio_track_ids[0]]->stts_sample_duration[0] / (p->audio_double_sample?2:1);
-	p->audio_stereo = (p->info->tracks[p->audio_track_ids[0]]->channels == 2 ? 1 : 0);
+	p->audio_rate = p->audio_actual_rate * (p->audio_double_sample?2:1) ;
+	p->audio_scale = (p->audio_type == 0x6D703461 ? 1024 : 1024);
+	//p->audio_scale = p->info->tracks[p->audio_track_ids[0]]->stts_sample_duration[0] / (p->audio_double_sample?2:1);
+	p->audio_stereo = 1;//(p->info->tracks[p->audio_track_ids[0]]->channels == 2 ? 1 : 0);
 	
 	unsigned int minimum_number_of_audio_frames = 0;
 	unsigned int maximum_number_of_audio_frames = 0;
