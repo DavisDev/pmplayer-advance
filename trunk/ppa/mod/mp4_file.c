@@ -144,12 +144,6 @@ char *mp4_file_open(struct mp4_file_struct *p, char *s) {
 	int j, k;
 	
 	mp4info_track_t* video_track = p->info->tracks[p->video_track_id];
-	if ( video_track->stsc_first_chunk[video_track->stsc_entry_count-1] < video_track->stco_entry_count ) {
-		video_track->stsc_first_chunk[video_track->stsc_entry_count] = video_track->stco_entry_count;
-		video_track->stsc_samples_per_chunk[video_track->stsc_entry_count] = video_track->stsc_samples_per_chunk[video_track->stsc_entry_count-1];
-		video_track->stsc_sample_desc_id[video_track->stsc_entry_count] = video_track->stsc_sample_desc_id[video_track->stsc_entry_count-1];
-		video_track->stsc_entry_count += 1;
-	}
 	for( i = 0; i < video_track->stsc_entry_count-1; i++ ) {
 		int trunk_num = video_track->stsc_first_chunk[i+1] - video_track->stsc_first_chunk[i];
 		for( j = 0; j < trunk_num; j++ ) {
@@ -170,12 +164,6 @@ char *mp4_file_open(struct mp4_file_struct *p, char *s) {
 	for( l = 0; l < p->audio_tracks; l++ ) {
 		sample_id = 0;
 		mp4info_track_t* audio_track = p->info->tracks[p->audio_track_ids[l]];
-		if ( audio_track->stsc_first_chunk[audio_track->stsc_entry_count-1] < audio_track->stco_entry_count ) {
-			audio_track->stsc_first_chunk[audio_track->stsc_entry_count] = audio_track->stco_entry_count;
-			audio_track->stsc_samples_per_chunk[audio_track->stsc_entry_count] = audio_track->stsc_samples_per_chunk[audio_track->stsc_entry_count-1];
-			audio_track->stsc_sample_desc_id[audio_track->stsc_entry_count] = audio_track->stsc_sample_desc_id[audio_track->stsc_entry_count-1];
-			audio_track->stsc_entry_count += 1;
-		}
 		for( i = 0; i < audio_track->stsc_entry_count-1; i++ ) {
 			int trunk_num = audio_track->stsc_first_chunk[i+1] - audio_track->stsc_first_chunk[i];
 			for( j = 0; j < trunk_num; j++ ) {

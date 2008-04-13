@@ -47,6 +47,18 @@ mp4info_t* mp4info_open(const char* filename) {
 	parse_atoms(info);
 	sceIoClose(cache_io.handle);
 	info->handle = 0;
+	
+	int i;
+	for(i = 0; i < info->total_tracks; i++) {
+		mp4info_track_t* track = info->tracks[i];
+		if ( track->stsc_first_chunk[track->stsc_entry_count-1] < track->stco_entry_count ) {
+			track->stsc_first_chunk[track->stsc_entry_count] = track->stco_entry_count;
+			track->stsc_samples_per_chunk[track->stsc_entry_count] = track->stsc_samples_per_chunk[track->stsc_entry_count-1];
+			track->stsc_sample_desc_id[track->stsc_entry_count] = track->stsc_sample_desc_id[track->stsc_entry_count-1];
+			track->stsc_entry_count += 1;
+		}
+	}
+	
 	return info;
 }
 
