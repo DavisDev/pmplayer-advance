@@ -296,9 +296,9 @@ static void read_stsc_atom(mp4info_t* info, const uint64_t total_size) {
 	
 	current_track->stsc_entry_count = io_read_int32(info->handle);
 	
-	current_track->stsc_first_chunk = (uint32_t*)malloc(current_track->stsc_entry_count * sizeof(uint32_t));
-	current_track->stsc_samples_per_chunk = (uint32_t*)malloc(current_track->stsc_entry_count * sizeof(uint32_t));
-	current_track->stsc_sample_desc_id = (uint32_t*)malloc(current_track->stsc_entry_count * sizeof(uint32_t));
+	current_track->stsc_first_chunk = (uint32_t*)malloc((current_track->stsc_entry_count+1) * sizeof(uint32_t));
+	current_track->stsc_samples_per_chunk = (uint32_t*)malloc((current_track->stsc_entry_count+1) * sizeof(uint32_t));
+	current_track->stsc_sample_desc_id = (uint32_t*)malloc((current_track->stsc_entry_count+1) * sizeof(uint32_t));
 
 	if ( !(current_track->stsc_first_chunk) || !(current_track->stsc_samples_per_chunk) || !(current_track->stsc_sample_desc_id) ){
 		if (current_track->stsc_first_chunk) {
