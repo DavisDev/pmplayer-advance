@@ -84,13 +84,13 @@ static int power_callback(int arg1, int powerInfo, void * arg){
 }
 
 /* Exit callback */
-static int exit_callback(int arg1, int arg2, void *common){
 #ifdef DEVHOOK
+static int exit_callback(int arg1, int arg2, void *common){
 	cooleyesAudioSetFrequency(sceKernelDevkitVersion(), 44100);
-#endif
 	sceKernelExitGame();
 	return 0;
 }
+#endif
 
 /* Callback thread */
 int CallbackThread(SceSize args, void *argp){

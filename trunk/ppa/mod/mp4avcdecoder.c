@@ -21,6 +21,8 @@
 
 
 #include "mp4avcdecoder.h"
+#include <stdlib.h>
+#include <stdio.h>
 
 void mp4_avc_safe_constructor(struct mp4_avc_struct *p) {
 	p->mpeg_init = -1;
@@ -29,6 +31,8 @@ void mp4_avc_safe_constructor(struct mp4_avc_struct *p) {
 	p->mpeg_au = 0;
 	p->mpeg_ddrtop = 0;
 	p->mpeg_sps_pps_buffer = 0;
+	p->mpeg_detail2 = 0;
+	p->mpeg_pic_num = 0;
 }
 
 
@@ -117,7 +121,7 @@ char *mp4_avc_open(struct mp4_avc_struct *p, int mpeg_mode, void* sps_buffer, in
 }
 	
 
-char *mp4_avc_get(struct mp4_avc_struct *p, int mode, void *source_buffer, int size, void *destination_buffer, int* keep_last) {
+char *mp4_avc_get(struct mp4_avc_struct *p, int mode, void *source_buffer, int size, void *destination_buffer, int* pic_num) {
 	
 	Mp4AvcNalStruct nal;
 	nal.sps_buffer = p->mpeg_sps_pps_buffer;
@@ -133,36 +137,56 @@ char *mp4_avc_get(struct mp4_avc_struct *p, int mode, void *source_buffer, int s
 		return("avc_get: sceMpegGetAvcNalAu failed");
 	}
 	
-	int pic_num;
-		
-	if ( sceMpegAvcDecode(&p->mpeg, p->mpeg_au, 512, 0, &pic_num) != 0 ) {
+	if ( sceMpegAvcDecode(&p->mpeg, p->mpeg_au, 512, 0, &p->mpeg_pic_num) != 0 ) {
 		return("avc_get: sceMpegAvcDecode failed");
 	}
-	Mp4AvcDetail2Struct* detail2;
-	if ( sceMpegAvcDecodeDetail2(&p->mpeg, &detail2) != 0 ) {
+	
+	if ( sceMpegAvcDecodeDetail2(&p->mpeg, &p->mpeg_detail2) != 0 ) {
 		return("avc_get: sceMpegAvcDecodeDetail2 failed");
 	}
-	if ( pic_num > 0 ) {
+	if ( p->mpeg_pic_num > 0 ) {
 		Mp4AvcCscStruct csc;
-		csc.height = (detail2->info_buffer->height+15) >> 4;
-		csc.width = (detail2->info_buffer->width+15) >> 4;
+		csc.height = (p->mpeg_detail2->info_buffer->height+15) >> 4;
+		csc.width = (p->mpeg_detail2->info_buffer->width+15) >> 4;
 		csc.mode0 = 0;
 		csc.mode1 = 0;
-		csc.buffer0 = detail2->yuv_buffer->buffer0 ;
-		csc.buffer1 = detail2->yuv_buffer->buffer1 ;
-		csc.buffer2 = detail2->yuv_buffer->buffer2 ;
-		csc.buffer3 = detail2->yuv_buffer->buffer3 ;
-		csc.buffer4 = detail2->yuv_buffer->buffer4 ;
-		csc.buffer5 = detail2->yuv_buffer->buffer5 ;
-		csc.buffer6 = detail2->yuv_buffer->buffer6 ;
-		csc.buffer7 = detail2->yuv_buffer->buffer7 ;
+		csc.buffer0 = p->mpeg_detail2->yuv_buffer->buffer0 ;
+		csc.buffer1 = p->mpeg_detail2->yuv_buffer->buffer1 ;
+		csc.buffer2 = p->mpeg_detail2->yuv_buffer->buffer2 ;
+		csc.buffer3 = p->mpeg_detail2->yuv_buffer->buffer3 ;
+		csc.buffer4 = p->mpeg_detail2->yuv_buffer->buffer4 ;
+		csc.buffer5 = p->mpeg_detail2->yuv_buffer->buffer5 ;
+		csc.buffer6 = p->mpeg_detail2->yuv_buffer->buffer6 ;
+		csc.buffer7 = p->mpeg_detail2->yuv_buffer->buffer7 ;
 		if ( sceMpegBaseCscAvc(destination_buffer, 0, 512, &csc) != 0 ) {
 			return("avc_get: sceMpegBaseCscAvc failed");
 		}
-		*keep_last = 0;
 	}
-	else
-		*keep_last = 1;
+	*pic_num = p->mpeg_pic_num;
 	
 	return(0);
 }
+
+char *mp4_avc_get_cache(struct mp4_avc_struct *p, void *destination_buffer, int pic_num) {
+	Mp4AvcInfoStruct* info_buffer = p->mpeg_detail2->info_buffer + (p->mpeg_pic_num-pic_num);
+	Mp4AvcYuvStruct* yuv_buffer = p->mpeg_detail2->yuv_buffer + (p->mpeg_pic_num-pic_num);
+	Mp4AvcCscStruct csc;
+	csc.height = (info_buffer->height+15) >> 4;
+	csc.width = (info_buffer->width+15) >> 4;
+	csc.mode0 = 0;
+	csc.mode1 = 0;
+	csc.buffer0 = yuv_buffer->buffer0 ;
+	csc.buffer1 = yuv_buffer->buffer1 ;
+	csc.buffer2 = yuv_buffer->buffer2 ;
+	csc.buffer3 = yuv_buffer->buffer3 ;
+	csc.buffer4 = yuv_buffer->buffer4 ;
+	csc.buffer5 = yuv_buffer->buffer5 ;
+	csc.buffer6 = yuv_buffer->buffer6 ;
+	csc.buffer7 = yuv_buffer->buffer7 ;
+	if ( sceMpegBaseCscAvc(destination_buffer, 0, 512, &csc) != 0 ) {
+		return("avc_get: sceMpegBaseCscAvc failed");
+	}
+	return (0);
+}
+
+

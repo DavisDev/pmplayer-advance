@@ -42,9 +42,10 @@ void aspect_ratio_struct_init_psplcd(unsigned int width, unsigned int height)
 	{
 	aspect_ratios[0].width  = width;
 	aspect_ratios[0].height = height;
+	aspect_ratios[0].psp_width  = width;
+	aspect_ratios[0].psp_height = height;
 
-
-	int i = 0;
+	int i = 1;
 	for (; i < number_of_aspect_ratios; i++)
 		{
 		// width / height > 480 / 272

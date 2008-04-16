@@ -123,6 +123,8 @@ struct mp4_avc_struct {
 	ScePVoid mpeg_sps_pps_buffer;
 	SceInt32 mpeg_sps_size;
 	SceInt32 mpeg_pps_size;	
+	Mp4AvcDetail2Struct* mpeg_detail2;
+	SceInt32 mpeg_pic_num;
 } ;
 
 #ifdef __cplusplus
@@ -132,7 +134,8 @@ extern "C" {
 void mp4_avc_safe_constructor(struct mp4_avc_struct *p);
 void mp4_avc_close(struct mp4_avc_struct *p);
 char *mp4_avc_open(struct mp4_avc_struct *p, int mpeg_mode, void* sps_buffer, int sps_size, void* pps_buffer, int pps_size);
-char *mp4_avc_get(struct mp4_avc_struct *p, int mode, void *source_buffer, int size, void *destination_buffer, int* keep_last);
+char *mp4_avc_get(struct mp4_avc_struct *p, int mode, void *source_buffer, int size, void *destination_buffer, int* pic_num);
+char *mp4_avc_get_cache(struct mp4_avc_struct *p, void *destination_buffer, int pic_num);
 
 #ifdef __cplusplus
 }

@@ -475,3 +475,75 @@ char *mp4_read_get(struct mp4_read_struct *p, unsigned int packet, unsigned int 
 
 	return(0);
 }
+
+char *mp4_read_get_video(struct mp4_read_struct *p, unsigned int packet, struct mp4_video_read_output_struct *output) {
+	
+	void *video_buffer;
+
+	char *result = get_video_sample(p, packet, &video_buffer);
+	if (result != 0) {
+		return(result);
+	}
+	mp4info_track_t* track;
+	track = p->file.info->tracks[p->file.video_track_id];
+	output->video_length = track->stsz_sample_size ? track->stsz_sample_size : track->stsz_sample_size_table[packet];
+	output->video_buffer = video_buffer;
+	
+	return(0);
+}
+
+char *mp4_read_get_audio(struct mp4_read_struct *p, unsigned int packet, unsigned int audio_stream, struct mp4_audio_read_output_struct *output){
+	char *result = 0;
+	if (p->interleaving.output_video_frame_number > packet) {
+		time_math_interleaving_constructor(&p->interleaving, 
+			p->file.video_rate, 
+			p->file.video_scale, 
+			p->file.audio_rate, 
+			p->file.audio_scale);
+		time_math_interleaving_get(&p->interleaving);
+	}
+
+	while (p->interleaving.output_video_frame_number != packet) {
+		time_math_interleaving_get(&p->interleaving);
+	}
+	mp4info_track_t* track;
+	
+	unsigned int first_audio_frame, last_audio_frame;
+	if ( p->file.audio_double_sample ) {
+		first_audio_frame = p->interleaving.output_audio_frame_number / 2;
+		last_audio_frame = (p->interleaving.output_audio_frame_number + p->interleaving.output_number_of_audio_frames - 1) / 2;
+		output->number_of_audio_frames = last_audio_frame - first_audio_frame + 1;
+		output->number_of_skip_audio_parts = p->interleaving.output_audio_frame_number % 2;
+		output->number_of_audio_parts = p->interleaving.output_number_of_audio_frames;
+	}
+	else {
+		first_audio_frame = p->interleaving.output_audio_frame_number;
+		last_audio_frame = p->interleaving.output_audio_frame_number + p->interleaving.output_number_of_audio_frames - 1;
+		output->number_of_audio_frames = p->interleaving.output_number_of_audio_frames;
+		output->number_of_skip_audio_parts = 0;
+		output->number_of_audio_parts = 0;
+	}
+	track = p->file.info->tracks[p->file.audio_track_ids[audio_stream]];
+	int i;
+	void *audio_buffer;
+	void *audio_output_buffer = p->audio_output_buffer;
+	memset(audio_output_buffer, 0, p->file.maximum_audio_sample_size * p->file.maximun_audio_sample_number);
+	for( i = 0; i < output->number_of_audio_frames; i++ ) {
+		if ( first_audio_frame+i >= track->stts_sample_count[0] )
+			break; 
+		p->audio_output_length[i] = track->stsz_sample_size ? track->stsz_sample_size : track->stsz_sample_size_table[first_audio_frame+i];
+		result = get_audio_sample(p, audio_stream, first_audio_frame+i, &audio_buffer);
+		if (result != 0) {
+			return(result);
+		}
+		memcpy(audio_output_buffer, audio_buffer, p->audio_output_length[i]);
+		audio_output_buffer += p->audio_output_length[i];
+	}
+	
+	output->first_delay  = p->interleaving.output_first_delay;
+	output->last_delay   = p->interleaving.output_last_delay;
+	output->audio_length = p->audio_output_length;
+	output->audio_buffer = p->audio_output_buffer;
+
+	return(0);
+}
