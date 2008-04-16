@@ -51,10 +51,10 @@
 #define SKIN_DIALOG_ITEM_W	300
 #define SKIN_DIALOG_ITEM_H	200
 
-static char triangleChar[] = {0xE2, 0x96, 0xB3, 0x00};
+//static char triangleChar[] = {0xE2, 0x96, 0xB3, 0x00};
 static char circleChar[] = {0xE2, 0x97, 0x8B, 0x00};
 static char crossChar[] = {0xC3, 0x97, 0x00};
-static char squareChar[] = {0xE2, 0x96, 0xA1, 0x00};
+//static char squareChar[] = {0xE2, 0x96, 0xA1, 0x00};
 
 static file_type_ext_struct skinFilter[] = {
 	{NULL, FS_UNKNOWN_FILE}

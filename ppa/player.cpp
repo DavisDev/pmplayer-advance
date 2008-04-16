@@ -545,6 +545,7 @@ void PmpAvcPlayer::run() {
 		}
 		else if ( (key & PSP_CTRL_LTRIGGER) && (key & PSP_CTRL_SQUARE) ) {
 			filmReloadEnable = !filmReloadEnable;
+			filmPreviewReload = filmInformationReload = filmReloadEnable;
 			activeTime = time(NULL);
 		}
 		else if ( (key & PSP_CTRL_LTRIGGER) && (key & PSP_CTRL_SELECT) ) {
@@ -924,6 +925,8 @@ void PmpAvcPlayer::paintBattery() {
 };
 
 void PmpAvcPlayer::paintFilmPreview(){
+	if ( !filmReloadEnable )
+		return;
 	if ( !filmPreviewVisible ) 
 		return;
 	
@@ -1022,7 +1025,7 @@ void PmpAvcPlayer::getCurrentPmpFilmInformation() {
 
 void PmpAvcPlayer::getCurrentMp4FilmInformation() {
 	initFilmInformation();
-	
+#ifdef PSPFW3XX	
 	char previewFileName[512];
 	memset(previewFileName, 0, 512);
 	
@@ -1129,9 +1132,12 @@ void PmpAvcPlayer::getCurrentMp4FilmInformation() {
 			sceIoDclose(directory);
 		}
 	}
+#endif
 }
 
 void PmpAvcPlayer::paintFilmInformation() {
+	if ( !filmReloadEnable )
+		return;
 	if ( !filmAspectRatioVisible && !filmFpsVisible && !filmTotalTimeVisible && !filmSubtitlesVisible )
 		return;
 	if ( filmInformationReload ) {
@@ -1224,7 +1230,7 @@ void PmpAvcPlayer::showPadHelp() {
 };
 
 void PmpAvcPlayer::deleteSelectMovie() {
-	if ( fileItems[fileItemCurrent].filetype != FS_PMP_FILE )
+	if ( fileItems[fileItemCurrent].filetype != FS_PMP_FILE && fileItems[fileItemCurrent].filetype != FS_MP4_FILE )
 		return;
 	int deleteFileCount = 1;
 	char deleteFiles[5120];

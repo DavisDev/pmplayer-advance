@@ -88,7 +88,7 @@ char *mp4_file_open(struct mp4_file_struct *p, char *s) {
 			continue; 
 		if ( track->width < 1 || track->height < 1 )
 			continue;
-		if ( track->width > 480 || track->height > 272 )
+		if ( track->width > 480 || track->height > 320 )
 			continue;
 		p->video_track_id = i;
 		p->video_type = track->video_type;

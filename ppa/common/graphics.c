@@ -9,6 +9,7 @@
 #include "graphics.h"
 #include "framebuffer.h"
 #include "texture_subdivision.h"
+#include "m33sdk.h"
 
 #define IS_ALPHA(color) (((color)&0xff000000)==0xff000000?0:1)
 #ifndef PSP_FRAMEBUFFER_SIZE

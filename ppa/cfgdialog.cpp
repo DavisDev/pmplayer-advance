@@ -699,7 +699,6 @@ public:
 UsbHostConfigItem::UsbHostConfigItem(ConfigDialog* dialog, Image* drawImage) : ConfigItem(dialog, drawImage) {
 	label = "USB Host: ";
 
-	Config* config = Config::getInstance();
 	currentValue = UsbHost::getUsbHostState();
 	newValue = currentValue;
 };
@@ -1198,7 +1197,6 @@ public:
 NetHostConfigItem::NetHostConfigItem(ConfigDialog* dialog, Image* drawImage) : ConfigItem(dialog, drawImage) {
 	label = "Net Host: ";
 
-	Config* config = Config::getInstance();
 	currentValue = NetHost::getNetHostState();
 	newValue = currentValue;
 };

@@ -429,7 +429,7 @@ void FtFontImpl::printStringToImage(Image* image, int x, int y, int width, int h
 	previous = 0;
 	
 	int n = 0, i = 0;
-	unsigned long ucs;
+	unsigned long ucs = 0;
 	while(n<stringLength) {
 		i = get_next_utf8_char(&ucs, p, stringLength-n);
 		if ( i < 0 ) {

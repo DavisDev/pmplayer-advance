@@ -68,11 +68,31 @@ struct mp4_read_output_struct {
 	void *audio_buffer;
 };
 
+struct mp4_video_read_output_struct {
+
+	unsigned int  video_length;
+	void *video_buffer;
+
+};
+
+struct mp4_audio_read_output_struct {
+	unsigned int number_of_audio_frames;
+	unsigned int number_of_skip_audio_parts;
+	unsigned int number_of_audio_parts;
+
+	int first_delay;
+	int last_delay;
+	
+	unsigned int *audio_length;
+
+	void *audio_buffer;
+};
 
 void mp4_read_safe_constructor(struct mp4_read_struct *p);
 void mp4_read_close(struct mp4_read_struct *p);
 char *mp4_read_open(struct mp4_read_struct *p, char *s);
 char *mp4_read_get(struct mp4_read_struct *p, unsigned int packet, unsigned int audio_stream, struct mp4_read_output_struct *output);
-
+char *mp4_read_get_video(struct mp4_read_struct *p, unsigned int packet, struct mp4_video_read_output_struct *output);
+char *mp4_read_get_audio(struct mp4_read_struct *p, unsigned int packet, unsigned int audio_stream, struct mp4_audio_read_output_struct *output);
 
 #endif

@@ -56,6 +56,10 @@ struct mp4_decode_struct {
 	unsigned int current_buffer_number;
 	
 	int output_texture_width;
+	
+	unsigned int next_video_frame;
+	unsigned int next_video_read_frame;
+	unsigned int number_of_decoded_frame;
 };
 
 

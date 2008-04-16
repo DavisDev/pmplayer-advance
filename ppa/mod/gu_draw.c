@@ -81,7 +81,7 @@ void pmp_gu_start_without_tvout_supported()
 	pmp_gu_draw_buffer  = (void *) 0x04000000;
 	pmp_gu_rgb_buffer  = pmp_gu_draw_buffer + (4 * 512 * 272);
 
-	memset(pmp_gu_rgb_buffer, 0, 4 * 512 * 544);
+	memset(pmp_gu_rgb_buffer, 0, 4 * 768 * 480);
 	sceKernelDcacheWritebackInvalidateAll();
 	}
 
@@ -92,7 +92,7 @@ void pmp_gu_start_psplcd()
 	pmp_gu_draw_buffer  = (void *) (0x04000000);
 	pmp_gu_rgb_buffer  = (void*)0x0a000000;
 
-	memset(pmp_gu_rgb_buffer, 0, 4 * 512 * 512);
+	memset(pmp_gu_rgb_buffer, 0, 4 * 768 * 480);
 	sceKernelDcacheWritebackInvalidateAll();
 	}
 
@@ -103,7 +103,7 @@ void pmp_gu_start_tvout_interlace()
 	pmp_gu_draw_buffer  = (void *) (0x04000000);
 	pmp_gu_rgb_buffer  = (void*)0x0a000000;
 
-	memset(pmp_gu_rgb_buffer, 0, 4 * 512 * 512);
+	memset(pmp_gu_rgb_buffer, 0, 4 * 768 * 480);
 	sceKernelDcacheWritebackInvalidateAll();
 	}
 
