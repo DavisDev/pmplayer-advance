@@ -367,6 +367,10 @@ static char *get_video_sample(struct mp4_read_struct *reader, unsigned int sampl
 static char *get_audio_sample(struct mp4_read_struct *reader, unsigned int track_index, unsigned int sample, void **buffer) {
 	char *result = 0;
 	if ( track_index != reader->current_audio_track ) {
+		result = wait_asynchronous_buffer(reader, reader->audio_next_asynchronous_buffer, reader->audio_handle);
+		if (result != 0) {
+			return(result);
+		}
 		reader->current_audio_track = track_index;
 		unsigned int trunk_index ;
 		trunk_index = find_trunk_index_by_sample(reader, reader->file.audio_track_ids[reader->current_audio_track], sample);
