@@ -27,6 +27,7 @@ void mp4_file_safe_constructor(struct mp4_file_struct *p) {
 	p->video_track_id = -1;
 	p->audio_tracks = 0;
 	p->audio_double_sample = 0;
+	p->maximum_video_sample_size = 0;
 	p->maximum_video_trunk_size = 0;
 	p->maximum_audio_trunk_size = 0;
 	p->maximum_audio_sample_size = 0;
@@ -148,8 +149,12 @@ char *mp4_file_open(struct mp4_file_struct *p, char *s) {
 		int trunk_num = video_track->stsc_first_chunk[i+1] - video_track->stsc_first_chunk[i];
 		for( j = 0; j < trunk_num; j++ ) {
 			trunk_size = 0;
-			for( k = 0; k < video_track->stsc_samples_per_chunk[i]; k++, sample_id++)
-				trunk_size += (video_track->stsz_sample_size ? video_track->stsz_sample_size : video_track->stsz_sample_size_table[sample_id]);	
+			for( k = 0; k < video_track->stsc_samples_per_chunk[i]; k++, sample_id++) {
+				unsigned int sample_size = (video_track->stsz_sample_size ? video_track->stsz_sample_size : video_track->stsz_sample_size_table[sample_id]);
+				if ( sample_size > p->maximum_video_sample_size )
+					p->maximum_video_sample_size = sample_size;
+				trunk_size += sample_size;
+			}
 			if ( trunk_size > p->maximum_video_trunk_size )
 				p->maximum_video_trunk_size = trunk_size;
 		}
