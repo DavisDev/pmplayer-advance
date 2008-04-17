@@ -31,6 +31,7 @@ struct mp4_file_struct {
 	int audio_tracks;
 	int audio_track_ids[6];
 	unsigned int maximum_video_trunk_size;
+	unsigned int maximum_video_sample_size;
 	unsigned int maximum_audio_trunk_size;
 	unsigned int maximun_audio_sample_number;
 	unsigned int maximum_audio_sample_size;
