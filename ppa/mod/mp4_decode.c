@@ -59,7 +59,7 @@ char *mp4_decode_open(struct mp4_decode_struct *p, char *s, int pspType, int tvA
 		return(result);
 	}
 
-	p->audio_frame_size = (p->reader.file.audio_scale << 1) << p->reader.file.audio_stereo;
+	p->audio_frame_size = (p->reader.file.audio_resample_scale << 1) << p->reader.file.audio_stereo;
 
 
 	p->video_format = p->reader.file.video_type;
@@ -218,117 +218,6 @@ static void double_audio_sample(short *dest, short *src, unsigned int number_of_
 	}
 }
 
-//char *mp4_decode_get(struct mp4_decode_struct *p, unsigned int frame_number, unsigned int audio_stream, int audio_channel, int decode_audio, unsigned int volume_boost, unsigned int aspect_ratio, unsigned int zoom, unsigned int luminosity_boost, unsigned int show_interface, unsigned int show_subtitle, unsigned int subtitle_format, unsigned int loop) {
-//	struct mp4_read_output_struct packet;
-//
-//
-//	char *result = mp4_read_get(&p->reader, frame_number, audio_stream, &packet);
-//	if (result != 0) {
-//		return(result);
-//	}
-//
-//
-//	sceKernelDcacheWritebackInvalidateAll();
-//	int keep_last = 0;
-//	
-//	if (p->video_format==0x61766331 /*avc1*/)
-//		result = mp4_avc_get(&p->avc, (frame_number==0?3:0), packet.video_buffer, packet.video_length, pmp_gu_rgb_buffer, &keep_last);
-//	else
-//		result = mp4v_get_rgb(&p->mp4v, packet.video_buffer, packet.video_length, pmp_gu_rgb_buffer); 
-//	if (result != 0){
-//		return(result);
-//	}
-//
-//
-//	if (show_interface == 1){
-//		draw_interface(
-//			p->reader.file.video_scale,
-//			p->reader.file.video_rate,
-//			p->reader.file.number_of_video_frames,
-//			frame_number,
-//			aspect_ratio,
-//			zoom,
-//			luminosity_boost,
-//			audio_stream,
-//			volume_boost,
-//			loop);
-//	}
-//
-//
-//	sceKernelDcacheWritebackInvalidateAll();
-//	
-//	pmp_gu_draw(aspect_ratio, zoom, luminosity_boost, show_interface, show_subtitle, subtitle_format, frame_number, p->video_frame_buffers[p->current_buffer_number]);
-//	
-//	if(keep_last) {
-//		unsigned int last_buffer_number = (p->current_buffer_number + p->number_of_frame_buffers - 1) % p->number_of_frame_buffers; 
-//		memcpy(p->video_frame_buffers[p->current_buffer_number], p->video_frame_buffers[last_buffer_number], p->video_frame_size);
-//	}
-//
-//	p->output_frame_buffers[p->current_buffer_number].number_of_audio_frames = (p->reader.file.audio_double_sample ? packet.number_of_audio_parts :  packet.number_of_audio_frames);
-//	p->output_frame_buffers[p->current_buffer_number].first_delay            = packet.first_delay;
-//	p->output_frame_buffers[p->current_buffer_number].last_delay             = packet.last_delay;
-//	p->output_frame_buffers[p->current_buffer_number].video_frame            = p->video_frame_buffers[p->current_buffer_number];
-//
-//
-//	char *audio_result = 0;
-//
-//
-//	if (packet.audio_buffer == 0 || decode_audio == 0) {
-//		p->output_frame_buffers[p->current_buffer_number].audio_frame = p->audio_frame_buffers[p->number_of_frame_buffers];
-//	}
-//	else {
-//		p->output_frame_buffers[p->current_buffer_number].audio_frame = p->audio_frame_buffers[p->current_buffer_number];
-//
-//
-//		void *audio_buffer = packet.audio_buffer;
-//
-//
-//		int i = 0;
-//		int j = 0;
-//		int k;
-//		for (; i < packet.number_of_audio_frames; i++) {
-//			int audio_length = packet.audio_length[i];
-//			int audio_output_length;
-//			
-//			if (p->reader.file.audio_double_sample)
-//				audio_decoder_decode(p->audio_frame_buffers[p->number_of_frame_buffers], &audio_output_length, audio_buffer, audio_length);
-//			else
-//				audio_decoder_decode(p->audio_frame_buffers[p->current_buffer_number] + p->audio_frame_size * i, &audio_output_length, audio_buffer, audio_length);
-//			
-//			audio_buffer += audio_length;
-//			if (p->reader.file.audio_double_sample) {
-//				for(k = 0; k < 2; k++) {
-//					if ( packet.number_of_skip_audio_parts ) {
-//						packet.number_of_skip_audio_parts -= 1;
-//						continue;
-//					}
-//					if ( j < packet.number_of_audio_parts ) {
-//						double_audio_sample(p->audio_frame_buffers[p->current_buffer_number] + p->audio_frame_size * j, 
-//							p->audio_frame_buffers[p->number_of_frame_buffers] + (p->audio_frame_size/2)*k,
-//							p->reader.file.audio_scale / 2);
-//						boost_volume(p->audio_frame_buffers[p->current_buffer_number] + p->audio_frame_size * j, p->reader.file.audio_scale << p->reader.file.audio_stereo, volume_boost);
-//						select_audio_channel(p->audio_frame_buffers[p->current_buffer_number] + p->audio_frame_size * j, p->reader.file.audio_scale << p->reader.file.audio_stereo, audio_channel);
-//						j++;
-//					}
-//				}
-//				memset(p->audio_frame_buffers[p->number_of_frame_buffers], 0, p->audio_frame_size);
-//			}
-//			else {
-//				boost_volume(p->audio_frame_buffers[p->current_buffer_number] + p->audio_frame_size * i, p->reader.file.audio_scale << p->reader.file.audio_stereo, volume_boost);
-//				select_audio_channel(p->audio_frame_buffers[p->current_buffer_number] + p->audio_frame_size * i, p->reader.file.audio_scale << p->reader.file.audio_stereo, audio_channel);
-//			}
-//		}
-//	}
-//	
-//	pmp_gu_wait();
-//
-//	p->current_buffer_number = (p->current_buffer_number + 1) % p->number_of_frame_buffers;
-//	sceKernelDcacheWritebackInvalidateAll();
-//
-//
-//	return(audio_result);
-//}
-
 char *mp4_decode_get(struct mp4_decode_struct *p, unsigned int frame_number, unsigned int audio_stream, int audio_channel, int decode_audio, unsigned int volume_boost, unsigned int aspect_ratio, unsigned int zoom, unsigned int luminosity_boost, unsigned int show_interface, unsigned int show_subtitle, unsigned int subtitle_format, unsigned int loop) {
 	
 	char *result;
@@ -398,7 +287,7 @@ char *mp4_decode_get(struct mp4_decode_struct *p, unsigned int frame_number, uns
 	pmp_gu_draw(aspect_ratio, zoom, luminosity_boost, show_interface, show_subtitle, subtitle_format, frame_number, p->video_frame_buffers[p->current_buffer_number]);
 	
 
-	p->output_frame_buffers[p->current_buffer_number].number_of_audio_frames = (p->reader.file.audio_double_sample ? a_packet.number_of_audio_parts :  a_packet.number_of_audio_frames);
+	p->output_frame_buffers[p->current_buffer_number].number_of_audio_frames = a_packet.number_of_audio_frames;
 	p->output_frame_buffers[p->current_buffer_number].first_delay            = a_packet.first_delay;
 	p->output_frame_buffers[p->current_buffer_number].last_delay             = a_packet.last_delay;
 	p->output_frame_buffers[p->current_buffer_number].video_frame            = p->video_frame_buffers[p->current_buffer_number];
@@ -418,8 +307,6 @@ char *mp4_decode_get(struct mp4_decode_struct *p, unsigned int frame_number, uns
 
 
 		int i = 0;
-		int j = 0;
-		int k;
 		for (; i < a_packet.number_of_audio_frames; i++) {
 			int audio_length = a_packet.audio_length[i];
 			int audio_output_length;
@@ -431,25 +318,16 @@ char *mp4_decode_get(struct mp4_decode_struct *p, unsigned int frame_number, uns
 			
 			audio_buffer += audio_length;
 			if (p->reader.file.audio_double_sample) {
-				for(k = 0; k < 2; k++) {
-					if ( a_packet.number_of_skip_audio_parts ) {
-						a_packet.number_of_skip_audio_parts -= 1;
-						continue;
-					}
-					if ( j < a_packet.number_of_audio_parts ) {
-						double_audio_sample(p->audio_frame_buffers[p->current_buffer_number] + p->audio_frame_size * j, 
-							p->audio_frame_buffers[p->number_of_frame_buffers] + (p->audio_frame_size/2)*k,
-							p->reader.file.audio_scale / 2);
-						boost_volume(p->audio_frame_buffers[p->current_buffer_number] + p->audio_frame_size * j, p->reader.file.audio_scale << p->reader.file.audio_stereo, volume_boost);
-						select_audio_channel(p->audio_frame_buffers[p->current_buffer_number] + p->audio_frame_size * j, p->reader.file.audio_scale << p->reader.file.audio_stereo, audio_channel);
-						j++;
-					}
-				}
+				double_audio_sample(p->audio_frame_buffers[p->current_buffer_number] + p->audio_frame_size * i, 
+							p->audio_frame_buffers[p->number_of_frame_buffers],
+							p->reader.file.audio_resample_scale / 2);
+				boost_volume(p->audio_frame_buffers[p->current_buffer_number] + p->audio_frame_size * i, p->reader.file.audio_resample_scale << p->reader.file.audio_stereo, volume_boost);
+				select_audio_channel(p->audio_frame_buffers[p->current_buffer_number] + p->audio_frame_size * i, p->reader.file.audio_resample_scale << p->reader.file.audio_stereo, audio_channel);
 				memset(p->audio_frame_buffers[p->number_of_frame_buffers], 0, p->audio_frame_size);
 			}
 			else {
-				boost_volume(p->audio_frame_buffers[p->current_buffer_number] + p->audio_frame_size * i, p->reader.file.audio_scale << p->reader.file.audio_stereo, volume_boost);
-				select_audio_channel(p->audio_frame_buffers[p->current_buffer_number] + p->audio_frame_size * i, p->reader.file.audio_scale << p->reader.file.audio_stereo, audio_channel);
+				boost_volume(p->audio_frame_buffers[p->current_buffer_number] + p->audio_frame_size * i, p->reader.file.audio_resample_scale << p->reader.file.audio_stereo, volume_boost);
+				select_audio_channel(p->audio_frame_buffers[p->current_buffer_number] + p->audio_frame_size * i, p->reader.file.audio_resample_scale << p->reader.file.audio_stereo, audio_channel);
 			}
 		}
 	}

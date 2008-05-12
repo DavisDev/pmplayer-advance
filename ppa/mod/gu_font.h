@@ -98,6 +98,7 @@ void gu_font_on_suspend();
 void gu_font_on_resume();
 
 void gu_font_pixelsize_set( int size );
+void gu_font_scale_set(float asc_scale, float multcode_scale);
 void gu_font_border_enable( int enable );
 void gu_font_border_set(float border);
 void gu_font_border_color_set( unsigned int color );

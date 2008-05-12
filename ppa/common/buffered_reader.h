@@ -28,9 +28,13 @@ extern "C" {
 
 typedef void* buffered_reader_t;
 
-buffered_reader_t* buffered_reader_open(const char* path);
+buffered_reader_t* buffered_reader_open(const char* path, int32_t buffer_size, int32_t seek_mode);
+
+int32_t buffered_reader_length(buffered_reader_t* reader);
 
 int32_t buffered_reader_seek(buffered_reader_t* reader, const int32_t position);
+
+int32_t buffered_reader_position(buffered_reader_t* reader);
 
 uint32_t buffered_reader_read(buffered_reader_t* reader, void* buffer, uint32_t size);
 

@@ -26,7 +26,11 @@ gu routines
 
 
 #include "gu_draw.h"
-
+#include <psprtc.h>
+#include <png.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 unsigned int __attribute__((aligned(16))) pmp_gu_list[262144];
 
@@ -717,3 +721,161 @@ void pmp_gu_draw_tvout_progressive(unsigned int aspect_ratio, unsigned int zoom,
 	sceGuFinish();
 	}
 
+typedef struct tagBITMAPFILEHEADER {
+	uint16_t bfType;
+	uint32_t bfSize;
+	uint16_t bfReserved1;
+	uint16_t bfReserved2;
+	uint32_t bfOffBits;
+} __attribute__((packed)) BITMAPFILEHEADER ;
+
+typedef struct tagBITMAPINFOHEADER{
+	uint32_t biSize;
+	int32_t biWidth;
+	int32_t biHeight;
+	uint16_t biPlanes;
+	uint16_t biBitCount;
+	uint32_t biCompression;
+	uint32_t biSizeImage;
+	int32_t biXPelsPerMeter;
+	int32_t biYPelsPerMeter;
+	int32_t biClrUsed;
+	int32_t biClrImportant;
+} BITMAPINFOHEADER;
+
+
+
+void make_bmp_screenshot() {
+	int x, y, mode, pixel_format, width, height, texture_width;
+	uint32_t* frame_buffer;
+	unsigned char buffer[1440];
+	char filename[512];
+	SceUID fd;
+	
+	sceDisplayGetMode(&mode, &width, &height);
+	if(width > 480)
+		return;
+	sceDisplayGetFrameBuf(&frame_buffer, &texture_width, &pixel_format, &mode);
+	
+	BITMAPFILEHEADER h1;
+	BITMAPINFOHEADER h2;
+	
+	sceIoMkdir("ms0:/PICTURE", 0777);
+	sceIoMkdir("ms0:/PICTURE/PPA", 0777);
+	
+	memset(filename, 0, 512);
+	
+	pspTime current_time;
+	sceRtcGetCurrentClockLocalTime(&current_time);
+	
+	sprintf(filename, "ms0:/PICTURE/PPA/SNAPSHOT%04d%02d%02d%05d.BMP", 
+		current_time.year,
+		current_time.month,
+		current_time.day,
+		current_time.hour*3600+current_time.minutes*60+current_time.seconds);
+	fd = sceIoOpen(filename, PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+	if(fd < 0)
+		return;
+		
+	h1.bfType = 0x4D42;
+	h1.bfSize = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER) + 3*width*height;
+	h1.bfReserved1 = 0;
+	h1.bfReserved2 = 0;
+	h1.bfOffBits = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER);
+	
+	h2.biSize = sizeof(BITMAPINFOHEADER);
+	h2.biWidth = width;
+	h2.biHeight = height;
+	h2.biPlanes = 1;
+	h2.biBitCount = 24;
+	h2.biCompression = 0;
+	h2.biSizeImage = 3*width*height;
+	h2.biXPelsPerMeter = 0;
+	h2.biYPelsPerMeter = 0;
+	h2.biClrUsed = 0;
+	h2.biClrImportant = 0;
+	
+	sceIoWrite(fd, &h1, sizeof(BITMAPFILEHEADER));
+	sceIoWrite(fd, &h2, sizeof(BITMAPINFOHEADER));
+
+	for(y = height-1; y >= 0; y--) {
+		int i;
+		for(i = 0, x = 0; x < width; x++) {
+			uint32_t color = frame_buffer[x + y * texture_width];
+			buffer[i+2] = (unsigned char)( color & 0xFF );
+			buffer[i+1] = (unsigned char)( (color>>8) & 0xFF );
+			buffer[i] = (unsigned char)( (color>>16) & 0xFF );
+			i += 3;
+		}
+		sceIoWrite(fd, buffer, 3 * width);
+	}
+	sceIoClose(fd);
+	
+}
+
+void make_screenshot() {
+	int x, y, mode, pixel_format, width, height, texture_width;
+	uint32_t* frame_buffer;
+	unsigned char buffer[1440];
+	char filename[512];
+	FILE* fp;
+	
+	sceDisplayGetMode(&mode, &width, &height);
+	if(width > 480)
+		return;
+	sceDisplayGetFrameBuf(&frame_buffer, &texture_width, &pixel_format, &mode);
+	
+	sceIoMkdir("ms0:/PICTURE", 0777);
+	sceIoMkdir("ms0:/PICTURE/PPA", 0777);
+	
+	memset(filename, 0, 512);
+	
+	pspTime current_time;
+	sceRtcGetCurrentClockLocalTime(&current_time);
+	
+	sprintf(filename, "ms0:/PICTURE/PPA/SNAPSHOT%04d%02d%02d%05d.PNG", 
+		current_time.year,
+		current_time.month,
+		current_time.day,
+		current_time.hour*3600+current_time.minutes*60+current_time.seconds);
+	
+	png_structp png_ptr = 0;
+	png_infop info_ptr;
+	
+	png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+	if (!png_ptr) 
+		return;
+		
+	info_ptr = png_create_info_struct(png_ptr);
+	if (!info_ptr) {
+		png_destroy_write_struct(&png_ptr, (png_infopp)NULL);
+		return;
+	}
+	
+	fp = fopen(filename, "wb");
+	if(fp == 0) {
+		png_destroy_write_struct(&png_ptr, (png_infopp)NULL);
+		return;
+	}
+	
+	png_init_io(png_ptr, fp);
+	png_set_IHDR(png_ptr, info_ptr, width, height,
+		8, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE,
+		PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
+	png_write_info(png_ptr, info_ptr);
+
+
+	for(y = 0; y < height; y++) {
+		int i;
+		for(i = 0, x = 0; x < width; x++) {
+			uint32_t color = frame_buffer[x + y * texture_width];
+			buffer[i++] = (unsigned char)( color & 0xFF );
+			buffer[i++] = (unsigned char)( (color>>8) & 0xFF );
+			buffer[i++] = (unsigned char)( (color>>16) & 0xFF );
+		}
+		png_write_row(png_ptr, buffer);
+	}
+	png_write_end(png_ptr, info_ptr);
+	png_destroy_write_struct(&png_ptr, (png_infopp)NULL);
+	fclose(fp);
+}

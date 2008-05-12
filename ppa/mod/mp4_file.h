@@ -46,6 +46,7 @@ struct mp4_file_struct {
 	unsigned int audio_type;
 	unsigned int audio_actual_rate;
 	unsigned int audio_rate;
+	unsigned int audio_resample_scale;
 	unsigned int audio_scale;
 	unsigned int audio_stereo;
 	

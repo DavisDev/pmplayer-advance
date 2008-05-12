@@ -49,7 +49,7 @@ static void minimum_and_maximum_number_of_audio_frames_get(struct mp4_file_struc
 		p->video_rate, 
 		p->video_scale, 
 		p->audio_rate, 
-		p->audio_scale);
+		p->audio_resample_scale);
 
 	unsigned int video_frame_number = 0;
 	while (video_frame_number < p->number_of_video_frames) {
@@ -207,6 +207,7 @@ char *mp4_file_open(struct mp4_file_struct *p, char *s) {
 	p->audio_actual_rate = p->info->tracks[p->audio_track_ids[0]]->samplerate;
 	p->audio_rate = p->audio_actual_rate * (p->audio_double_sample?2:1) ;
 	p->audio_scale = (p->audio_type == 0x6D703461 ? 1024 : 1024);
+	p->audio_resample_scale = p->audio_scale * (p->audio_double_sample?2:1);
 	//p->audio_scale = p->info->tracks[p->audio_track_ids[0]]->stts_sample_duration[0] / (p->audio_double_sample?2:1);
 	p->audio_stereo = 1;//(p->info->tracks[p->audio_track_ids[0]]->channels == 2 ? 1 : 0);
 	

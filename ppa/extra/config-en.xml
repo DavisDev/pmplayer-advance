@@ -9,7 +9,7 @@
 	<subtitles>
 		<!-- charset value : "UTF-8", "GBK", "BIG5", "SHIFT-JIS", "EUC-KR" -->
 		<charset value="UTF-8" /> 
-		<font face="subfont.ttf" anti_alias="true" embolden="false" size="16" border="1.6" color="#FFFFFF" border_color="#000000" />
+		<font face="subfont.ttf" anti_alias="true" embolden="false" size="16" asc_scale="2.0" multcode_scale="1.0" border="1.6" color="#FFFFFF" border_color="#000000" />
 		<!-- position align : "top", "bottom" -->
 		<position align="bottom" distance="16" />
 	</subtitles>

@@ -26,6 +26,9 @@
 
 #define ATOM_TYPE(a,b,c,d) \
 	( ((uint32_t)d) | (((uint32_t)c) << 8) | (((uint32_t)b) << 16) | (((uint32_t)a) << 24) )
+	
+
+static uint32_t aac_samplerates[] = {96000,88200,64000,48000,44100,32000,24000,22050,16000,12000,11025,8000};
 
 static uint32_t atom_get_size(uint8_t *data) {
 	uint32_t result;
@@ -79,6 +82,66 @@ static void parse_unused_atom(mp4info_t* info, const uint64_t total_size) {
 	io_set_position(info->handle, io_get_position(info->handle) + total_size);
 }
 
+static uint32_t read_mp4_descr_length(mp4info_t* info) {
+	uint8_t b;
+	uint8_t numBytes = 0;
+	uint32_t length = 0;
+
+	do {
+		b = io_read_int8(info->handle);
+		numBytes++;
+		length = (length << 7) | (b & 0x7F);
+	} while ((b & 0x80) && numBytes < 4);
+	return length;
+}
+
+static void read_esds_atom(mp4info_t* info, const uint64_t total_size) {
+	int32_t dest_position = io_get_position(info->handle) + total_size;
+	
+	io_read_int8(info->handle); //version
+	io_read_int24(info->handle); //flag
+	
+	uint8_t tag;
+	uint32_t temp;
+	
+	tag = io_read_int8(info->handle);
+	if (tag == 0x03) {
+        	if (read_mp4_descr_length(info) < 5 + 15) {
+        		io_set_position(info->handle, dest_position);
+        		return;
+        	}
+        	io_read_int24(info->handle);
+	} else {
+        	io_read_int16(info->handle);
+	}
+
+	if (io_read_int8(info->handle) != 0x04) {
+		io_set_position(info->handle, dest_position);
+        	return;
+	}
+
+	temp = read_mp4_descr_length(info);
+	if (temp < 13) {
+		io_set_position(info->handle, dest_position);
+        	return;
+	}
+
+	io_read_int8(info->handle); //objectType
+	io_read_int32(info->handle);
+	io_read_int32(info->handle);//maxBitrate
+	io_read_int32(info->handle);//avgBitrate
+
+	if (io_read_int8(info->handle) != 0x05) {
+		io_set_position(info->handle, dest_position);
+        	return;
+	}
+	read_mp4_descr_length(info);
+	uint32_t samplerate = ((io_read_int8(info->handle) & 0x7) << 1) | (io_read_int8(info->handle)>>7);
+	info->tracks[info->total_tracks-1]->samplerate = aac_samplerates[samplerate];
+	
+	io_set_position(info->handle, dest_position);
+}
+
 static void read_mp4a_atom(mp4info_t* info, const uint64_t total_size) {
 	int32_t dest_position = io_get_position(info->handle) + total_size;
 	
@@ -93,6 +156,16 @@ static void read_mp4a_atom(mp4info_t* info, const uint64_t total_size) {
 	info->tracks[info->total_tracks-1]->samplebits = io_read_int16(info->handle);
 	io_read_int16(info->handle); //packetSize 
 	info->tracks[info->total_tracks-1]->samplerate = io_read_int32(info->handle);
+	io_read_int16(info->handle); //reserved3
+	
+	uint32_t atom_type = 0;
+	uint32_t header_size = 0;
+	uint64_t size = 0;
+	
+	size = atom_read_header(info->handle, &atom_type, &header_size);
+	if (atom_type == ATOM_TYPE('e','s','d','s')) {
+		read_esds_atom(info, size - header_size);
+	} 
 	
 	io_set_position(info->handle, dest_position);
 }
