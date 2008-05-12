@@ -48,10 +48,16 @@ void pmp_play_close(struct pmp_play_struct *p, int usePos, int pspType)
 	{
 #ifdef DEVHOOK
 //	sceAudio_5C37C0AE();
-	if (!(p->audio_reserved < 0)) sceAudioChRelease(0);
+	if (!(p->audio_reserved < 0)) {
+		while(sceAudioGetChannelRestLen(0) > 0 );
+		sceAudioChRelease(0);
+	}
 	cooleyesAudioSetFrequency(sceKernelDevkitVersion(), 44100);
 #else
-	if (!(p->audio_reserved < 0)) sceAudioChRelease(0);
+	if (!(p->audio_reserved < 0)) {
+		while(sceAudioGetChannelRestLen(0) > 0 );
+		sceAudioChRelease(0);
+	}
 	sceAudioSetFrequency(44100);
 #endif
 
@@ -196,6 +202,10 @@ static void pmp_input(volatile struct pmp_play_struct *p, SceCtrlData *previous_
 				if ((controller.Buttons & PSP_CTRL_SQUARE) && ((previous_controller->Buttons & PSP_CTRL_SQUARE) == 0))
 					{
 					p->paused = 0;
+					}
+				else if ((controller.Buttons & PSP_CTRL_CIRCLE) && ((previous_controller->Buttons & PSP_CTRL_CIRCLE) == 0)) 
+					{
+					make_screenshot();
 					}
 				}
 			else

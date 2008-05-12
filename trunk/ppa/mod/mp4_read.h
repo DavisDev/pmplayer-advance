@@ -77,8 +77,6 @@ struct mp4_video_read_output_struct {
 
 struct mp4_audio_read_output_struct {
 	unsigned int number_of_audio_frames;
-	unsigned int number_of_skip_audio_parts;
-	unsigned int number_of_audio_parts;
 
 	int first_delay;
 	int last_delay;

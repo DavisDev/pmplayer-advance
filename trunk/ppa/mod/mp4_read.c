@@ -286,7 +286,7 @@ char *mp4_read_open(struct mp4_read_struct *p, char *s) {
 		p->file.video_rate, 
 		p->file.video_scale, 
 		p->file.audio_rate, 
-		p->file.audio_scale);
+		p->file.audio_resample_scale);
 	time_math_interleaving_get(&p->interleaving);
 
 
@@ -428,7 +428,7 @@ char *mp4_read_get(struct mp4_read_struct *p, unsigned int packet, unsigned int 
 			p->file.video_rate, 
 			p->file.video_scale, 
 			p->file.audio_rate, 
-			p->file.audio_scale);
+			p->file.audio_resample_scale);
 		time_math_interleaving_get(&p->interleaving);
 	}
 
@@ -503,7 +503,7 @@ char *mp4_read_get_audio(struct mp4_read_struct *p, unsigned int packet, unsigne
 			p->file.video_rate, 
 			p->file.video_scale, 
 			p->file.audio_rate, 
-			p->file.audio_scale);
+			p->file.audio_resample_scale);
 		time_math_interleaving_get(&p->interleaving);
 	}
 
@@ -513,20 +513,11 @@ char *mp4_read_get_audio(struct mp4_read_struct *p, unsigned int packet, unsigne
 	mp4info_track_t* track;
 	
 	unsigned int first_audio_frame, last_audio_frame;
-	if ( p->file.audio_double_sample ) {
-		first_audio_frame = p->interleaving.output_audio_frame_number / 2;
-		last_audio_frame = (p->interleaving.output_audio_frame_number + p->interleaving.output_number_of_audio_frames - 1) / 2;
-		output->number_of_audio_frames = last_audio_frame - first_audio_frame + 1;
-		output->number_of_skip_audio_parts = p->interleaving.output_audio_frame_number % 2;
-		output->number_of_audio_parts = p->interleaving.output_number_of_audio_frames;
-	}
-	else {
-		first_audio_frame = p->interleaving.output_audio_frame_number;
-		last_audio_frame = p->interleaving.output_audio_frame_number + p->interleaving.output_number_of_audio_frames - 1;
-		output->number_of_audio_frames = p->interleaving.output_number_of_audio_frames;
-		output->number_of_skip_audio_parts = 0;
-		output->number_of_audio_parts = 0;
-	}
+	
+	first_audio_frame = p->interleaving.output_audio_frame_number;
+	last_audio_frame = p->interleaving.output_audio_frame_number + p->interleaving.output_number_of_audio_frames - 1;
+	output->number_of_audio_frames = p->interleaving.output_number_of_audio_frames;
+	
 	track = p->file.info->tracks[p->file.audio_track_ids[audio_stream]];
 	int i;
 	void *audio_buffer;

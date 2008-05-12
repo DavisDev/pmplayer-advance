@@ -78,6 +78,8 @@ static float				gufont_border_size = 1.0;
 static unsigned int			gufont_pixel_size = 16;
 static unsigned int			gufont_char_width = 16;
 static unsigned int			gufont_char_height = 16;
+static float				gufont_asc_scale = 2.0;
+static float				gufont_multcode_scale = 1.0;
 static unsigned int			gufont_embolden_enable = 0;
 static unsigned int			gufont_align = 1;
 static unsigned int 			gufont_distance = 16;
@@ -87,8 +89,9 @@ static int gu_font_initialized = 0;
 
 #define DIVWIDTH	3
 
-#define CHARWIDTH(c) (((c > 255)?gufont_char_width:gufont_char_width/2))
-#define CHARWIDTH2(c,style) (((c > 255)?gufont_char_width:gufont_char_width/2))
+#define CHARSCALEWIDTH( fixed_width, scale ) ((int)(1.0*fixed_width/scale))
+#define CHARWIDTH(c) (((c > 255)?CHARSCALEWIDTH(gufont_char_width,gufont_multcode_scale) : CHARSCALEWIDTH(gufont_char_width,gufont_asc_scale)))
+#define CHARWIDTH2(c,style) (((c > 255)?CHARSCALEWIDTH(gufont_char_width,gufont_multcode_scale):CHARSCALEWIDTH(gufont_char_width,gufont_asc_scale)))
 
 #define SBIT_HASH_SIZE (997)
 
@@ -665,6 +668,12 @@ void gu_font_pixelsize_set( int size )
 	
 	FT_Set_Pixel_Sizes(face, gufont_char_width, gufont_char_height);
 	
+	}
+
+void gu_font_scale_set(float asc_scale, float multcode_scale)
+	{
+	gufont_asc_scale = asc_scale;
+	gufont_multcode_scale = multcode_scale;
 	}
 
 void gu_font_border_enable( int enable )

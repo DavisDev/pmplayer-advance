@@ -69,4 +69,6 @@ void pmp_gu_end();
 void pmp_gu_wait();
 void pmp_gu_draw(unsigned int aspect_ratio, unsigned int zoom, unsigned int luminosity_boost, unsigned int show_interface, unsigned int show_subtitle, unsigned int subtitle_format, unsigned int frame_number, void *video_frame_buffer);
 
+void make_screenshot();
+
 #endif

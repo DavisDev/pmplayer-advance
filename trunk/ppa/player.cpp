@@ -439,6 +439,8 @@ int PmpAvcPlayer::init(char* ppaPath) {
 	result=gu_font_load(tempPath);
 	if (result==0){
 		gu_font_pixelsize_set(config->getIntegerValue("config/subtitles/font/size",16));
+		gu_font_scale_set(config->getFloatValue("config/subtitles/font/asc_scale", 2.0),
+			config->getFloatValue("config/subtitles/font/multcode_scale", 1.0) );
 		float subBorder = config->getFloatValue("config/subtitles/font/border",0.0);
 		if ( subBorder > 0.0 ) {
 			gu_font_border_enable(1);

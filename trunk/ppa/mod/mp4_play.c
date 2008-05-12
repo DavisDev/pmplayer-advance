@@ -19,10 +19,16 @@ void mp4_play_safe_constructor(struct mp4_play_struct *p) {
 void mp4_play_close(struct mp4_play_struct *p, int usePos, int pspType) {
 	
 #ifdef DEVHOOK
-	if (!(p->audio_reserved < 0)) sceAudioChRelease(0);
+	if (!(p->audio_reserved < 0)) {
+		while(sceAudioGetChannelRestLen(0) > 0 );
+		sceAudioChRelease(0);
+	}
 	cooleyesAudioSetFrequency(sceKernelDevkitVersion(), 44100);
 #else
-	if (!(p->audio_reserved < 0)) sceAudioChRelease(0);
+	if (!(p->audio_reserved < 0)) {
+		while(sceAudioGetChannelRestLen(0) > 0 );
+		sceAudioChRelease(0);
+	}
 	sceAudioSetFrequency(44100);
 #endif
 
@@ -150,6 +156,9 @@ static void mp4_input(volatile struct mp4_play_struct *p, SceCtrlData *previous_
 
 				if ((controller.Buttons & PSP_CTRL_SQUARE) && ((previous_controller->Buttons & PSP_CTRL_SQUARE) == 0)) {
 					p->paused = 0;
+				}
+				else if ((controller.Buttons & PSP_CTRL_CIRCLE) && ((previous_controller->Buttons & PSP_CTRL_CIRCLE) == 0)) {
+					make_screenshot();
 				}
 			}
 			else {
@@ -310,7 +319,8 @@ static int mp4_output_thread(SceSize input_length, void *input) {
 		if (p->seek == 0) {
 			current_buffer->first_delay -= 500;
 			sceKernelDelayThread(current_buffer->first_delay < 1 ? 1 : current_buffer->first_delay);
-			sceAudioOutputBlocking(0, PSP_AUDIO_VOLUME_MAX, current_buffer->audio_frame);
+			if (current_buffer->number_of_audio_frames)
+				sceAudioOutputBlocking(0, PSP_AUDIO_VOLUME_MAX, current_buffer->audio_frame);
 		}
 
 
@@ -527,7 +537,7 @@ char *mp4_play_open(struct mp4_play_struct *p, char *s, int usePos, int pspType,
 		mp4_play_close(p, 0, pspType);
 		return("mp4_play_open: sceAudioSetFrequency failed");
 	}
-	p->audio_reserved = sceAudioChReserve(0, p->decoder.reader.file.audio_scale, PSP_AUDIO_FORMAT_STEREO);
+	p->audio_reserved = sceAudioChReserve(0, p->decoder.reader.file.audio_resample_scale, PSP_AUDIO_FORMAT_STEREO);
 	if (p->audio_reserved < 0) {
 		mp4_play_close(p, 0, pspType);
 		return("mp4_play_open: sceAudioChReserve failed");
@@ -538,7 +548,7 @@ char *mp4_play_open(struct mp4_play_struct *p, char *s, int usePos, int pspType,
 		return("mp4_play_open: sceAudioSetFrequency failed");
 	}
 	
-	p->audio_reserved = sceAudioChReserve(0, p->decoder.reader.file.audio_scale, PSP_AUDIO_FORMAT_STEREO);
+	p->audio_reserved = sceAudioChReserve(0, p->decoder.reader.file.audio_resample_scale, PSP_AUDIO_FORMAT_STEREO);
 	if (p->audio_reserved < 0) {
 		mp4_play_close(p, 0, pspType);
 		return("mp4_play_open: sceAudioChReserve failed");

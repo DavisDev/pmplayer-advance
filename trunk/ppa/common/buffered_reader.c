@@ -29,6 +29,8 @@
 typedef struct {
 	SceUID handle;
 	int32_t length;
+	int32_t buffer_size;
+	int32_t seek_mode;
 	uint8_t* buffer_0;//[BUFFERED_READER_BUFFER_SIZE];
 	uint8_t* buffer_1;//[BUFFERED_READER_BUFFER_SIZE];
 	uint8_t* buffer_2;//[BUFFERED_READER_BUFFER_SIZE];
@@ -57,26 +59,28 @@ void buffered_reader_close(buffered_reader_t* reader) {
 	}
 }
 
-buffered_reader_t* buffered_reader_open(const char* path) {
+buffered_reader_t* buffered_reader_open(const char* path, int32_t buffer_size, int32_t seek_mode) {
 	buffered_reader_t *reader = malloc(sizeof(buffered_reader_t));
 	if ( reader == 0 )
 		return 0;
 	memset(reader, 0, sizeof(buffered_reader_t));
 	reader->handle = -1;
+	reader->buffer_size = buffer_size;
+	reader->seek_mode = seek_mode;
 	
-	reader->buffer_0 = malloc_64(BUFFERED_READER_BUFFER_SIZE);
+	reader->buffer_0 = malloc_64(reader->buffer_size);
 	if ( reader->buffer_0 == 0 ) {
 		buffered_reader_close(reader);
 		return 0;
 	}
 	
-	reader->buffer_1 = malloc_64(BUFFERED_READER_BUFFER_SIZE);
+	reader->buffer_1 = malloc_64(reader->buffer_size);
 	if ( reader->buffer_1 == 0 ) {
 		buffered_reader_close(reader);
 		return 0;
 	}
 	
-	reader->buffer_2 = malloc_64(BUFFERED_READER_BUFFER_SIZE);
+	reader->buffer_2 = malloc_64(reader->buffer_size);
 	if ( reader->buffer_2 == 0 ) {
 		buffered_reader_close(reader);
 		return 0;
@@ -111,6 +115,10 @@ buffered_reader_t* buffered_reader_open(const char* path) {
 	return reader;
 }
 
+int32_t buffered_reader_length(buffered_reader_t* reader) {
+	return reader->length;
+}
+
 int32_t buffered_reader_seek(buffered_reader_t* reader, const int32_t position) {
 	if ( position >= reader->position_0 && position < reader->position_2 ) {
 		reader->current_position = position;
@@ -128,7 +136,7 @@ int32_t buffered_reader_seek(buffered_reader_t* reader, const int32_t position) 
 			reader->position_1 = reader->position_2;
 			reader->position_2 = reader->position_3;
 			reader->current_position = position;
-			reader->position_3 = reader->position_2 + BUFFERED_READER_BUFFER_SIZE;
+			reader->position_3 = reader->position_2 + reader->buffer_size;
 			if ( reader->position_3 >= reader->length )
 				reader->position_3 = reader->length;
 			sceIoLseek32(reader->handle, reader->position_2, PSP_SEEK_SET);
@@ -136,25 +144,43 @@ int32_t buffered_reader_seek(buffered_reader_t* reader, const int32_t position) 
 			return position;
 		}
 		else {
-			reader->position_1 = position;
-			reader->position_0 = reader->position_1 - BUFFERED_READER_BUFFER_SIZE;
-			if ( reader->position_0 < 0 )
-				reader->position_0 = 0;
-			reader->position_2 = reader->position_1 + BUFFERED_READER_BUFFER_SIZE;
-			if ( reader->position_2 >= reader->length )
-				reader->position_2 = reader->length;
-			reader->position_3 = reader->position_2 + BUFFERED_READER_BUFFER_SIZE;
-			if ( reader->position_3 >= reader->length )
-				reader->position_3 = reader->length;
-				
-			reader->current_position = reader->position_1;
-			
+			if (reader->seek_mode == 0 ) {
+				reader->position_0 = position;
+				reader->position_1 = reader->position_0 + reader->buffer_size;
+				if ( reader->position_1 >= reader->length )
+					reader->position_1 = reader->length;
+				reader->position_2 = reader->position_1 + reader->buffer_size;
+				if ( reader->position_2 >= reader->length )
+					reader->position_2 = reader->length;
+				reader->position_3 = reader->position_2 + reader->buffer_size;
+				if ( reader->position_3 >= reader->length )
+					reader->position_3 = reader->length;
+					
+				reader->current_position = reader->position_0;
+			}
+			else {
+				reader->position_1 = position;
+				reader->position_0 = reader->position_1 - reader->buffer_size;
+				if ( reader->position_0 < 0 )
+					reader->position_0 = 0;
+				reader->position_2 = reader->position_1 + reader->buffer_size;
+				if ( reader->position_2 >= reader->length )
+					reader->position_2 = reader->length;
+				reader->position_3 = reader->position_2 + reader->buffer_size;
+				if ( reader->position_3 >= reader->length )
+					reader->position_3 = reader->length;
+					
+				reader->current_position = reader->position_1;
+			}
 			sceIoLseek32(reader->handle, reader->position_0, PSP_SEEK_SET);
-			sceIoReadAsync(reader->handle, reader->first_buffer, reader->position_1 - reader->position_0);
-			sceIoWaitAsync(reader->handle, &result);
+//			sceIoReadAsync(reader->handle, reader->first_buffer, reader->position_1 - reader->position_0);
+//			sceIoWaitAsync(reader->handle, &result);
+//			sceIoLseek32(reader->handle, reader->position_1, PSP_SEEK_SET);
+//			sceIoReadAsync(reader->handle, reader->second_buffer, reader->position_2 - reader->position_1);
+//			sceIoWaitAsync(reader->handle, &result);
+			sceIoRead(reader->handle, reader->first_buffer, reader->position_1 - reader->position_0);
 			sceIoLseek32(reader->handle, reader->position_1, PSP_SEEK_SET);
-			sceIoReadAsync(reader->handle, reader->second_buffer, reader->position_2 - reader->position_1);
-			sceIoWaitAsync(reader->handle, &result);
+			sceIoRead(reader->handle, reader->second_buffer, reader->position_2 - reader->position_1);
 			sceIoLseek32(reader->handle, reader->position_2, PSP_SEEK_SET);
 			sceIoReadAsync(reader->handle, reader->third_buffer, reader->position_3 - reader->position_2);
 			return position;
@@ -201,4 +227,6 @@ uint32_t buffered_reader_read(buffered_reader_t* reader, void* buffer, uint32_t 
 	}
 }
 
-
+int32_t buffered_reader_position(buffered_reader_t* reader) {
+	return reader->current_position;
+}
