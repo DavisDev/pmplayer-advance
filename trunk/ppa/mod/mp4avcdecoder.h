@@ -33,7 +33,7 @@ typedef struct {
 	SceInt32 sps_size;
 	ScePVoid pps_buffer;
 	SceInt32 pps_size;
-	SceInt32 unkown0;
+	SceInt32 nal_prefix_size;
 	ScePVoid nal_buffer;
 	SceInt32 nal_size;
 	SceInt32 mode;
@@ -122,7 +122,8 @@ struct mp4_avc_struct {
 	ScePVoid mpeg_au_buffer;
 	ScePVoid mpeg_sps_pps_buffer;
 	SceInt32 mpeg_sps_size;
-	SceInt32 mpeg_pps_size;	
+	SceInt32 mpeg_pps_size;
+	SceInt32 mpeg_nal_prefix_size;
 	Mp4AvcDetail2Struct* mpeg_detail2;
 	SceInt32 mpeg_pic_num;
 } ;
@@ -133,7 +134,7 @@ extern "C" {
 
 void mp4_avc_safe_constructor(struct mp4_avc_struct *p);
 void mp4_avc_close(struct mp4_avc_struct *p);
-char *mp4_avc_open(struct mp4_avc_struct *p, int mpeg_mode, void* sps_buffer, int sps_size, void* pps_buffer, int pps_size);
+char *mp4_avc_open(struct mp4_avc_struct *p, int mpeg_mode, void* sps_buffer, int sps_size, void* pps_buffer, int pps_size, int nal_prefix_size);
 char *mp4_avc_get(struct mp4_avc_struct *p, int mode, void *source_buffer, int size, void *destination_buffer, int* pic_num);
 char *mp4_avc_get_cache(struct mp4_avc_struct *p, void *destination_buffer, int pic_num);
 

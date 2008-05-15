@@ -70,7 +70,8 @@ char *mp4_decode_open(struct mp4_decode_struct *p, char *s, int pspType, int tvA
 			p->reader.file.info->tracks[p->reader.file.video_track_id]->avc_sps, 
 			p->reader.file.info->tracks[p->reader.file.video_track_id]->avc_sps_size,
 			p->reader.file.info->tracks[p->reader.file.video_track_id]->avc_pps, 
-			p->reader.file.info->tracks[p->reader.file.video_track_id]->avc_pps_size);
+			p->reader.file.info->tracks[p->reader.file.video_track_id]->avc_pps_size,
+			p->reader.file.info->tracks[p->reader.file.video_track_id]->avc_nal_prefix_size);
 	else
 		result = mp4v_open(&p->mp4v);
 	if (result != 0) {

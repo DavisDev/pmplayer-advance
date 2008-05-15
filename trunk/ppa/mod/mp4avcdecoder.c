@@ -60,11 +60,12 @@ void mp4_avc_close(struct mp4_avc_struct *p) {
 }
 
 
-char *mp4_avc_open(struct mp4_avc_struct *p, int mpeg_mode, void* sps_buffer, int sps_size, void* pps_buffer, int pps_size) {
+char *mp4_avc_open(struct mp4_avc_struct *p, int mpeg_mode, void* sps_buffer, int sps_size, void* pps_buffer, int pps_size, int nal_prefix_size) {
 	mp4_avc_safe_constructor(p);
 	
 	p->mpeg_sps_size = sps_size;
 	p->mpeg_pps_size = pps_size;
+	p->mpeg_nal_prefix_size = nal_prefix_size;
 	p->mpeg_sps_pps_buffer = malloc_64(sps_size + pps_size);
 	if ( p->mpeg_sps_pps_buffer == 0 ) {
 		mp4_avc_close(p);
@@ -128,7 +129,7 @@ char *mp4_avc_get(struct mp4_avc_struct *p, int mode, void *source_buffer, int s
 	nal.sps_size = p->mpeg_sps_size;
 	nal.pps_buffer = p->mpeg_sps_pps_buffer+p->mpeg_sps_size;
 	nal.pps_size = p->mpeg_pps_size;
-	nal.unkown0 = 4;
+	nal.nal_prefix_size = p->mpeg_nal_prefix_size;
 	nal.nal_buffer = source_buffer;
 	nal.nal_size = size ;
 	nal.mode = mode;
