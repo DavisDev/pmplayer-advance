@@ -72,6 +72,7 @@ typedef struct {
 	uint8_t* avc_sps;
 	uint32_t avc_pps_size;
 	uint8_t* avc_pps;
+	uint32_t avc_nal_prefix_size;
 	
 } mp4info_track_t;
 

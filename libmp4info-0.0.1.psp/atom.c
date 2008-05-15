@@ -177,7 +177,8 @@ static void read_avcC_atom(mp4info_t* info, const uint64_t total_size) {
 	io_read_int8(info->handle); //AVCProfileIndication
 	io_read_int8(info->handle); //profile_compatibility
 	io_read_int8(info->handle); //AVCLevelIndication
-	io_read_int8(info->handle); //reserved <6bits> & lengthSizeMinusOne <2bits>
+	uint8_t value = io_read_int8(info->handle); //reserved <6bits> & lengthSizeMinusOne <2bits>
+	info->tracks[info->total_tracks - 1]->avc_nal_prefix_size = (value & 0x03) + 1;
 	io_read_int8(info->handle); //reserved1 <3bits> & numOfSequenceParameterSets <5bits>
     
 	info->tracks[info->total_tracks - 1]->avc_sps_size = io_read_int16(info->handle);
