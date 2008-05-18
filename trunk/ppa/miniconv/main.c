@@ -65,6 +65,9 @@ static convertor_t convertors[] = {
 #ifdef MS_CYRL_CONV
 	{"MS-CYRL", ms_cyrl_to_utf8},
 #endif
+#ifdef ISO8859_1_CONV
+	{"ISO-8859-1", iso8859_1_to_utf8},
+#endif
 #ifdef ISO8859_2_CONV
 	{"ISO-8859-2", iso8859_2_to_utf8},
 #endif

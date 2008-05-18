@@ -137,6 +137,8 @@ ppa3xxzh: eboot3xx
 	rar a -ep1 release/ppa.eboot.fw3xx.`date +"%Y%m%d"`.rar ppa/PPA3xx/nethostfs_371.prx
 	rar a -ep1 release/ppa.eboot.fw3xx.`date +"%Y%m%d"`.rar ppa/PPA3xx/dvemgr.prx
 	rar a -ep1 release/ppa.eboot.fw3xx.`date +"%Y%m%d"`.rar ppa/PPA3xx/mpeg_vsh330.prx
+	rar a -ep1 release/ppa.eboot.fw3xx.`date +"%Y%m%d"`.rar ppa/PPA3xx/mpeg_vsh350.prx
+	rar a -ep1 release/ppa.eboot.fw3xx.`date +"%Y%m%d"`.rar ppa/PPA3xx/mpeg_vsh370.prx
 	rar a -ep1 release/ppa.eboot.fw3xx.`date +"%Y%m%d"`.rar ppa/PPA3xx/config.xml
 	rar a -ep1 release/ppa.all-zh.fw3xx.`date +"%Y%m%d"`.rar ppa/PPA3xx
 	cat cngba.txt | rar c release/ppa.eboot.fw3xx.`date +"%Y%m%d"`.rar

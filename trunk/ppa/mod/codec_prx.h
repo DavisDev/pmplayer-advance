@@ -28,7 +28,7 @@
 extern "C" {
 #endif
 
-char *load_codec_prx(const char* ppa_path);
+char *load_codec_prx(const char* ppa_path, int devkitVersion);
 
 #ifdef __cplusplus
 }

@@ -30,6 +30,9 @@ char* ms_cyrl_to_utf8(const unsigned char* ms_cyrl);
 #ifdef ISO8859_2_CONV
 char* iso8859_2_to_utf8(const unsigned char* iso8859_2);
 #endif
+#ifdef ISO8859_1_CONV
+char* iso8859_1_to_utf8(const unsigned char* iso8859_1);
+#endif
 #ifdef __cplusplus
 }
 #endif
