@@ -7935,6 +7935,28 @@ iso8859_2_wctomb (unsigned char *r, ucs4_t wc, int n)
 }
 #endif
 
+#ifdef ISO8859_1_CONV
+/*
+ * ISO-8859-1
+ */
+static int
+iso8859_1_mbtowc (ucs4_t *pwc, const unsigned char *s, int n)
+{
+  unsigned char c = *s;
+  *pwc = (ucs4_t) c;
+  return 1;
+}
+
+static int
+iso8859_1_wctomb (unsigned char *r, ucs4_t wc, int n)
+{
+  if (wc < 0x0100) {
+    *r = wc;
+    return 1;
+  }
+  return RET_ILUNI;
+}
+#endif
 
 /****************************************
  *      convert to UTF-8                *
@@ -8251,3 +8273,37 @@ char* iso8859_2_to_utf8(const unsigned char* iso8859_2) {
 	return convert_buffer;//return strdup(convert_buffer);
 }
 #endif
+
+#ifdef ISO8859_1_CONV
+char* iso8859_1_to_utf8(const unsigned char* iso8859_1) {
+	if ( iso8859_1 == NULL )
+		return NULL;
+	
+	int ilen = strlen(iso8859_1);
+	if (ilen == 0)
+		return NULL;
+	
+	memset(convert_buffer, 0, CONVERT_BUFFER_SIZE+1);
+	
+	ucs4_t ucs4_char;
+	int i,j, ret_val;
+	i = 0;
+	j = 0; 
+	while( i < ilen) {
+		ret_val = iso8859_1_mbtowc(&ucs4_char, iso8859_1+i, ilen-i);
+		if ( ret_val < 0 ) { 
+			i++;
+			convert_buffer[j] = '?';
+			j++;
+		}
+		else {
+			i += ret_val;
+			ret_val = utf8_wctomb(convert_buffer+j, ucs4_char, 6);
+			if ( ret_val > 0 )
+				j += ret_val;
+		}
+	}
+	return convert_buffer;//return strdup(convert_buffer);
+}
+#endif
+

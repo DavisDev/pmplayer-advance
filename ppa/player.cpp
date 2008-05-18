@@ -414,7 +414,7 @@ int PmpAvcPlayer::init(char* ppaPath) {
 	pspDebugScreenPrintf("init pmpavc_kernel(avcodec)...\n");
 #endif
 	char* result;
-	result = load_codec_prx(applicationPath);
+	result = load_codec_prx(applicationPath, sceKernelDevkitVersion());
 	if (result!=0){
 #ifdef DEBUG
 		pspDebugScreenPrintf("%s\n",result);

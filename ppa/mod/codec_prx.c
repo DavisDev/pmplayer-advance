@@ -21,7 +21,7 @@
  
 #include "codec_prx.h"
  
-char *load_codec_prx(const char* ppa_path)
+char *load_codec_prx(const char* ppa_path, int devkitVersion)
 	{
 	int result;
 #ifdef DEVHOOK
@@ -65,7 +65,12 @@ char *load_codec_prx(const char* ppa_path)
 	//result = sceUtilityLoadAvModule(3);
 	char prx_path[512];
 	memset(prx_path, 0, 512);
-	sprintf(prx_path, "%s%s", ppa_path, "mpeg_vsh330.prx");
+	if ( devkitVersion < 0x03050000)
+		sprintf(prx_path, "%s%s", ppa_path, "mpeg_vsh330.prx");
+	else if ( devkitVersion < 0x03070000)
+		sprintf(prx_path, "%s%s", ppa_path, "mpeg_vsh350.prx");
+	else
+		sprintf(prx_path, "%s%s", ppa_path, "mpeg_vsh370.prx");
 	int status;
 	result = sceKernelLoadModule(prx_path, 0, NULL);
 	if(result >= 0) {
