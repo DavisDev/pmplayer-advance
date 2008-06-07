@@ -1,4 +1,4 @@
-TARGET = cooleyesAudio
+TARGET = cooleyesBridge
 OBJS = main.o sceAudio_driver3xx.o
 
 INCDIR = 
@@ -7,7 +7,7 @@ CXXFLAGS = $(CFLAGS) -fno-exceptions -fno-rtti
 ASFLAGS = $(CFLAGS)
 
 BUILD_PRX = 1
-PRX_EXPORTS = cooleyesAudio.exp
+PRX_EXPORTS = cooleyesBridge.exp
 
 USE_KERNEL_LIBC=1
 USE_KERNEL_LIBS=1
@@ -16,7 +16,7 @@ PSP_FW_VERSION = 371
 
 LIBDIR = 
 LDFLAGS = -mno-crt0 -nostartfiles
-LIBS = -lpspkernel -lpspaudio_driver
+LIBS = -lpspkernel
 
 
 PSPSDK=$(shell psp-config --pspsdk-path)

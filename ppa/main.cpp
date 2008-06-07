@@ -31,7 +31,7 @@
 #define REVS 3
 
 #ifdef DEVHOOK
-#include "cooleyesAudio.h"
+#include "cooleyesBridge.h"
 #endif
 
 #ifdef DEVHOOK

@@ -1,30 +1,32 @@
 #include <pspsdk.h>
 #include <pspkernel.h>
 #include <string.h>
-#include <pspaudio.h>
-#include <pspaudio_kernel.h>
 
 
 #define VERS 1
 #define REVS 0
 
 
-PSP_MODULE_INFO("cooleyesAudio", 0x1006, VERS, REVS);
+PSP_MODULE_INFO("cooleyesBridge", 0x1006, VERS, REVS);
 PSP_MAIN_THREAD_ATTR(0);
 
+int sceAudioSetFrequency(int frequency);
 int sceAudioSetFrequency371(int frequency);
 int sceAudioSetFrequency380(int frequency);
+int sceAudioSetFrequency395(int frequency);
 
 int cooleyesAudioSetFrequency(int devkitVersion, int frequency) {
 	u32 k1; 
    	k1 = pspSdkSetK1(0);
    	int ret; 
-	if (devkitVersion < 0x03070110)
+	if (devkitVersion < 0x03070000)
 		ret = sceAudioSetFrequency(frequency);
-	else if ( devkitVersion == 0x03070110 )
+	else if ( devkitVersion < 0x03080000 )
 		ret = sceAudioSetFrequency371(frequency);
-	else
+	else if ( devkitVersion < 0x03090500 )
 		ret = sceAudioSetFrequency380(frequency);
+	else
+		ret = sceAudioSetFrequency395(frequency);
 	pspSdkSetK1(k1);
 	return ret;
 }

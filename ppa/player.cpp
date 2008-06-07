@@ -273,9 +273,9 @@ int PmpAvcPlayer::init(char* ppaPath) {
 	
 #ifdef DEVHOOK
 #ifdef DEBUG	
-	pspDebugScreenPrintf("load cooleyesAudio.prx...\n");
+	pspDebugScreenPrintf("load cooleyesBridge.prx...\n");
 #endif
-	SceUID mod = pspSdkLoadStartModule("cooleyesAudio.prx", PSP_MEMORY_PARTITION_KERNEL);
+	SceUID mod = pspSdkLoadStartModule("cooleyesBridge.prx", PSP_MEMORY_PARTITION_KERNEL);
 	if (mod < 0){
         	return 0;
         }
@@ -1212,6 +1212,7 @@ void PmpAvcPlayer::paintLoading() {
 			(PSP_SCREEN_WIDTH - img->imageWidth)/2, (PSP_SCREEN_HEIGHT - img->imageHeight)/2);
 		flipScreen();
 		freeImage(img);
+		sceDisplayWaitVblankStart();
 	}
 };
 

@@ -24,6 +24,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+static ScePVoid DDRTOP = 0;
+
 void mp4_avc_safe_constructor(struct mp4_avc_struct *p) {
 	p->mpeg_init = -1;
 	p->mpeg_create = -1;
@@ -50,8 +52,8 @@ void mp4_avc_close(struct mp4_avc_struct *p) {
 	if (p->mpeg_au != 0) 
 		free_64(p->mpeg_buffer);
 	
-	if (p->mpeg_ddrtop != 0) 
-		free_64(p->mpeg_ddrtop);
+//	if (p->mpeg_ddrtop != 0) 
+//		free_64(p->mpeg_ddrtop);
 	
 	if (p->mpeg_sps_pps_buffer != 0) 
 		free_64(p->mpeg_sps_pps_buffer);
@@ -93,7 +95,10 @@ char *mp4_avc_open(struct mp4_avc_struct *p, int mpeg_mode, void* sps_buffer, in
 		return("mp4_avc_open: malloc_64 failed on mpeg_buffer");
 	}
 	
-	p->mpeg_ddrtop =  memalign(0x400000, 0x200000);
+	if ( DDRTOP == 0 ) {
+		DDRTOP = memalign(0x400000, 0x200000);
+	}
+	p->mpeg_ddrtop =  DDRTOP;//memalign(0x400000, 0x200000);
 	if (p->mpeg_ddrtop == 0) {
 		mp4_avc_close(p);
 		return("mp4_avc_open: memalign(0x400000, 0x200000) failed on mpeg_ddrtop");
