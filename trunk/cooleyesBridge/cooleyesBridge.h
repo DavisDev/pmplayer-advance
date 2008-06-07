@@ -18,8 +18,8 @@
  *  http://www.gnu.org/copyleft/gpl.html
  *
  */
-#ifndef COOLEYESAUDIO_H
-#define COOLEYESAUDIO_H
+#ifndef COOLEYESBRIDGE_H
+#define COOLEYESBRIDGE_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -40,4 +40,4 @@ int cooleyesAudioSetFrequency(int devkitVersion, int frequency);
 }
 #endif
 
-#endif /* COOLEYESAUDIO_H */
+#endif /* COOLEYESBRIDGE_H */

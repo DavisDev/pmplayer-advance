@@ -13,9 +13,9 @@ OBJS = main.o player.o config.o skin.o ftfont.o cfgdialog.o versiondialog.o msgd
 	mod/time_math.o mod/mp4.o mod/mp4_play.o mod/mp4_file.o mod/mp4_read.o mod/mp4_decode.o mod/mp4_stat.o \
 	mod/movie_interface.o mod/gu_draw.o mod/gu_font.o mod/subtitle_parse.o mod/subtitle_microdvd.o mod/subtitle_subrip.o mod/valloc.o \
 	tinyxml/tinystr.o tinyxml/tinyxml.o tinyxml/tinyxmlerror.o tinyxml/tinyxmlparser.o \
-	../cooleyesAudio/cooleyesAudio.o
+	../cooleyesBridge/cooleyesBridge.o
 	
-INCDIR = ../../m33-sdk/include ../cooleyesAudio ../pspvideocodec ../libmpeg ../libmp4info-0.0.1.psp  $(PSPLIBSDIR)/include $(PSPLIBSDIR)/include/freetype2 
+INCDIR = ../../m33-sdk/include ../cooleyesBridge ../pspvideocodec ../libmpeg ../libmp4info-0.0.1.psp  $(PSPLIBSDIR)/include $(PSPLIBSDIR)/include/freetype2 
 CFLAGS = -O3 -G0 -g -Wall -DHAVE_AV_CONFIG_H -DDEVHOOK -DPSPFW3XX -DENABLE_USBHOST -DENABLE_NETHOST
 CXXFLAGS = $(CFLAGS) -fno-exceptions -fno-rtti
 ASFLAGS = $(CFLAGS)

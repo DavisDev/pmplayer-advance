@@ -5,7 +5,7 @@
 #include <pspthreadman.h>
 #include <pspaudio.h>
 #ifdef DEVHOOK
-#include "cooleyesAudio.h"
+#include "cooleyesBridge.h"
 #else
 #include <pspaudio_kernel.h>
 #endif

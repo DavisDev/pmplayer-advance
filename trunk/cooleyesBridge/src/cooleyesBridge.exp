@@ -8,7 +8,7 @@ PSP_EXPORT_FUNC_HASH(module_start)
 PSP_EXPORT_VAR_HASH(module_info)
 PSP_EXPORT_END
 
-PSP_EXPORT_START(cooleyesAudio, 0, 0x4001)
+PSP_EXPORT_START(cooleyesBridge, 0, 0x4001)
 PSP_EXPORT_FUNC(cooleyesAudioSetFrequency)
 PSP_EXPORT_END
 

@@ -35,7 +35,7 @@ eboot3xx:
 #	make -C libfaad2
 	make -C libmpeg
 	make -C pspvideocodec
-	make -C cooleyesAudio
+	make -C cooleyesBridge
 	make -C libmp4info-0.0.1.psp
 	make -C ppa/miniconv
 #	make -C libavutil
@@ -119,14 +119,14 @@ ppa3xxzh: eboot3xx
 	mkdir -p ppa/PPA3xx/skins/default
 	mkdir -p ppa/PPA3xx/skins/normal-en
 	mkdir -p ppa/PPA3xx/skins/MHP
-	cp -f cooleyesAudio/cooleyesAudio.prx ppa/PPA3xx
+	cp -f cooleyesBridge/cooleyesBridge.prx ppa/PPA3xx
 	cp -f ppa/miniconv/miniconv.cjk.prx ppa/PPA3xx/miniconv.prx
 	cp -f ppa/extra/fonts/*.* ppa/PPA3xx/fonts
 	cp -f ppa/extra/skins/default/*.* ppa/PPA3xx/skins/default
 	cp -f ppa/extra/skins/normal-en/*.* ppa/PPA3xx/skins/normal-en
 	cp -f ppa/extra/skins/MHP/*.* ppa/PPA3xx/skins/MHP
 	rar a -ep1 release/ppa.eboot.fw3xx.`date +"%Y%m%d"`.rar ppa/PPA3xx/EBOOT.PBP 
-	rar a -ep1 release/ppa.eboot.fw3xx.`date +"%Y%m%d"`.rar ppa/PPA3xx/cooleyesAudio.prx 
+	rar a -ep1 release/ppa.eboot.fw3xx.`date +"%Y%m%d"`.rar ppa/PPA3xx/cooleyesBridge.prx 
 	rar a -ep1 release/ppa.eboot.fw3xx.`date +"%Y%m%d"`.rar ppa/PPA3xx/miniconv.prx
 	rar a -ep1 release/ppa.eboot.fw3xx.`date +"%Y%m%d"`.rar ppa/PPA3xx/usbhostfs.prx
 	rar a -ep1 release/ppa.eboot.fw3xx.`date +"%Y%m%d"`.rar ppa/PPA3xx/netuser.prx
@@ -151,7 +151,7 @@ ppa3xxen: eboot3xx
 	mkdir -p ppa/PPA3xx/skins/default
 	mkdir -p ppa/PPA3xx/skins/normal-en
 	mkdir -p ppa/PPA3xx/skins/MHP
-	cp -f cooleyesAudio/cooleyesAudio.prx ppa/PPA3xx
+	cp -f cooleyesBridge/cooleyesBridge.prx ppa/PPA3xx
 	cp -f ppa/miniconv/miniconv.eur.prx ppa/PPA3xx/miniconv.prx
 	cp -f ppa/extra/fonts/wqy-bsong.ttf ppa/PPA3xx/fonts
 	cp -f ppa/extra/skins/default/*.* ppa/PPA3xx/skins/default
@@ -164,7 +164,7 @@ clean:
 #	make -C libfaad2 clean
 	make -C libmpeg clean
 	make -C pspvideocodec clean
-	make -C cooleyesAudio clean
+	make -C cooleyesBridge clean
 	make -C libmp4info-0.0.1.psp clean
 #	make -C libavutil clean
 #	make -C libavformat clean
