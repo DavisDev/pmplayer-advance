@@ -94,6 +94,8 @@ void mp4info_close(mp4info_t* info) {
 				free(info->tracks[i]->avc_sps);
 			if (info->tracks[i]->avc_pps)
 				free(info->tracks[i]->avc_pps);
+			if (info->tracks[i]->mp4v_decinfo)
+				free(info->tracks[i]->mp4v_decinfo);
 			free(info->tracks[i]);
 		}
 	}
