@@ -19,6 +19,7 @@
  *
  */
 
+#include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
 #include "util.h"
@@ -135,9 +136,19 @@ static void read_esds_atom(mp4info_t* info, const uint64_t total_size) {
 		io_set_position(info->handle, dest_position);
         	return;
 	}
-	read_mp4_descr_length(info);
-	uint32_t samplerate = ((io_read_int8(info->handle) & 0x7) << 1) | (io_read_int8(info->handle)>>7);
-	info->tracks[info->total_tracks-1]->samplerate = aac_samplerates[samplerate];
+	temp = read_mp4_descr_length(info);
+	if ( info->tracks[info->total_tracks-1]->audio_type == ATOM_TYPE('m','p','4','a') ) {
+		uint32_t samplerate = ((io_read_int8(info->handle) & 0x7) << 1) | (io_read_int8(info->handle)>>7);
+		info->tracks[info->total_tracks-1]->samplerate = aac_samplerates[samplerate];
+	}
+	else if ( info->tracks[info->total_tracks-1]->video_type == ATOM_TYPE('m','p','4','v') ) {
+		info->tracks[info->total_tracks-1]->mp4v_decinfo_size = temp;
+		info->tracks[info->total_tracks-1]->mp4v_decinfo = (uint8_t*)malloc(info->tracks[info->total_tracks - 1]->mp4v_decinfo_size);
+		if ( info->tracks[info->total_tracks-1]->mp4v_decinfo )
+			io_read_data(info->handle, info->tracks[info->total_tracks - 1]->mp4v_decinfo, info->tracks[info->total_tracks - 1]->mp4v_decinfo_size);
+		else
+			info->tracks[info->total_tracks-1]->mp4v_decinfo_size = 0;		
+	}
 	
 	io_set_position(info->handle, dest_position);
 }
@@ -232,6 +243,37 @@ static void read_avc1_atom(mp4info_t* info, const uint64_t total_size) {
 	io_set_position(info->handle, dest_position);
 }
 
+static void read_mp4v_atom(mp4info_t* info, const uint64_t total_size) {
+	int32_t dest_position = io_get_position(info->handle) + total_size;
+	
+	int32_t i;
+	for(i = 0; i < 6; i++)
+		io_read_int8(info->handle); //reserved1
+	io_read_int16(info->handle); //dataReferenceIndex
+	io_read_int32(info->handle); //reserved2
+	io_read_int32(info->handle); //reserved2
+	io_read_int32(info->handle); //reserved2
+	io_read_int32(info->handle); //reserved2
+	info->tracks[info->total_tracks - 1]->width = io_read_int16(info->handle);
+	info->tracks[info->total_tracks - 1]->height = io_read_int16(info->handle);
+	for (i = 0; i < 14; i++) 
+		io_read_int8(info->handle); //reserved3
+	for (i = 0; i < 32; i++) 
+		io_read_int8(info->handle); //compressorName
+	io_read_int32(info->handle); //reserved4
+	
+	uint32_t atom_type = 0;
+	uint32_t header_size = 0;
+	uint64_t size = 0;
+	
+	size = atom_read_header(info->handle, &atom_type, &header_size);
+	if (atom_type == ATOM_TYPE('e','s','d','s')) {
+		read_esds_atom(info, size - header_size);
+	} 
+	
+	io_set_position(info->handle, dest_position);
+}
+
 static void read_stsd_atom(mp4info_t* info, const uint64_t total_size) {
 	int32_t dest_position = io_get_position(info->handle) + total_size;
 	
@@ -254,6 +296,10 @@ static void read_stsd_atom(mp4info_t* info, const uint64_t total_size) {
 		else if (atom_type == ATOM_TYPE('a','v','c','1')) {
 			info->tracks[info->total_tracks-1]->video_type = atom_type;
 			read_avc1_atom(info, size - header_size);
+	 	}
+	 	else if (atom_type == ATOM_TYPE('m','p','4','v')) {
+			info->tracks[info->total_tracks-1]->video_type = atom_type;
+			read_mp4v_atom(info, size - header_size);
 	 	}
 		else {
 			parse_unused_atom(info, size - header_size);

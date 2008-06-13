@@ -73,7 +73,10 @@ char *mp4_decode_open(struct mp4_decode_struct *p, char *s, int pspType, int tvA
 			p->reader.file.info->tracks[p->reader.file.video_track_id]->avc_pps_size,
 			p->reader.file.info->tracks[p->reader.file.video_track_id]->avc_nal_prefix_size);
 	else
-		result = mp4v_open(&p->mp4v);
+		result = mp4v_open_ex(&p->mp4v,
+			p->reader.file.info->tracks[p->reader.file.video_track_id]->mp4v_decinfo,
+			p->reader.file.info->tracks[p->reader.file.video_track_id]->mp4v_decinfo_size,
+			p->reader.file.maximum_video_sample_size);
 	if (result != 0) {
 		mp4_decode_close(p, pspType);
 		return(result);
@@ -254,7 +257,13 @@ char *mp4_decode_get(struct mp4_decode_struct *p, unsigned int frame_number, uns
 				return result;
 			sceKernelDcacheWritebackInvalidateAll();
 			int pic_num = 0;
-			result = mp4_avc_get(&p->avc, (p->next_video_read_frame==0?3:0), v_packet.video_buffer, v_packet.video_length, pmp_gu_rgb_buffer, &pic_num);
+			
+			if (p->video_format == 0x61766331 /*avc1*/)
+				result = mp4_avc_get(&p->avc, (p->next_video_read_frame==0?3:0), v_packet.video_buffer, v_packet.video_length, pmp_gu_rgb_buffer, &pic_num);
+			else {
+				result = mp4v_get_rgb(&p->mp4v, v_packet.video_buffer, v_packet.video_length, pmp_gu_rgb_buffer);
+				pic_num = 1;
+			}
 			if (result != 0)
 				return(result);
 			p->next_video_read_frame++;

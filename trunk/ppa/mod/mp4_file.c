@@ -85,8 +85,8 @@ char *mp4_file_open(struct mp4_file_struct *p, char *s) {
 		mp4info_track_t* track = p->info->tracks[i];
 		if (track->type != TRACK_VIDEO)
 			continue;
-		if ( track->video_type != 0x61766331 /*avc1*/)
-			continue; 
+//		if ( track->video_type != 0x61766331 /*avc1*/)
+//			continue; 
 		if ( track->width < 1 || track->height < 1 )
 			continue;
 		if ( track->width > 480 || track->height > 320 )

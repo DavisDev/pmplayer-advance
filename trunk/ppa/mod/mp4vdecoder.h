@@ -22,7 +22,7 @@
 #ifndef __mp4v_decoder_h_cooleyes__
 #define __mp4v_decoder_h_cooleyes__
 
-
+#include <stdio.h>
 #include <string.h>
 #include <pspsdk.h>
 #include "pspvideocodec.h"
@@ -36,6 +36,9 @@ struct mp4v_struct
 	unsigned long* codec_buffer;
 	unsigned long* src_buffer;
 	unsigned long* dest_buffer;
+	void* mp4v_frame_buffer;
+	int mp4v_decinfo_size;
+	int mp4v_max_frame_size;
 	};
 
 
@@ -46,8 +49,8 @@ extern "C" {
 void mp4v_safe_constructor(struct mp4v_struct *p);
 void mp4v_close(struct mp4v_struct *p);
 char *mp4v_open(struct mp4v_struct *p);
+char *mp4v_open_ex(struct mp4v_struct *p, void* mp4v_decinfo_buffer, int mp4v_decinfo_size, int mp4v_max_frame_size);
 char *mp4v_get_rgb(struct mp4v_struct *p, void *source_buffer, int size, void* rgbp);
-char *mp4v_get_yuv(struct mp4v_struct *p, void *source_buffer, int size, void* y, void* u, void* v, int* y_width, int* u_width, int* v_width, int* height);
 
 #ifdef __cplusplus
 }

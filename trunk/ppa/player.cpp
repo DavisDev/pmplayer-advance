@@ -1044,8 +1044,8 @@ void PmpAvcPlayer::getCurrentMp4FilmInformation() {
 			mp4info_track_t* track = info->tracks[i];
 			if (track->type != TRACK_VIDEO)
 				continue;
-			if ( track->video_type != 0x61766331 /*avc1*/)
-				continue; 
+//			if ( track->video_type != 0x61766331 /*avc1*/)
+//				continue; 
 			if ( track->width < 1 || track->height < 1 )
 				continue;
 			if ( track->width > 480 || track->height > 272 )
