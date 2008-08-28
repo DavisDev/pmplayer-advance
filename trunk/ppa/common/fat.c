@@ -382,7 +382,7 @@ int fat_locate(const char * name, char * sname, u32 clus, p_fat_entry info)
 				memcpy(info, &entrys[i], sizeof(t_fat_entry));
 				free((void *)entrys);
 				strcat(sname, sid.d_name);
-				if((entrys[i].norm.attr & FAT_FILEATTR_DIRECTORY) > 0)
+				if((info->norm.attr & FAT_FILEATTR_DIRECTORY) > 0)
 					strcat(sname, "/");
 				sceIoDclose(dl);
 				return 1;
@@ -397,7 +397,7 @@ int fat_locate(const char * name, char * sname, u32 clus, p_fat_entry info)
 				memcpy(info, &entrys[i], sizeof(t_fat_entry));
 				free((void *)entrys);
 				strcat(sname, sid.d_name);
-				if((entrys[i].norm.attr & FAT_FILEATTR_DIRECTORY) > 0)
+				if((info->norm.attr & FAT_FILEATTR_DIRECTORY) > 0)
 					strcat(sname, "/");
 				sceIoDclose(dl);
 				return 1;
