@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<skin>
+	<background image="skin.png" />
+	<font_color color="#FFFFFF" />
+	<files_list left="110" top="83" width="188" height="155" highlight_color="#FFFFFF" highlight_background_color="#000000" highlight_alpha_enable="true" highlight_alpha_value="#40" />
+	<datetime_pannel>
+		<date_label visible="true" left="390" top="12" width="36" height="9" />
+		<time_label visible="true" left="430" top="12" width="36" height="9" />
+	</datetime_pannel>
+	<battery_pannel>
+		<battery_status_label visible="true" left="310" top="13" width="43" height="11" />
+		<battery_status_image percent10="10.png" percent33="33.png" percent66="66.png" percent100="100.png" charging="charging.png" />
+		<battery_life_label visible="true" left="356" top="12" width="24" height="9" />
+	</battery_pannel>
+	<film_preview_pannel>
+		<preview_image visible="true" left="322" top="49" width="144" height="80" default_image="preview.png" />
+	</film_preview_pannel>
+	<film_information_pannel>
+		<aspect_ratio_label visible="true" left="389" top="188" width="60" height="9" />
+		<fps_label visible="true" left="357" top="217" width="60" height="9" />
+		<total_time_label visible="true" left="359" top="159" width="60" height="9" />
+		<audio_streams_label visible="true" left="369" top="246" width="9" height="9" />
+		<subtitles_label visible="true" left="427" top="246" width="9" height="9" />
+	</film_information_pannel>
+	<config_dialog>
+		<dialog alpha="#B0" highlight_alpha="#F0" background_color="#000000" background_highlight_color="#000000" label_color="#FFFFFF" label_highlight_color="#00FFFF" value_color="#00FF00" value_edit_color="#0000FF" />
+	</config_dialog>
+	<extra pad_help_image="pad.png"   loading_image="loading.png" />
+</skin>

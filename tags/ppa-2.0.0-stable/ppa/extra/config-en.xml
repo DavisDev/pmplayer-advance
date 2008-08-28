@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config>
+	<!-- cpu speed : 120, 166, 222, 266, 333 -->
+	<cpu speed="120" />
+	<windows>
+		<font face="wqy-bsong.ttf" anti_alias="false" embolden="false" size="12" />
+		<skin current="normal-en" />
+	</windows>
+	<subtitles>
+		<!-- charset value : "UTF-8", "GBK", "BIG5", "SHIFT-JIS", "EUC-KR" -->
+		<charset value="UTF-8" /> 
+		<font face="subfont.ttf" anti_alias="true" embolden="false" size="16" asc_scale="2.0" multcode_scale="1.0" border="1.6" color="#FFFFFF" border_color="#000000" />
+		<!-- position align : "top", "bottom" -->
+		<position align="bottom" distance="16" />
+	</subtitles>
+	<filesystem>
+		<file_filter show_hidden="false" show_unknown="false" />
+		<!-- charset value : "UTF-8", "GBK", "BIG5", "SHIFT-JIS", "EUC-KR" -->
+		<charset value="UTF-8" />
+		<net_filesystem address="192.168.0.1" port="7513" entry="1" password="" adhoc_address="192.168.0.1" />
+		<browser last_path="bXMwOi9QU1AvVklERU8v" />
+	</filesystem> 
+	<!-- play_mode : "single", "group", "all" -->
+	<player play_mode="group" idle_time="300" />
+	<tvout aspect_ratio="16:9" over_scan="8.0.8.0" />
+</config>
