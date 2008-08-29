@@ -43,24 +43,19 @@
 #include "nethost.h"
 #include "videomode.h"
 
-#ifdef PSPFW3XX
 #include "common/libminiconv.h"
-#endif
 #include "common/fat.h"
 #include "common/directory.h"
 #include "common/ctrl.h"
 #include "common/imagefile.h"
 #include "common/base64.h"
 
-//#include "avformat.h"
 
 #include "mod/subtitle_charset.h"
 #include "mod/cpu_clock.h"
 #include "mod/pmp.h"
 
-#ifdef PSPFW3XX
 #include "mod/mp4.h"
-#endif
 
 #include "mod/codec_prx.h"
 #include "mod/gu_font.h"
@@ -70,9 +65,7 @@
 
 file_type_ext_struct pmpFileFilter[] = {
 	{"pmp", FS_PMP_FILE},
-#ifdef PSPFW3XX
 	{"mp4", FS_MP4_FILE},
-#endif
 	{NULL, FS_UNKNOWN_FILE}
 };
 
@@ -271,7 +264,6 @@ int PmpAvcPlayer::init(char* ppaPath) {
 	}
 	strcat(applicationPath, "/");
 	
-#ifdef DEVHOOK
 #ifdef DEBUG	
 	pspDebugScreenPrintf("load cooleyesBridge.prx...\n");
 #endif
@@ -279,9 +271,7 @@ int PmpAvcPlayer::init(char* ppaPath) {
 	if (mod < 0){
         	return 0;
         }
-#endif
 
-#ifdef PSPFW3XX
 #ifdef DEBUG	
 	pspDebugScreenPrintf("load miniconv.prx...\n");
 #endif
@@ -289,7 +279,6 @@ int PmpAvcPlayer::init(char* ppaPath) {
 	if (mod < 0){
         	return 0;
         }
-#endif
 
 	memset(tempPath, 0, 1024);
 	sprintf(tempPath, "%s%s", applicationPath, "dvemgr.prx");
@@ -380,16 +369,10 @@ int PmpAvcPlayer::init(char* ppaPath) {
 	fileShowHidden = 0;//( config->getBooleanValue("config/filesystem/file_filter/show_hidden", false) ? 1 : 0 );
 	fileShowHidden = 0;//( config->getBooleanValue("config/filesystem/file_filter/show_unknown", false) ? 1 : 0 );
 		
-#ifdef PSPFW3XX
 	miniConvSetFileSystemConv( config->getStringValue("config/filesystem/charset/value", "UTF-8") );
-#else	
-	set_usb_net_directory_charset( config->getStringValue("config/filesystem/charset/value", "UTF-8") );
-#endif	
 	const char* last_path = config->getStringValue("config/filesystem/browser/last_path", "");
 	base64decode((unsigned char*)filePath, last_path, strlen(last_path));
 	base64decode((unsigned char*)fileShortPath, last_path, strlen(last_path));
-	//strcpy(filePath, "ms0:/PSP/VIDEO/");
-	//strcpy(fileShortPath, "ms0:/PSP/VIDEO/");
 	
 #ifdef DEBUG
 	pspDebugScreenPrintf("init fat,ctrl...\n");
@@ -464,11 +447,7 @@ int PmpAvcPlayer::init(char* ppaPath) {
 			gu_font_align_set(1);
 			
 		gu_font_distance_set(sub_distance);
-#ifdef PSPFW3XX		
 		miniConvSetSubtitleConv(config->getStringValue("config/subtitles/charset/value","UTF-8"));
-#else
-		set_movie_subrip_charset(config->getStringValue("config/subtitles/charset/value","UTF-8"));
-#endif
 	}
 //*/
 #ifdef DEBUG
@@ -501,11 +480,7 @@ int PmpAvcPlayer::init(char* ppaPath) {
 };
 
 void PmpAvcPlayer::run() {
-#ifndef ENABLE_SUSPEND
-#ifndef DEVHOOK
-	scePowerLock(0);
-#endif
-#endif
+
 	if( listDirectory() == false) {
 		memset(filePath, 0, 512);
 		memset(fileShortPath, 0, 512);
@@ -589,7 +564,6 @@ void PmpAvcPlayer::run() {
 			}
 			activeTime = time(NULL);
 		} 
-#ifdef DEVHOOK
 		else if ( (key & PSP_CTRL_LTRIGGER) && (key & PSP_CTRL_START) ) {
 			MessageDialog* dialog = new MessageDialog(Skin::getInstance()->getBackground(skinPath), drawImage);
 			if ( dialog ) {
@@ -603,21 +577,6 @@ void PmpAvcPlayer::run() {
 			}
 			activeTime = time(NULL);
 		}
-#else
-		else if ( key & PSP_CTRL_HOME ) {
-			MessageDialog* dialog = new MessageDialog(Skin::getInstance()->getBackground(skinPath), drawImage);
-			if ( dialog ) {
-				if ( dialog->init("Do you want to quit the PPA ?", MESSAGE_TYPE_YES_NO) ) {
-					u32 res = dialog->execute();
-					if ( res == MESSAGE_RESULT_YES ) {
-						break;
-					}
-				}
-				delete dialog;
-			}
-			activeTime = time(NULL);
-		}
-#endif
 		else if ( key & PSP_CTRL_TRIANGLE ) {
 			showPadHelp();
 			activeTime = time(NULL);
@@ -750,13 +709,13 @@ void PmpAvcPlayer::run() {
 			activeTime = time(NULL);
 		}
 		
-#if defined(ENABLE_SUSPEND) || defined(DEVHOOK)		
+
 		if (!isSuspended && ( time(NULL) - activeTime >= idleSecond) ) {
 			isSuspended = true;
 			activeTime = time(NULL);
 			scePowerRequestSuspend();
 		}
-#endif		
+
 		paint();
 		sceKernelDelayThread(12500);
 	}
@@ -1027,7 +986,6 @@ void PmpAvcPlayer::getCurrentPmpFilmInformation() {
 
 void PmpAvcPlayer::getCurrentMp4FilmInformation() {
 	initFilmInformation();
-#ifdef PSPFW3XX	
 	char previewFileName[512];
 	memset(previewFileName, 0, 512);
 	
@@ -1134,7 +1092,6 @@ void PmpAvcPlayer::getCurrentMp4FilmInformation() {
 			sceIoDclose(directory);
 		}
 	}
-#endif
 }
 
 void PmpAvcPlayer::paintFilmInformation() {
@@ -1305,10 +1262,8 @@ void PmpAvcPlayer::playMovie(bool resume) {
 	
 	if ( fileItems[fileItemCurrent].filetype == FS_PMP_FILE )
 		result = pmp_play(movieFileName, usePos, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode() );
-#ifdef PSPFW3XX
 	else if ( fileItems[fileItemCurrent].filetype == FS_MP4_FILE )
 		result = mp4_play(movieFileName, usePos, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode() );
-#endif
 	else
 		result = "unsupported movie";
 	
@@ -1341,10 +1296,8 @@ void PmpAvcPlayer::playMovie(bool resume) {
 				VideoMode::getTVOverScan(left, top, right, bottom);
 				if ( fileItems[fileItemCurrent].filetype == FS_PMP_FILE )
 					result = pmp_play(movieFileName, 0, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode());
-#ifdef PSPFW3XX
 				else if ( fileItems[fileItemCurrent].filetype == FS_MP4_FILE )
 					result = mp4_play(movieFileName, 0, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode());
-#endif				
 				else
 					result = "unsupported movie";
 					
@@ -1366,10 +1319,8 @@ void PmpAvcPlayer::playMovie(bool resume) {
 			VideoMode::getTVOverScan(left, top, right, bottom);
 			if ( fileItems[fileItemCurrent].filetype == FS_PMP_FILE )
 				result = pmp_play(movieFileName, 0, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode());
-#ifdef PSPFW3XX
 			else if ( fileItems[fileItemCurrent].filetype == FS_MP4_FILE )
 				result = mp4_play(movieFileName, 0, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode());
-#endif
 			else
 				result = "unsupported movie";
 			sceKernelDcacheWritebackInvalidateAll();

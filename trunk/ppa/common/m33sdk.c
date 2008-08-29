@@ -20,22 +20,12 @@
  */
 #include "m33sdk.h"
 #include <pspsdk.h>
-#ifdef DEVHOOK
-#include<kubridge.h>
-#endif
+#include <kubridge.h>
 
 int m33KernelGetModel() {
-#ifdef DEVHOOK
 	return kuKernelGetModel();
-#else
-	return 0;
-#endif
 };
 
 int m33IsTVOutSupported(int type){
-#ifdef DEVHOOK
 	return ( (type==PSP_MODEL_SLIM_AND_LITE) && (!(sceKernelDevkitVersion()<0x03070110)) );
-#else
-	return 0;
-#endif
 };

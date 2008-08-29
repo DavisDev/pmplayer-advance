@@ -30,41 +30,11 @@
 #define VERS 1
 #define REVS 3
 
-#ifdef DEVHOOK
 #include "cooleyesBridge.h"
-#endif
 
-#ifdef DEVHOOK
 PSP_MODULE_INFO("PMPLAYER_ADVANCE", 0, VERS, REVS);
 PSP_MAIN_THREAD_ATTR(0);
-//PSP_MAIN_THREAD_ATTR(PSP_THREAD_ATTR_USER);
-//PSP_MAIN_THREAD_STACK_SIZE_KB(4*1024);
 PSP_HEAP_SIZE_KB(18*1024);
-#else
-PSP_MODULE_INFO("PMPLAYER_ADVANCE", 0x1000, VERS, REVS);
-//PSP_MAIN_THREAD_PARAMS(45, 256, 0);
-PSP_MAIN_THREAD_ATTR(0);
-
-void exception_handler(PspDebugRegBlock *regs){
-	pspDebugScreenInit();
-	
-	pspDebugScreenSetBackColor(0x00FF0000);
-	pspDebugScreenSetTextColor(0xFFFFFFFF);
-	pspDebugScreenClear();
-
-	pspDebugScreenPrintf("Exception Details:\n");
-	pspDebugDumpException(regs);
-}
-__attribute__ ((constructor))
-void loaderInit(){
-	pspKernelSetKernelPC();
-	pspSdkInstallNoDeviceCheckPatch();
-	pspSdkInstallNoPlainModuleCheckPatch();
-	pspSdkInstallKernelLoadModulePatch();
-	pspDebugInstallErrorHandler(exception_handler);
-}
-#endif
-
 
 #define printf	pspDebugScreenPrintf
 
@@ -84,22 +54,18 @@ static int power_callback(int arg1, int powerInfo, void * arg){
 }
 
 /* Exit callback */
-#ifdef DEVHOOK
 static int exit_callback(int arg1, int arg2, void *common){
 	cooleyesAudioSetFrequency(sceKernelDevkitVersion(), 44100);
 	sceKernelExitGame();
 	return 0;
 }
-#endif
 
 /* Callback thread */
 int CallbackThread(SceSize args, void *argp){
 	int cbid;
 
-#ifdef DEVHOOK
 	cbid = sceKernelCreateCallback("Exit Callback", exit_callback, NULL);
 	sceKernelRegisterExitCallback(cbid);
-#endif
 	cbid = sceKernelCreateCallback("Power Callback", power_callback, NULL);
 	scePowerRegisterCallback(0, cbid);
 

@@ -51,9 +51,6 @@ typedef struct {
 extern "C" {
 #endif
 
-#ifndef PSPFW3XX
-void set_usb_net_directory_charset(const char* charset);
-#endif
 
 file_type_enum directory_get_filetype(const char* filename, file_type_ext_struct* file_type_ext_table);
 
