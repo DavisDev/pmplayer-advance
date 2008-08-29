@@ -31,11 +31,7 @@ this play the file (av output and basic functions - pause, seek ... )
 
 #include <pspthreadman.h>
 #include <pspaudio.h>
-#ifdef DEVHOOK
 #include "cooleyesBridge.h"
-#else
-#include <pspaudio_kernel.h>
-#endif
 #include <pspdisplay.h>
 #include <pspctrl.h>
 #include <psppower.h>

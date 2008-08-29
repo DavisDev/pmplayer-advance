@@ -1,12 +1,9 @@
 all:mkver
-	$(MAKE) -f Makefile.1xx
-ppa150:mkver
-	$(MAKE) -f Makefile.1xx SCEkxploit
+	$(MAKE) -f Makefile.3xx
 ppa3xx:mkver
 	$(MAKE) -f Makefile.3xx
 	
 clean:
-	$(MAKE) -f Makefile.1xx clean
 	$(MAKE) -f Makefile.3xx clean
 	rm -f *.bak
 	rm -f mod/*.bak
@@ -36,7 +33,7 @@ mkver:
 #define __PPA_VERSION__ \n\
 \n\
 #define PPA_NAME	\"PMPlayer advance\" \n\
-#define PPA_VERSION	\"Version 2.0.0 Built(`date +"%Y%m%d"`)\" \n\
+#define PPA_VERSION	\"Version 2.1.0 Built(`date +"%Y%m%d"`)\" \n\
 #define PPA_COPYRIGHT	\"Copyright(C) cooleyes(eyes.cooleyes@gmail.com)\" \n\
 \n\
 #endif" > version.h

@@ -18,19 +18,11 @@ void mp4_play_safe_constructor(struct mp4_play_struct *p) {
 
 void mp4_play_close(struct mp4_play_struct *p, int usePos, int pspType) {
 	
-#ifdef DEVHOOK
 	if (!(p->audio_reserved < 0)) {
 		while(sceAudioGetChannelRestLen(0) > 0 );
 		sceAudioChRelease(0);
 	}
 	cooleyesAudioSetFrequency(sceKernelDevkitVersion(), 44100);
-#else
-	if (!(p->audio_reserved < 0)) {
-		while(sceAudioGetChannelRestLen(0) > 0 );
-		sceAudioChRelease(0);
-	}
-	sceAudioSetFrequency(44100);
-#endif
 
 	if (!(p->semaphore_can_get   < 0)) sceKernelDeleteSema(p->semaphore_can_get);
 	if (!(p->semaphore_can_put   < 0)) sceKernelDeleteSema(p->semaphore_can_put);
@@ -138,13 +130,8 @@ static void mp4_input(volatile struct mp4_play_struct *p, SceCtrlData *previous_
 
 
 	SceCtrlData controller;
-#ifdef DEVHOOK
 	sceCtrlReadBufferPositive(&controller, 1);
 	if(1)
-#else
-	sceCtrlPeekBufferPositive(&controller, 1);
-	if (controller.Buttons != 0)
-#endif
 	{
 		if (((controller.Buttons & PSP_CTRL_TRIANGLE) == 0) && (previous_controller->Buttons & PSP_CTRL_TRIANGLE)) {
 			p->return_request = 1;
@@ -532,7 +519,6 @@ char *mp4_play_open(struct mp4_play_struct *p, char *s, int usePos, int pspType,
 	}
 	if (subtitle_parse_search( video_directory, video_filename, p->decoder.reader.file.video_rate, p->decoder.reader.file.video_scale, &p->subtitle_count)==0) p->subtitle = 1;
 	
-#ifdef DEVHOOK
 	if ( cooleyesAudioSetFrequency(sceKernelDevkitVersion(), p->decoder.reader.file.audio_rate) != 0) {
 		mp4_play_close(p, 0, pspType);
 		return("mp4_play_open: sceAudioSetFrequency failed");
@@ -542,19 +528,6 @@ char *mp4_play_open(struct mp4_play_struct *p, char *s, int usePos, int pspType,
 		mp4_play_close(p, 0, pspType);
 		return("mp4_play_open: sceAudioChReserve failed");
 	}
-#else
-	if ( sceAudioSetFrequency(p->decoder.reader.file.audio_rate) != 0) {
-		mp4_play_close(p, 0, pspType);
-		return("mp4_play_open: sceAudioSetFrequency failed");
-	}
-	
-	p->audio_reserved = sceAudioChReserve(0, p->decoder.reader.file.audio_resample_scale, PSP_AUDIO_FORMAT_STEREO);
-	if (p->audio_reserved < 0) {
-		mp4_play_close(p, 0, pspType);
-		return("mp4_play_open: sceAudioChReserve failed");
-	}
-#endif
-
 
 	p->semaphore_can_get = sceKernelCreateSema("can_get", 0, 0, p->decoder.number_of_frame_buffers, 0);
 	if (p->semaphore_can_get < 0) {

@@ -46,20 +46,11 @@ void pmp_play_safe_constructor(struct pmp_play_struct *p)
 
 void pmp_play_close(struct pmp_play_struct *p, int usePos, int pspType)
 	{
-#ifdef DEVHOOK
-//	sceAudio_5C37C0AE();
 	if (!(p->audio_reserved < 0)) {
 		while(sceAudioGetChannelRestLen(0) > 0 );
 		sceAudioChRelease(0);
 	}
 	cooleyesAudioSetFrequency(sceKernelDevkitVersion(), 44100);
-#else
-	if (!(p->audio_reserved < 0)) {
-		while(sceAudioGetChannelRestLen(0) > 0 );
-		sceAudioChRelease(0);
-	}
-	sceAudioSetFrequency(44100);
-#endif
 
 	if (!(p->semaphore_can_get   < 0)) sceKernelDeleteSema(p->semaphore_can_get);
 	if (!(p->semaphore_can_put   < 0)) sceKernelDeleteSema(p->semaphore_can_put);
@@ -178,13 +169,8 @@ static void pmp_input(volatile struct pmp_play_struct *p, SceCtrlData *previous_
 
 
 	SceCtrlData controller;
-#ifdef DEVHOOK
 	sceCtrlReadBufferPositive(&controller, 1);
 	if(1)
-#else
-	sceCtrlPeekBufferPositive(&controller, 1);
-	if (controller.Buttons != 0)
-#endif
 		{
 		if (((controller.Buttons & PSP_CTRL_TRIANGLE) == 0) && (previous_controller->Buttons & PSP_CTRL_TRIANGLE))
 			{
@@ -426,11 +412,7 @@ static int pmp_output_thread(SceSize input_length, void *input)
 			{
 			current_buffer->first_delay -= 500;
 			sceKernelDelayThread(current_buffer->first_delay < 1 ? 1 : current_buffer->first_delay);
-//#ifdef DEVHOOK
-//			sceAudio_E0727056(PSP_AUDIO_VOLUME_MAX, current_buffer->audio_frame);
-//#else
 			sceAudioOutputBlocking(0, PSP_AUDIO_VOLUME_MAX, current_buffer->audio_frame);
-//#endif
 			}
 
 
@@ -442,11 +424,7 @@ static int pmp_output_thread(SceSize input_length, void *input)
 			int i = 1;
 			for (; i < current_buffer->number_of_audio_frames; i++)
 				{
-//#ifdef DEVHOOK
-//				sceAudio_E0727056(PSP_AUDIO_VOLUME_MAX, current_buffer->audio_frame + p->decoder.audio_frame_size * i);
-//#else
 				sceAudioOutputBlocking(0, PSP_AUDIO_VOLUME_MAX, current_buffer->audio_frame + p->decoder.audio_frame_size * i);
-//#endif
 				}
 
 			current_buffer->last_delay -= 500;
@@ -680,12 +658,6 @@ char *pmp_play_open(struct pmp_play_struct *p, char *s, int usePos, int pspType,
 	//if (subtitle_parse_search( video_directory, s, p->decoder.reader.file.header.video.rate, p->decoder.reader.file.header.video.scale, &p->subtitle_count)==0) p->subtitle = 1;
 	//modify end 
 	
-#ifdef DEVHOOK
-//	if ( sceAudio_38553111(p->decoder.reader.file.header.audio.scale, p->decoder.reader.file.header.audio.rate, 2) != 0)
-//		{
-//		pmp_play_close(p, 0);
-//		return("pmp_play_open: sceAudioSetFrequency failed");
-//		}
 	if ( cooleyesAudioSetFrequency(sceKernelDevkitVersion(), p->decoder.reader.file.header.audio.rate) != 0)
 		{
 		pmp_play_close(p, 0, pspType);
@@ -697,22 +669,6 @@ char *pmp_play_open(struct pmp_play_struct *p, char *s, int usePos, int pspType,
 		pmp_play_close(p, 0, pspType);
 		return("pmp_play_open: sceAudioChReserve failed");
 		}
-#else
-	//add by cooleyes, 2007-06-05
-	if ( sceAudioSetFrequency(p->decoder.reader.file.header.audio.rate) != 0)
-		{
-		pmp_play_close(p, 0, pspType);
-		return("pmp_play_open: sceAudioSetFrequency failed");
-		}
-	//add end
-	
-	p->audio_reserved = sceAudioChReserve(0, p->decoder.reader.file.header.audio.scale, PSP_AUDIO_FORMAT_STEREO);
-	if (p->audio_reserved < 0)
-		{
-		pmp_play_close(p, 0, pspType);
-		return("pmp_play_open: sceAudioChReserve failed");
-		}
-#endif
 
 
 	p->semaphore_can_get = sceKernelCreateSema("can_get", 0, 0, p->decoder.number_of_frame_buffers, 0);
