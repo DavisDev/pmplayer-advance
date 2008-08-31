@@ -936,12 +936,16 @@ void PmpAvcPlayer::getCurrentPmpFilmInformation() {
 	memset(previewFileName, 0, 512);
 	
 	sprintf(previewFileName,"%s%s", fileShortPath, fileItems[fileItemCurrent].shortname);
-	FILE* fp = fopen(previewFileName, "rb");
+	SceUID fp = sceIoOpen(previewFileName, PSP_O_RDONLY, 0777);
+	if ( !fp ) {
+		initFilmInformation();
+		return;
+	}
 			
 	u32 inforBuffer[10];
 	memset(&inforBuffer, 0, 10*sizeof(u32));
-	fread(&inforBuffer, sizeof(u32), 10, fp);
-	fclose(fp);
+	sceIoRead(fp, &inforBuffer, 10*sizeof(u32));
+	sceIoClose(fp);
 			
 	if ( inforBuffer[0] != 0x6D706D70 || inforBuffer[1] != 1 ) {
 		initFilmInformation();

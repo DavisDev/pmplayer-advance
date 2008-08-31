@@ -62,6 +62,13 @@ struct subtitle_frame_struct* subtitle_parse_microdvd( FILE *f, unsigned int rat
 		}
 	p->p_string[i] = '\0';
 	
+	if ( miniConvHaveSubtitleConv() ){
+		char* temp_str = miniConvSubtitleConv(p->p_string);
+		if( temp_str != NULL ) {
+			strncpy(p->p_string, temp_str, max_subtitle_string-1);
+		}
+	}
+	
 	return(p);
 	}
 	
