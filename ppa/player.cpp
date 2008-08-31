@@ -447,7 +447,7 @@ int PmpAvcPlayer::init(char* ppaPath) {
 			gu_font_align_set(1);
 			
 		gu_font_distance_set(sub_distance);
-		miniConvSetSubtitleConv(config->getStringValue("config/subtitles/charset/value","UTF-8"));
+		miniConvSetDefaultSubtitleConv(config->getStringValue("config/subtitles/charset/value","UTF-8"));
 	}
 //*/
 #ifdef DEBUG

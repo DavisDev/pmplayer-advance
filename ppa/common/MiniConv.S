@@ -10,8 +10,8 @@
 	STUB_FUNC  0x7D322AF7,miniConvSetFileSystemConv
 	STUB_FUNC  0xE4AF72B4,miniConvHaveFileSystemConv
 	STUB_FUNC  0xBE3C38BC,miniConvFileSystemConv
-	STUB_FUNC  0x4BA7FC7A,miniConvSetSubtitleConv
-	STUB_FUNC  0xDEE9CF5A,miniConvHaveSubtitleConv
-	STUB_FUNC  0xA898AABE,miniConvSubtitleConv
+	STUB_FUNC  0x3121FBB6,miniConvSetDefaultSubtitleConv
+	STUB_FUNC  0x05DC7AFF,miniConvHaveDefaultSubtitleConv
+	STUB_FUNC  0x59BC155A,miniConvDefaultSubtitleConv
 	STUB_FUNC  0x40EBBB6B,miniConvFreeMemory
 	STUB_END
