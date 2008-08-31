@@ -127,9 +127,37 @@ int miniConvHaveDefaultSubtitleConv() {
 	return ( (sub_convertor == NULL) ? 0 : 1 );
 };
 
+int miniConvHaveSubtitleConv(const char* charset) {
+	convertor_t *p = convertors;
+	while( p->charset != NULL ) {
+		if (stricmp(charset, p->charset) == 0) {
+			if ( p->convertor )
+				return 1;
+			else
+				return 0;
+		}
+		p++;
+	}
+	return 0;
+};
+
 char* miniConvDefaultSubtitleConv(const unsigned char* s) {
 	return sub_convertor(s);
-}
+};
+
+char* miniConvSubtitleConv(const unsigned char* s, const char* charset) {
+	convertor_t *p = convertors;
+	while( p->charset != NULL ) {
+		if (stricmp(charset, p->charset) == 0) {
+			if ( p->convertor )
+				return p->convertor(s);
+			else
+				return 0;
+		}
+		p++;
+	}
+	return 0;
+};
 
 void miniConvFreeMemory(void* mem) {
 	free(mem);
