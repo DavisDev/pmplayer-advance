@@ -18,7 +18,9 @@ PSP_EXPORT_FUNC(miniConvHaveFileSystemConv)
 PSP_EXPORT_FUNC(miniConvFileSystemConv)
 PSP_EXPORT_FUNC(miniConvSetDefaultSubtitleConv)
 PSP_EXPORT_FUNC(miniConvHaveDefaultSubtitleConv)
+PSP_EXPORT_FUNC(miniConvHaveSubtitleConv)
 PSP_EXPORT_FUNC(miniConvDefaultSubtitleConv)
+PSP_EXPORT_FUNC(miniConvSubtitleConv)
 PSP_EXPORT_FUNC(miniConvFreeMemory)
 PSP_EXPORT_END
 
