@@ -33,9 +33,9 @@ char* miniConvGetConvCharset(int index);
 void miniConvSetFileSystemConv(const char* charset);
 int miniConvHaveFileSystemConv();
 char* miniConvFileSystemConv(const unsigned char* s);
-void miniConvSetSubtitleConv(const char* charset);
-int miniConvHaveSubtitleConv();
-char* miniConvSubtitleConv(const unsigned char* s);
+void miniConvSetDefaultSubtitleConv(const char* charset);
+int miniConvHaveDefaultSubtitleConv();
+char* miniConvDefaultSubtitleConv(const unsigned char* s);
 void miniConvFreeMemory(void* mem);
 #ifdef __cplusplus
 }

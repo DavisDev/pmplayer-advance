@@ -229,7 +229,7 @@ void SubCharsetConfigItem::enterEditStatus() {
 		else if ( key & PSP_CTRL_CIRCLE ) {
 			Config* config = Config::getInstance();
 			config->setStringValue("config/subtitles/charset/value", miniConvGetConvCharset(newValue));
-			miniConvSetSubtitleConv( miniConvGetConvCharset(newValue) );
+			miniConvSetDefaultSubtitleConv( miniConvGetConvCharset(newValue) );
 
 			currentValue = newValue;
 			break;

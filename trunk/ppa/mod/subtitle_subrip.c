@@ -93,8 +93,8 @@ struct subtitle_frame_struct* subtitle_parse_subrip( FILE *f, unsigned int rate,
 		}
 	p->p_string[j-1] = '\0';
 
-	if ( miniConvHaveSubtitleConv() ){
-		char* temp_str = miniConvSubtitleConv(p->p_string);
+	if ( miniConvHaveDefaultSubtitleConv() ){
+		char* temp_str = miniConvDefaultSubtitleConv(p->p_string);
 		if( temp_str != NULL ) {
 			strncpy(p->p_string, temp_str, max_subtitle_string-1);
 		}

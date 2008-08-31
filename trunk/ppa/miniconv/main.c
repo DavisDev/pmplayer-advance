@@ -111,7 +111,7 @@ char* miniConvFileSystemConv(const unsigned char* s) {
 	return fs_convertor(s);
 }
 
-void miniConvSetSubtitleConv(const char* charset) {
+void miniConvSetDefaultSubtitleConv(const char* charset) {
 	convertor_t *p = convertors;
 	while( p->charset != NULL ) {
 		if (stricmp(charset, p->charset) == 0) {
@@ -123,11 +123,11 @@ void miniConvSetSubtitleConv(const char* charset) {
 	sub_convertor = NULL;
 };
 
-int miniConvHaveSubtitleConv() {
+int miniConvHaveDefaultSubtitleConv() {
 	return ( (sub_convertor == NULL) ? 0 : 1 );
 };
 
-char* miniConvSubtitleConv(const unsigned char* s) {
+char* miniConvDefaultSubtitleConv(const unsigned char* s) {
 	return sub_convertor(s);
 }
 
