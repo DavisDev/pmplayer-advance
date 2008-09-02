@@ -43,6 +43,7 @@ private:
 	int fileShowHidden, fileShowUnknown;
 	char filePath[512], fileShortPath[512];
 	directory_item_struct *fileItems;
+	directory_item_struct *attachmentItems;
 	Color fileListTextColor, fileListHLTextColor, fileListHLBackgroundColor, fileListScrollbarColor;
 	
 	bool dateVisible, timeVisible;
@@ -97,6 +98,10 @@ private:
 	void showPadHelp();
 	
 	void deleteSelectMovie();
+	
+	int getSelectMovieSubtitles();
+	
+	void fillSelectMovieInfo();
 	
 	void playMovie(bool resume);
 	

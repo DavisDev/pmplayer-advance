@@ -12,6 +12,7 @@
 #include "aspect_ratio.h"
 #include "gu_draw.h"
 #include "subtitle_parse.h"
+#include "movie_file.h"
 
 
 struct mp4_play_struct {
@@ -42,7 +43,7 @@ struct mp4_play_struct {
 	unsigned int show_interface;
 	unsigned int last_keyframe_pos;
 	unsigned int resume_pos;
-	char resume_filename[256];
+	char hash[16];
 	unsigned int subtitle_count;
 	unsigned int subtitle;
 	unsigned int subtitle_format;
@@ -59,9 +60,9 @@ struct mp4_play_struct {
 #define NUMBER_OF_BORDERCOLORS 6
 #endif
 
-#include "mp4_stat.h"
+#include "movie_stat.h"
 void mp4_play_safe_constructor(struct mp4_play_struct *p);
-char *mp4_play_open(struct mp4_play_struct *p, char *s, int usePos, int pspType, int tvAspectRatio, int tvWidth, int tvHeight, int videoMode);
+char *mp4_play_open(struct mp4_play_struct *p, struct movie_file_struct *movie, int usePos, int pspType, int tvAspectRatio, int tvWidth, int tvHeight, int videoMode);
 void mp4_play_close(struct mp4_play_struct *p, int usePos, int pspType);
 char *mp4_play_start(volatile struct mp4_play_struct *p);
 

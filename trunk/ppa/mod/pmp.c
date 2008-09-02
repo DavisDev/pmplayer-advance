@@ -28,7 +28,7 @@ this lib should be used to play .pmp files
 #include "pmp.h"
 
 
-char *pmp_play(char *s, int usePos, int pspType, int tvAspectRatio, int tvOverScanLeft, int tvOverScanTop, int tvOverScanRight, int tvOverScanBottom, int videoMode)
+char *pmp_play(struct movie_file_struct *movie, int usePos, int pspType, int tvAspectRatio, int tvOverScanLeft, int tvOverScanTop, int tvOverScanRight, int tvOverScanBottom, int videoMode)
 	{
 	struct pmp_play_struct p;
 
@@ -36,7 +36,7 @@ char *pmp_play(char *s, int usePos, int pspType, int tvAspectRatio, int tvOverSc
 	pmp_gu_start(pspType, tvAspectRatio, tvOverScanLeft, tvOverScanTop, tvOverScanRight, tvOverScanBottom, videoMode);
 
 
-	char *result = pmp_play_open(&p, s, usePos, pspType, tvAspectRatio, (720-tvOverScanLeft-tvOverScanRight), (480-tvOverScanTop-tvOverScanBottom), videoMode);
+	char *result = pmp_play_open(&p, movie, usePos, pspType, tvAspectRatio, (720-tvOverScanLeft-tvOverScanRight), (480-tvOverScanTop-tvOverScanBottom), videoMode);
 	if (result == 0)
 		{
 		result = pmp_play_start(&p);

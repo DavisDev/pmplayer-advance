@@ -100,7 +100,7 @@ void miniConvSetFileSystemConv(const char* charset) {
 		}
 		p++;
 	}
-	sub_convertor = NULL;
+	fs_convertor = NULL;
 };
 
 int miniConvHaveFileSystemConv() {

@@ -27,6 +27,7 @@ subtitle parsing layer
 #define subtitle_parse_h__
 
 #include <stdio.h>
+#include "movie_file.h"
 
 
 #define max_subtitle_string 512
@@ -52,15 +53,15 @@ struct subtitle_parse_struct {
 };
 
 
-#define MAX_SUBTITLES 8
+#define MAX_SUBTITLES 4
 extern struct subtitle_parse_struct subtitle_parser[MAX_SUBTITLES];
 
 
 void subtitle_frame_safe_constructor(struct subtitle_frame_struct *p);
 void subtitle_frame_safe_destructor(struct subtitle_frame_struct *p);
 void subtitle_parse_safe_constructor(struct subtitle_parse_struct *p);
-char *subtitle_parse_search(char *folder, char *filename, unsigned int rate, unsigned int scale, unsigned int *num_subtitles);
-char *subtitle_parse_open(struct subtitle_parse_struct *p, char *s, unsigned int rate, unsigned int scale);
+char *subtitle_parse_search(struct movie_file_struct* movie, unsigned int rate, unsigned int scale, unsigned int *num_subtitles);
+char *subtitle_parse_open(struct subtitle_parse_struct *p, char *s, char* charset, unsigned int rate, unsigned int scale);
 void subtitle_parse_close(struct subtitle_parse_struct *p);
 char* subtitle_parse_get_frame(struct subtitle_parse_struct *p, struct subtitle_frame_struct **f, unsigned int frame );
 

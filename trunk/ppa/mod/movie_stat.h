@@ -1,5 +1,5 @@
 /* 
- *	Copyright (C) 2006 cooleyes
+ *	Copyright (C) 2008 cooleyes
  *	eyes.cooleyes@gmail.com 
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -18,52 +18,43 @@
  *  http://www.gnu.org/copyleft/gpl.html
  *
  */
-#ifndef __DIRECTORY_H__
-#define __DIRECTORY_H__
+ 
+#ifndef __MOVIE_STAT_H__
+#define __MOVIE_STAT_H__
 
-typedef enum {
-//*/
-	FS_DIRECTORY = 0,
-	FS_PMP_FILE,
-	FS_MP4_FILE,
-	FS_SUB_FILE,
-	FS_SRT_FILE,
-	FS_PNG_FILE,
-	FS_UNKNOWN_FILE
-//*/
-} file_type_enum;
+#include "pmp_play.h"
+#include "mp4_play.h"
 
-typedef struct {
-	const char * ext;
-	file_type_enum filetype;
-} file_type_ext_struct;
+#define MAX_MOVIE_STAT 20
 
-typedef struct {
-	char shortname[256];
-	char longname[256];
-	char* compname; 
-	u32 filesize;
-	u16 cdate;
-	u16 ctime;
-	u16 mdate;
-	u16 mtime;
-	file_type_enum filetype;
-} directory_item_struct;
+struct movie_stat_struct {
+	char hash[16];
+	int resume_pos;
+	int audio_stream;
+	int volume_boost;
+	int aspect_ratio;
+	int zoom;
+	int luminosity_boost;
+	int subtitle;
+	int subtitle_format;
+	int subtitle_fontcolor;
+	int subtitle_bordercolor;
+};
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+void init_movie_stat(const char* s);
 
-file_type_enum directory_get_filetype(const char* filename, file_type_ext_struct* file_type_ext_table);
+void pmp_stat_load( struct pmp_play_struct *p);
+void pmp_stat_save( struct pmp_play_struct *p);
 
-int open_directory(const char* dir, char* sdir, int show_hidden, int show_unknown, file_type_ext_struct* file_type_ext_table, directory_item_struct** list); 
-
-int is_next_movie(const char* prev, const char* next);
+void mp4_stat_load( struct mp4_play_struct *p);
+void mp4_stat_save( struct mp4_play_struct *p);
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif
-

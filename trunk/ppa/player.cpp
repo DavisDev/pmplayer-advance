@@ -26,6 +26,7 @@
 
 #include <pspkernel.h>
 #include <pspdisplay.h>
+#include <psputils.h>
 #include <psprtc.h>
 #include <pspctrl.h>
 #include <psppower.h>
@@ -59,13 +60,41 @@
 
 #include "mod/codec_prx.h"
 #include "mod/gu_font.h"
+#include "mod/movie_file.h"
+#include "mod/movie_stat.h"
 
 
 #define TEXT_ITEM_BORDER 1
 
-file_type_ext_struct pmpFileFilter[] = {
+struct movie_file_struct currentMovie;
+
+struct subtitle_ext_charset_struct subtitleExt[] = {
+	{".srt", 4, "DEFAULT"},
+	{".sub", 4, "DEFAULT"},
+	{".eng.srt", 8, "UTF-8"},
+	{".gb.srt", 7, "GBK"},
+	{".chs.srt", 8, "GBK"},
+	{".big5.srt", 9, "BIG5"},
+	{".cht.srt", 8, "BIG5"},
+	{NULL, 0, NULL}	
+};
+
+file_type_ext_struct movieFileFilter[] = {
 	{"pmp", FS_PMP_FILE},
 	{"mp4", FS_MP4_FILE},
+	{NULL, FS_UNKNOWN_FILE}
+};
+
+file_type_ext_struct movieSubtitleFilter[] = {
+	{"sub", FS_SUB_FILE},
+	{"srt", FS_SRT_FILE},
+	{NULL, FS_UNKNOWN_FILE}
+};
+
+file_type_ext_struct movieAttachmentFilter[] = {
+	{"sub", FS_SUB_FILE},
+	{"srt", FS_SRT_FILE},
+	{"png", FS_PNG_FILE},
 	{NULL, FS_UNKNOWN_FILE}
 };
 
@@ -75,6 +104,8 @@ PmpAvcPlayer::PmpAvcPlayer() {
 	filmPreviewImage = NULL;
 	
 	fileItems = NULL;
+	
+	attachmentItems = NULL;
 
 };
 
@@ -82,6 +113,10 @@ PmpAvcPlayer::~PmpAvcPlayer() {
 	
 	if ( fileItems ) {
 		free(fileItems);
+	}
+	
+	if ( attachmentItems ) {
+		free(attachmentItems);
 	}
 	
 	if ( drawImage ) {
@@ -302,6 +337,10 @@ int PmpAvcPlayer::init(char* ppaPath) {
 	NetHost::setPrxBasePath(applicationPath);	
 #endif
 	
+	memset(tempPath, 0, 1024);
+	sprintf(tempPath, "%s%s", applicationPath, "moviestat.dat");
+	init_movie_stat(tempPath);
+	
 	memset(fontPath, 0, 1024);
 	sprintf(fontPath, "%s%s", applicationPath, "fonts/");
 	
@@ -378,7 +417,7 @@ int PmpAvcPlayer::init(char* ppaPath) {
 	pspDebugScreenPrintf("init fat,ctrl...\n");
 #endif	
 	//TODO init fat
-	fat_init();
+	fat_init(sceKernelDevkitVersion());
 	ctrl_init();
 #ifdef ENABLE_HPRM
 	ctrl_enablehprm(1);
@@ -755,7 +794,7 @@ void PmpAvcPlayer::paint() {
 };
 
 bool PmpAvcPlayer::listDirectory(){
-	fileItemCount = open_directory(filePath, fileShortPath, fileShowHidden, fileShowUnknown, pmpFileFilter, &fileItems);
+	fileItemCount = open_directory(filePath, fileShortPath, fileShowHidden, fileShowUnknown, movieFileFilter, &fileItems);
 	if ( fileItemCount < 1)
 		return false;
 	return true;
@@ -957,34 +996,7 @@ void PmpAvcPlayer::getCurrentPmpFilmInformation() {
 		filmScale = inforBuffer[6];
 		filmRate = inforBuffer[7];
 		filmAudioStreams = inforBuffer[9];
-		filmSubtitles = 0;
-				
-		int fileNameLength = strlen(fileItems[fileItemCurrent].shortname);
-		char filename[512], subname[512], subext[5];
-		SceUID directory;
-		SceIoDirent entry;
-		directory = sceIoDopen(fileShortPath);
-		if ( !(directory < 0) ) {
-			while(1) {
-				memset(&entry, 0, sizeof(SceIoDirent));
-				int result = sceIoDread(directory, &entry);
-				if (result <= 0) break;
-				int subFileNameLength = strlen(entry.d_name);
-				if ( subFileNameLength < fileNameLength )
-					continue;
-				else{
-					memset(filename,0,512);
-					strncpy(filename, fileItems[fileItemCurrent].shortname, fileNameLength-4);
-					memset(subname,0,512);
-					strncpy(subname, entry.d_name, fileNameLength-4);
-					memset(subext,0,5);
-					strncpy(subext, &entry.d_name[subFileNameLength-4],4);
-					if ( (stricmp(filename, subname) == 0 ) && ((stricmp(subext,".sub")==0) || (stricmp(subext,".srt")==0)) )
-						filmSubtitles++;
-				}
-			}
-			sceIoDclose(directory);
-		}
+		filmSubtitles = getSelectMovieSubtitles();
 	}
 }
 
@@ -1067,34 +1079,7 @@ void PmpAvcPlayer::getCurrentMp4FilmInformation() {
 		filmAudioStreams = audio_tracks;
 		mp4info_close(info);
 		
-		filmSubtitles = 0;
-		
-		int fileNameLength = strlen(fileItems[fileItemCurrent].shortname);
-		char filename[512], subname[512], subext[5];
-		SceUID directory;
-		SceIoDirent entry;
-		directory = sceIoDopen(fileShortPath);
-		if ( !(directory < 0) ) {
-			while(1) {
-				memset(&entry, 0, sizeof(SceIoDirent));
-				int result = sceIoDread(directory, &entry);
-				if (result <= 0) break;
-				int subFileNameLength = strlen(entry.d_name);
-				if ( subFileNameLength < fileNameLength )
-					continue;
-				else{
-					memset(filename,0,512);
-					strncpy(filename, fileItems[fileItemCurrent].shortname, fileNameLength-4);
-					memset(subname,0,512);
-					strncpy(subname, entry.d_name, fileNameLength-4);
-					memset(subext,0,5);
-					strncpy(subext, &entry.d_name[subFileNameLength-4],4);
-					if ( (stricmp(filename, subname) == 0 ) && ((stricmp(subext,".sub")==0) || (stricmp(subext,".srt")==0)) )
-						filmSubtitles++;
-				}
-			}
-			sceIoDclose(directory);
-		}
+		filmSubtitles = getSelectMovieSubtitles();
 	}
 }
 
@@ -1199,43 +1184,32 @@ void PmpAvcPlayer::deleteSelectMovie() {
 	int deleteFileCount = 1;
 	char deleteFiles[5120];
 	
-	int i ;
 	memset(deleteFiles, 0, 5120);
 	
 	strncpy( &deleteFiles[0], fileItems[fileItemCurrent].shortname, 511);
 	
-	int movieNameLength = strlen(fileItems[fileItemCurrent].shortname);
-	char movieName[512], fileName[512], fileExt[5];
-	SceUID directory;
-	SceIoDirent entry;
-	directory = sceIoDopen(fileShortPath);
-	if ( !(directory < 0) ) {
-		while(1) {
-			memset(&entry, 0, sizeof(SceIoDirent));
-			int result = sceIoDread(directory, &entry);
-			if (result <= 0) break;
-			int fileNameLength = strlen(entry.d_name);
-			if ( fileNameLength < movieNameLength )
-				continue;
-			else{
-				memset(movieName,0,512);
-				strncpy(movieName, fileItems[fileItemCurrent].shortname, movieNameLength-4);
-				memset(fileName,0,512);
-				strncpy(fileName, entry.d_name, movieNameLength-4);
-				memset(fileExt,0,5);
-				strncpy(fileExt, &entry.d_name[fileNameLength-4],4);
-				if ( stricmp(movieName, fileName) == 0 ) {
-					if  ( (stricmp(fileExt,".sub")==0) || (stricmp(fileExt,".srt")==0) ) 
-						strncpy( &deleteFiles[(deleteFileCount++)*512], entry.d_name, 511); 
-					if ( (movieNameLength==fileNameLength-4) && (stricmp(fileExt,".pos")==0) )
-						strncpy( &deleteFiles[(deleteFileCount++)*512], entry.d_name, 511);
-					if ( (movieNameLength==fileNameLength) && (stricmp(fileExt,".png")==0) )
-						strncpy( &deleteFiles[(deleteFileCount++)*512], entry.d_name, 511); 
+	int items = open_directory(filePath, fileShortPath, fileShowHidden, fileShowUnknown, movieAttachmentFilter, &attachmentItems);
+	int i, filename_size;
+	
+	filename_size = strlen(fileItems[fileItemCurrent].longname)-4;
+	for(i=0; i<items; i++) {
+		if ( strnicmp(fileItems[fileItemCurrent].longname, attachmentItems[i].longname, filename_size) == 0 ) {
+			if(strnicmp(&(attachmentItems[i].longname[filename_size]), ".png", 4) == 0) {
+				strncpy( &deleteFiles[(deleteFileCount++)*512], attachmentItems[i].shortname, 511); 
+			}
+			else {
+				struct subtitle_ext_charset_struct* exts = subtitleExt;
+				while(exts->ext != NULL){
+					if(strnicmp(&(attachmentItems[i].longname[filename_size]), exts->ext, exts->ext_len) == 0) {
+						strncpy( &deleteFiles[(deleteFileCount++)*512], attachmentItems[i].shortname, 511);
+						break;
+					}
+					exts++;
 				}
 			}
-			if ( deleteFileCount == 10 ) break;
 		}
-		sceIoDclose(directory);
+		if (deleteFileCount >= 10 )
+			break;
 	}
 	
 	char deleteFileName[1024];
@@ -1247,15 +1221,69 @@ void PmpAvcPlayer::deleteSelectMovie() {
 	}
 };
 
+int PmpAvcPlayer::getSelectMovieSubtitles() {
+	int items = open_directory(filePath, fileShortPath, fileShowHidden, fileShowUnknown, movieSubtitleFilter, &attachmentItems);
+	if ( items < 1)
+		return 0;
+	int i, subtitles, filename_size;
+	subtitles = 0;
+	filename_size = strlen(fileItems[fileItemCurrent].longname)-4;
+	for(i=0; i<items; i++) {
+		if ( strnicmp(fileItems[fileItemCurrent].longname, attachmentItems[i].longname, filename_size) == 0 ) {
+			struct subtitle_ext_charset_struct* exts = subtitleExt;
+			while(exts->ext != NULL){
+				if(strnicmp(&(attachmentItems[i].longname[filename_size]), exts->ext, exts->ext_len) == 0) {
+					subtitles++;
+					break;
+				}
+				exts++;
+			}
+		}
+	}
+	return subtitles;
+};
+
+void PmpAvcPlayer::fillSelectMovieInfo() {
+	memset(currentMovie.movie_file, 0, 512);
+	sprintf(currentMovie.movie_file, "%s%s", fileShortPath, fileItems[fileItemCurrent].shortname);
+	
+	memset(currentMovie.movie_hash, 0, 16);
+	sceKernelUtilsMd5Digest((u8*)(fileItems[fileItemCurrent].longname), strlen(fileItems[fileItemCurrent].longname), (u8*)(currentMovie.movie_hash));
+	
+	currentMovie.movie_subtitle_num = 0;
+	int items = open_directory(filePath, fileShortPath, fileShowHidden, fileShowUnknown, movieSubtitleFilter, &attachmentItems);
+	if ( items < 1)
+		return ;
+	int i, filename_size;
+	
+	filename_size = strlen(fileItems[fileItemCurrent].longname)-4;
+	for(i=0; i<items; i++) {
+		if ( strnicmp(fileItems[fileItemCurrent].longname, attachmentItems[i].longname, filename_size) == 0 ) {
+			struct subtitle_ext_charset_struct* exts = subtitleExt;
+			while(exts->ext != NULL){
+				if(strnicmp(&(attachmentItems[i].longname[filename_size]), exts->ext, exts->ext_len) == 0) {
+					memset(currentMovie.movie_subtitles[currentMovie.movie_subtitle_num].subtitle_file, 0, 512);
+					sprintf(currentMovie.movie_subtitles[currentMovie.movie_subtitle_num].subtitle_file, "%s%s", fileShortPath, attachmentItems[i].shortname);
+					memset(currentMovie.movie_subtitles[currentMovie.movie_subtitle_num].subtitle_charset, 0, 32);
+					strncpy(currentMovie.movie_subtitles[currentMovie.movie_subtitle_num].subtitle_charset, exts->charset, 31);
+					currentMovie.movie_subtitle_num++;
+					break;
+				}
+				exts++;
+			}
+		}
+		if (currentMovie.movie_subtitle_num >= MAX_MOVIE_SUBTITLES )
+			break;
+	}
+};
+
 void PmpAvcPlayer::playMovie(bool resume) {
 
 #ifdef ENABLE_SUSPEND	
 	scePowerLock(0);
 #endif
 	
-	char movieFileName[512];
-	memset(movieFileName, 0, 512);
-	sprintf(movieFileName, "%s%s", fileShortPath, fileItems[fileItemCurrent].shortname);
+	fillSelectMovieInfo();
 	
 	char* result = NULL;
 	
@@ -1265,9 +1293,9 @@ void PmpAvcPlayer::playMovie(bool resume) {
 	int usePos = resume ? 1 : 0;
 	
 	if ( fileItems[fileItemCurrent].filetype == FS_PMP_FILE )
-		result = pmp_play(movieFileName, usePos, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode() );
+		result = pmp_play(&currentMovie, usePos, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode() );
 	else if ( fileItems[fileItemCurrent].filetype == FS_MP4_FILE )
-		result = mp4_play(movieFileName, usePos, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode() );
+		result = mp4_play(&currentMovie, usePos, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode() );
 	else
 		result = "unsupported movie";
 	
@@ -1294,14 +1322,13 @@ void PmpAvcPlayer::playMovie(bool resume) {
 		while(fileItemCurrent < fileItemCount - 1) {
 			if ( is_next_movie( fileItems[fileItemCurrent].longname, fileItems[fileItemCurrent+1].longname ) ) {
 				fileItemCurrent++;
-				memset(movieFileName, 0, 512);
-				sprintf(movieFileName, "%s%s", fileShortPath, fileItems[fileItemCurrent].shortname); 
+				fillSelectMovieInfo();
 				int left, top, right, bottom;
 				VideoMode::getTVOverScan(left, top, right, bottom);
 				if ( fileItems[fileItemCurrent].filetype == FS_PMP_FILE )
-					result = pmp_play(movieFileName, 0, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode());
+					result = pmp_play(&currentMovie, 0, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode());
 				else if ( fileItems[fileItemCurrent].filetype == FS_MP4_FILE )
-					result = mp4_play(movieFileName, 0, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode());
+					result = mp4_play(&currentMovie, 0, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode());
 				else
 					result = "unsupported movie";
 					
@@ -1317,14 +1344,13 @@ void PmpAvcPlayer::playMovie(bool resume) {
 	else if ( stricmp("all", playMode) == 0 ) {
 		while(fileItemCurrent < fileItemCount - 1) {
 			fileItemCurrent++;
-			memset(movieFileName, 0, 512);
-			sprintf(movieFileName, "%s%s", fileShortPath, fileItems[fileItemCurrent].shortname); 
+			fillSelectMovieInfo(); 
 			int left, top, right, bottom;
 			VideoMode::getTVOverScan(left, top, right, bottom);
 			if ( fileItems[fileItemCurrent].filetype == FS_PMP_FILE )
-				result = pmp_play(movieFileName, 0, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode());
+				result = pmp_play(&currentMovie, 0, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode());
 			else if ( fileItems[fileItemCurrent].filetype == FS_MP4_FILE )
-				result = mp4_play(movieFileName, 0, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode());
+				result = mp4_play(&currentMovie, 0, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode());
 			else
 				result = "unsupported movie";
 			sceKernelDcacheWritebackInvalidateAll();
