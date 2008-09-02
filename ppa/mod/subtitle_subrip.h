@@ -29,7 +29,7 @@ subrip subtitle format parser
 #include <stdio.h>
 #include "subtitle_parse.h"
 
-struct subtitle_frame_struct* subtitle_parse_subrip( FILE *f, unsigned int rate, unsigned int scale );
+struct subtitle_frame_struct* subtitle_parse_subrip( FILE *f, char* charset, unsigned int rate, unsigned int scale );
 
 
 #endif

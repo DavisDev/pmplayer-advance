@@ -39,6 +39,7 @@ this play the file (av output and basic functions - pause, seek ... )
 #include "aspect_ratio.h"
 #include "gu_draw.h"
 #include "subtitle_parse.h"
+#include "movie_file.h"
 
 
 struct pmp_play_struct
@@ -76,7 +77,7 @@ struct pmp_play_struct
 	unsigned int show_interface;
 	unsigned int last_keyframe_pos;
 	unsigned int resume_pos;
-	char          resume_filename[256];
+	char hash[16];
 	unsigned int subtitle_count;
 	unsigned int subtitle;
 	unsigned int subtitle_format;
@@ -90,9 +91,9 @@ struct pmp_play_struct
 #define NUMBER_OF_FONTCOLORS 6
 #define NUMBER_OF_BORDERCOLORS 6
 
-#include "pmp_stat.h"
+#include "movie_stat.h"
 void pmp_play_safe_constructor(struct pmp_play_struct *p);
-char *pmp_play_open(struct pmp_play_struct *p, char *s, int usePos, int pspType, int tvAspectRatio, int tvWidth, int tvHeight, int videoMode);
+char *pmp_play_open(struct pmp_play_struct *p, struct movie_file_struct *movie, int usePos, int pspType, int tvAspectRatio, int tvWidth, int tvHeight, int videoMode);
 void pmp_play_close(struct pmp_play_struct *p, int usePos, int pspType);
 char *pmp_play_start(volatile struct pmp_play_struct *p);
 

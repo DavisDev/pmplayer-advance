@@ -624,39 +624,21 @@ char *pmp_play_start(volatile struct pmp_play_struct *p)
 	}
 
 
-char *pmp_play_open(struct pmp_play_struct *p, char *s, int usePos, int pspType, int tvAspectRatio, int tvWidth, int tvHeight, int videoMode)
+char *pmp_play_open(struct pmp_play_struct *p, struct movie_file_struct *movie, int usePos, int pspType, int tvAspectRatio, int tvWidth, int tvHeight, int videoMode)
 	{
 	pmp_play_safe_constructor(p);
 	p->subtitle = 0;
 	p->subtitle_count = 0;
 
 	
-	char *result = pmp_decode_open(&p->decoder, s, pspType, tvAspectRatio, tvWidth, tvHeight, videoMode);
+	char *result = pmp_decode_open(&p->decoder, movie->movie_file, pspType, tvAspectRatio, tvWidth, tvHeight, videoMode);
 	if (result != 0)
 		{
 		pmp_play_close(p, 0, pspType);
 		return(result);
 		}
 
-
-	//modify by cooleyes 2006/12/11
-	//#define video_directory "ms0:/PSP/VIDEO/"
-	char video_directory[512];
-	char video_filename[512];
-	memset(video_directory, 0, 512);
-	memset(video_filename, 0, 512);
-	char* divchar = strrchr(s, '/');
-	if ( divchar == NULL) {
-		strncpy(video_directory, "ms0:/PSP/VIDEO/", 512);
-		strncpy(video_filename, s, 512);
-	}
-	else {
-		strncpy(video_directory, s, divchar-s+1);
-		strncpy(video_filename, divchar+1, 512); 
-	}
-	if (subtitle_parse_search( video_directory, video_filename, p->decoder.reader.file.header.video.rate, p->decoder.reader.file.header.video.scale, &p->subtitle_count)==0) p->subtitle = 1;
-	//if (subtitle_parse_search( video_directory, s, p->decoder.reader.file.header.video.rate, p->decoder.reader.file.header.video.scale, &p->subtitle_count)==0) p->subtitle = 1;
-	//modify end 
+	if (subtitle_parse_search( movie, p->decoder.reader.file.header.video.rate, p->decoder.reader.file.header.video.scale, &p->subtitle_count)==0) p->subtitle = 1;
 	
 	if ( cooleyesAudioSetFrequency(sceKernelDevkitVersion(), p->decoder.reader.file.header.audio.rate) != 0)
 		{
@@ -747,9 +729,9 @@ char *pmp_play_open(struct pmp_play_struct *p, char *s, int usePos, int pspType,
 	p->subtitle_fontcolor = 0;
 	p->subtitle_bordercolor = 0;
 	
-	snprintf( p->resume_filename, 256, "%s.pos", s);
+	memcpy(p->hash, movie->movie_hash, 16);
 	
-	if (usePos) pmp_stat_load( p, s );
+	if (usePos) pmp_stat_load( p );
 
 	return(0);
 	}

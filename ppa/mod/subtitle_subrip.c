@@ -33,7 +33,7 @@ subrip subtitle format parser
 
 #include "common/libminiconv.h"
 
-struct subtitle_frame_struct* subtitle_parse_subrip( FILE *f, unsigned int rate, unsigned int scale )
+struct subtitle_frame_struct* subtitle_parse_subrip( FILE *f, char* charset, unsigned int rate, unsigned int scale )
 	{
 	if (!f) return(0);
 	
@@ -93,7 +93,13 @@ struct subtitle_frame_struct* subtitle_parse_subrip( FILE *f, unsigned int rate,
 		}
 	p->p_string[j-1] = '\0';
 
-	if ( miniConvHaveDefaultSubtitleConv() ){
+	if ( miniConvHaveSubtitleConv(charset) ) {
+		char* temp_str = miniConvSubtitleConv(p->p_string, charset);
+		if( temp_str != NULL ) {
+			strncpy(p->p_string, temp_str, max_subtitle_string-1);
+		}
+	}
+	else if ( miniConvHaveDefaultSubtitleConv() ){
 		char* temp_str = miniConvDefaultSubtitleConv(p->p_string);
 		if( temp_str != NULL ) {
 			strncpy(p->p_string, temp_str, max_subtitle_string-1);

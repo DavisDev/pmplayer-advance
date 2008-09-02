@@ -492,32 +492,19 @@ char *mp4_play_start(volatile struct mp4_play_struct *p) {
 }
 
 
-char *mp4_play_open(struct mp4_play_struct *p, char *s, int usePos, int pspType, int tvAspectRatio, int tvWidth, int tvHeight, int videoMode) {
+char *mp4_play_open(struct mp4_play_struct *p, struct movie_file_struct *movie, int usePos, int pspType, int tvAspectRatio, int tvWidth, int tvHeight, int videoMode) {
 	mp4_play_safe_constructor(p);
 	p->subtitle = 0;
 	p->subtitle_count = 0;
 
 	
-	char *result = mp4_decode_open(&p->decoder, s, pspType, tvAspectRatio, tvWidth, tvHeight, videoMode);
+	char *result = mp4_decode_open(&p->decoder, movie->movie_file, pspType, tvAspectRatio, tvWidth, tvHeight, videoMode);
 	if (result != 0) {
 		mp4_play_close(p, 0, pspType);
 		return(result);
 	}
 
-	char video_directory[512];
-	char video_filename[512];
-	memset(video_directory, 0, 512);
-	memset(video_filename, 0, 512);
-	char* divchar = strrchr(s, '/');
-	if ( divchar == NULL) {
-		strncpy(video_directory, "ms0:/PSP/VIDEO/", 512);
-		strncpy(video_filename, s, 512);
-	}
-	else {
-		strncpy(video_directory, s, divchar-s+1);
-		strncpy(video_filename, divchar+1, 512); 
-	}
-	if (subtitle_parse_search( video_directory, video_filename, p->decoder.reader.file.video_rate, p->decoder.reader.file.video_scale, &p->subtitle_count)==0) p->subtitle = 1;
+	if (subtitle_parse_search( movie, p->decoder.reader.file.video_rate, p->decoder.reader.file.video_scale, &p->subtitle_count)==0) p->subtitle = 1;
 	
 	if ( cooleyesAudioSetFrequency(sceKernelDevkitVersion(), p->decoder.reader.file.audio_rate) != 0) {
 		mp4_play_close(p, 0, pspType);
@@ -597,9 +584,9 @@ char *mp4_play_open(struct mp4_play_struct *p, char *s, int usePos, int pspType,
 	p->subtitle_fontcolor = 0;
 	p->subtitle_bordercolor = 0;
 	
-	snprintf( p->resume_filename, 256, "%s.pos", s);
+	memcpy(p->hash, movie->movie_hash, 16);
 	
-	if (usePos) mp4_stat_load( p, s );
+	if (usePos) mp4_stat_load( p );
 
 	return(0);
 }

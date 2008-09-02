@@ -31,12 +31,13 @@ this lib should be used to play .pmp files
 
 #include "gu_draw.h"
 #include "pmp_play.h"
+#include "movie_file.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-char *pmp_play(char *s, int usePos, int pspType, int tvAspectRatio, int tvOverScanLeft, int tvOverScanTop, int tvOverScanRight, int tvOverScanBottom, int videoMode);
+char *pmp_play(struct movie_file_struct *movie, int usePos, int pspType, int tvAspectRatio, int tvOverScanLeft, int tvOverScanTop, int tvOverScanRight, int tvOverScanBottom, int videoMode);
 
 #ifdef __cplusplus
 }

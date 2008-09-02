@@ -31,11 +31,10 @@ subtitle parsing layer
 #include "subtitle_subrip.h"
 #include "subtitle_microdvd.h"
 #include "common/mem64.h"
-#include "opendir.h"
 
 
 
-struct subtitle_frame_struct* (*subtitle_parse_line)( FILE *f, unsigned int rate, unsigned int scale ) = 0;	// function pointer to line parsing
+struct subtitle_frame_struct* (*subtitle_parse_line)( FILE *f, char* charset, unsigned int rate, unsigned int scale ) = 0;	// function pointer to line parsing
 
 struct subtitle_parse_struct subtitle_parser[MAX_SUBTITLES];
 
@@ -100,56 +99,19 @@ void subtitle_parse_close(struct subtitle_parse_struct *p)
 	}
 
 
-char *subtitle_parse_search(char *folder, char *filename, unsigned int rate, unsigned int scale, unsigned int *num_subtitles)
+char *subtitle_parse_search(struct movie_file_struct* movie, unsigned int rate, unsigned int scale, unsigned int *num_subtitles)
 	{
-		struct opendir_struct directory;
-		
-		char *fname, fbuffer[1024];
-		strncpy( fbuffer, filename, 1024 );
-		fname = strupr(fbuffer);
-		char format[1024];
-		char* ext = strrchr(fname,'.');
-		int format_sz = (ext-fname<1024?ext-fname:1023);
-		strncpy( format, fname, format_sz );
-		format[format_sz] = '\0';
-		
-		*num_subtitles = 0;
-		
-		char* filter[] = 
-		{	".sub",
-			".srt",
-			0
-		};
-		
-		char *result = opendir_open(&directory, folder, filter, SORT_NAME);
-		if (result != 0)
-			{
-			opendir_close(&directory);
-			return("subtitle_parse_search: directory empty or doesn't exist.");
-			}
 		
 		int i = 0;
-		while (i < directory.number_of_directory_entries)
+		while (i < movie->movie_subtitle_num)
 			{
-			char name[512];
-			strncpy(name,directory.directory_entry[i].d_name,512);
-			if (strncmp(strupr(name),format,format_sz)==0 && strcmp(strupr(name),filename)!=0)
+			if (subtitle_parse_open( &subtitle_parser[*num_subtitles], movie->movie_subtitles[i].subtitle_file, movie->movie_subtitles[i].subtitle_charset, rate, scale )==0)
 				{
-				//modify by cooleyes 2006/12/11
-				char sub_name[1024];
-				memset(sub_name,0,1024);
-				sprintf(sub_name,"%s%s", folder, directory.directory_entry[i].d_name);
-				if (subtitle_parse_open( &subtitle_parser[*num_subtitles], sub_name, rate, scale )==0)
-				//if (subtitle_parse_open( &subtitle_parser[*num_subtitles], directory.directory_entry[i].d_name, rate, scale )==0)
-				//modify end
-					{
-					(*num_subtitles)++;
-					if (*num_subtitles>=MAX_SUBTITLES) break;
-					}
+				(*num_subtitles)++;
+				if (*num_subtitles>=MAX_SUBTITLES) break;
 				}
 			i++;
 			}
-		opendir_close(&directory);
 		if (*num_subtitles)
 			return(0);
 		else
@@ -157,7 +119,7 @@ char *subtitle_parse_search(char *folder, char *filename, unsigned int rate, uns
 	}
 
 
-char *subtitle_parse_open(struct subtitle_parse_struct *p, char *s, unsigned int rate, unsigned int scale)
+char *subtitle_parse_open(struct subtitle_parse_struct *p, char *s, char* charset, unsigned int rate, unsigned int scale)
 	{
 		if (p==0) return("subtitle_parse_open: p not initialized");
 		subtitle_parse_safe_constructor(p);
@@ -196,7 +158,7 @@ char *subtitle_parse_open(struct subtitle_parse_struct *p, char *s, unsigned int
 			return("subtitle_parse_open: unknown subtitle format");
 			}
 
-		while ((new_frame=subtitle_parse_line( p->p_in, rate, scale ))!=0)
+		while ((new_frame=subtitle_parse_line( p->p_in, charset, rate, scale ))!=0)
 			{
 			if (new_frame->p_start_frame<=cur_frame->p_end_frame) new_frame->p_start_frame=cur_frame->p_end_frame+1;
 			cur_frame->next = new_frame;

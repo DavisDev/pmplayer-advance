@@ -5,6 +5,7 @@
 #include "fat.h"
 #include "libminiconv.h"
 
+static int fwVersion;
 static int fatfd = -1;
 static t_fat_dbr dbr;
 static t_fat_mbr mbr;
@@ -21,8 +22,9 @@ static enum {
 	fat32
 } fat_type = fat16;
 
-int fat_init()
+int fat_init(int devkitVersion)
 {
+	fwVersion = devkitVersion;
 	fatfd = sceIoOpen("msstor:", PSP_O_RDONLY, 0777);
 	if(fatfd < 0)
 		return 0;
@@ -370,7 +372,14 @@ int fat_locate(const char * name, char * sname, u32 clus, p_fat_entry info)
 					entrys[i].norm.filename[0] = 0x05;
 				memcpy(info, &entrys[i], sizeof(t_fat_entry));
 				free((void *)entrys);
-				strcat(sname, sid.d_name);
+				if (fwVersion != 0x04000110)
+					strcat(sname, sid.d_name);
+				else {
+					char short_name[256];
+					memset(short_name, 0, 256);
+                                        fat_get_shortname(info, short_name);
+                                        strcat(sname, short_name);
+				}
 				if((info->norm.attr & FAT_FILEATTR_DIRECTORY) > 0)
 					strcat(sname, "/");
 				sceIoDclose(dl);
@@ -385,7 +394,14 @@ int fat_locate(const char * name, char * sname, u32 clus, p_fat_entry info)
 			{
 				memcpy(info, &entrys[i], sizeof(t_fat_entry));
 				free((void *)entrys);
-				strcat(sname, sid.d_name);
+				if (fwVersion != 0x04000110)
+					strcat(sname, sid.d_name);
+				else {
+					char short_name[256];
+					memset(short_name, 0, 256);
+                                        fat_get_shortname(info, short_name);
+                                        strcat(sname, short_name);
+				}
 				if((info->norm.attr & FAT_FILEATTR_DIRECTORY) > 0)
 					strcat(sname, "/");
 				sceIoDclose(dl);
@@ -490,7 +506,8 @@ u32 fat_readdir(const char * dir, char * sdir, p_fat_info * info)
 			inf->filename[0] = 0xE5;
 		if(!fat_get_longname(entrys, i, inf->longname))
 			strcpy(inf->longname, inf->filename);
-		strcpy(inf->filename, sid.d_name);
+		if (fwVersion != 0x04000110)
+			strcpy(inf->filename, sid.d_name);
 		inf->filesize = entrys[i].norm.filesize;
 		inf->cdate = entrys[i].norm.cr_date;
 		inf->ctime = entrys[i].norm.cr_time;
