@@ -1279,9 +1279,26 @@ static void gu_font_draw_sprite(struct texture_subdivision_struct *t)
 	sceGuDrawArray(GU_SPRITES, GU_TEXTURE_16BIT | GU_VERTEX_32BITF | GU_TRANSFORM_2D, 2, 0, v);
 	}
 
+static void gu_font_draw_sprite_180(struct texture_subdivision_struct *t, int w, int h)
+	{
+	struct vertex_struct *v = sceGuGetMemory(2 * sizeof(struct vertex_struct));
 
+	v[0].texture_x = t->output_texture_x_start;
+	v[0].texture_y = t->output_texture_y_start;
+	v[0].vertex_x  = (w-1.0) - (int) t->output_vertex_x_start;
+	v[0].vertex_y  = (h-1.0) - t->output_vertex_y_start;
+	v[0].vertex_z  = 0.0;
 
-void gu_font_printf( int x, int y, int flags, char* fmt, ... )
+	v[1].texture_x = t->output_texture_x_end;
+	v[1].texture_y = t->output_texture_y_end;
+	v[1].vertex_x  = (w-1.0) - (int) t->output_vertex_x_end;
+	v[1].vertex_y  = (h-1.0) - t->output_vertex_y_end;
+	v[1].vertex_z  = 0.0;
+
+	sceGuDrawArray(GU_SPRITES, GU_TEXTURE_16BIT | GU_VERTEX_32BITF | GU_TRANSFORM_2D, 2, 0, v);
+	}
+
+void gu_font_printf( int x, int y, int flags, int output_inversion, char* fmt, ... )
 	{
 		
 	va_list         ap;
@@ -1291,11 +1308,11 @@ void gu_font_printf( int x, int y, int flags, char* fmt, ... )
 	vsnprintf( p,512,fmt,ap );
 	va_end( ap );
 
-	gu_font_print(x, y, flags, p );
+	gu_font_print(x, y, flags, p, output_inversion );
 	}
 
 
-void gu_font_print( int x, int y, int flags, char* s )
+void gu_font_print( int x, int y, int flags, char* s , int output_inversion)
 	{
 	if (face==NULL) return;
 	
@@ -1367,7 +1384,10 @@ void gu_font_print( int x, int y, int flags, char* s )
 		do
 			{
 			texture_subdivision_get(&texture_subdivision);
-			gu_font_draw_sprite(&texture_subdivision);
+			if ( output_inversion )
+				gu_font_draw_sprite_180(&texture_subdivision, 480, 272);
+			else
+				gu_font_draw_sprite(&texture_subdivision);
 			}
 		while (texture_subdivision.output_last == 0);
 	}
@@ -1377,7 +1397,10 @@ void gu_font_print( int x, int y, int flags, char* s )
 	do
 		{
 		texture_subdivision_get(&texture_subdivision);
-		gu_font_draw_sprite(&texture_subdivision);
+		if ( output_inversion )
+			gu_font_draw_sprite_180(&texture_subdivision, 480, 272);
+		else
+			gu_font_draw_sprite(&texture_subdivision);
 		}
 	while (texture_subdivision.output_last == 0);
 	//*/

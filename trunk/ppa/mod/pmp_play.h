@@ -38,6 +38,7 @@ this play the file (av output and basic functions - pause, seek ... )
 #include "pmp_decode.h"
 #include "aspect_ratio.h"
 #include "gu_draw.h"
+#include "gu_util.h"
 #include "subtitle_parse.h"
 #include "movie_file.h"
 

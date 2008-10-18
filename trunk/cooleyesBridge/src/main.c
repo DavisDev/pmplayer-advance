@@ -25,8 +25,10 @@ int cooleyesAudioSetFrequency(int devkitVersion, int frequency) {
 		ret = sceAudioSetFrequency371(frequency);
 	else if ( devkitVersion < 0x03090500 )
 		ret = sceAudioSetFrequency380(frequency);
-	else
+	else if ( devkitVersion < 0x05000000 )
 		ret = sceAudioSetFrequency395(frequency);
+	else
+		ret = sceAudioSetFrequency500(frequency);
 	pspSdkSetK1(k1);
 	return ret;
 }
