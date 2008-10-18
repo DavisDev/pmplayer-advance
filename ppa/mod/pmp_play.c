@@ -283,6 +283,10 @@ static void pmp_input(volatile struct pmp_play_struct *p, SceCtrlData *previous_
 								}
 							}
 						//add end
+						else if ((controller.Buttons & PSP_CTRL_START) && ((previous_controller->Buttons & PSP_CTRL_START) == 0)) 
+							{
+							gu_lcd_output_inversion_set();
+							}
 						}
 					}
 				else if ((controller.Buttons & PSP_CTRL_SQUARE) && ((previous_controller->Buttons & PSP_CTRL_SQUARE) == 0))

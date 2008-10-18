@@ -51,12 +51,18 @@ static unsigned int output_left;
 static unsigned int output_top;
 static unsigned int output_width;
 static unsigned int output_height;
+static unsigned int output_inversion = 0;
 static f_pmp_gu_draw p_pmp_gu_draw;
 
 void pmp_gu_draw_without_tvout_supported(unsigned int aspect_ratio, unsigned int zoom, unsigned int luminosity_boost, unsigned int show_interface, unsigned int show_subtitle, unsigned int subtitle_format, unsigned int frame_number, void *video_frame_buffer);
 void pmp_gu_draw_psplcd(unsigned int aspect_ratio, unsigned int zoom, unsigned int luminosity_boost, unsigned int show_interface, unsigned int show_subtitle, unsigned int subtitle_format, unsigned int frame_number, void *video_frame_buffer);
 void pmp_gu_draw_tvout_interlace(unsigned int aspect_ratio, unsigned int zoom, unsigned int luminosity_boost, unsigned int show_interface, unsigned int show_subtitle, unsigned int subtitle_format, unsigned int frame_number, void *video_frame_buffer);
 void pmp_gu_draw_tvout_progressive(unsigned int aspect_ratio, unsigned int zoom, unsigned int luminosity_boost, unsigned int show_interface, unsigned int show_subtitle, unsigned int subtitle_format, unsigned int frame_number, void *video_frame_buffer);
+
+void gu_lcd_output_inversion_set() 
+	{
+	output_inversion = (output_inversion+1) % 2;
+	}
 
 void pmp_gu_init_previous_values()
 	{
@@ -118,7 +124,7 @@ void pmp_gu_start_tvout_progressive()
 	pmp_gu_draw_buffer  = (void *) (0x04000000);
 	pmp_gu_rgb_buffer  = (void*)0x0a000000;
 
-	memset(pmp_gu_rgb_buffer, 0, 4 * 512 * 512);
+	memset(pmp_gu_rgb_buffer, 0, 4 * 768 * 480);
 	sceKernelDcacheWritebackInvalidateAll();
 	}
 
@@ -226,6 +232,25 @@ static void pmp_gu_draw_sprite(struct texture_subdivision_struct *t)
 	sceGuDrawArray(GU_SPRITES, GU_TEXTURE_16BIT | GU_VERTEX_32BITF | GU_TRANSFORM_2D, 2, 0, v);
 	}
 
+static void pmp_gu_draw_sprite_180(struct texture_subdivision_struct *t, int w, int h)
+	{
+	struct vertex_struct *v = sceGuGetMemory(2 * sizeof(struct vertex_struct));
+
+	v[0].texture_x = t->output_texture_x_start;
+	v[0].texture_y = t->output_texture_y_start;
+	v[0].vertex_x  = (w-1.0) - (int) t->output_vertex_x_start;
+	v[0].vertex_y  = (h-1.0) - t->output_vertex_y_start;
+	v[0].vertex_z  = 0.0;
+
+	v[1].texture_x = t->output_texture_x_end;
+	v[1].texture_y = t->output_texture_y_end;
+	v[1].vertex_x  = (w-1.0) - (int) t->output_vertex_x_end;
+	v[1].vertex_y  = (h-1.0) - t->output_vertex_y_end;
+	v[1].vertex_z  = 0.0;
+
+	sceGuDrawArray(GU_SPRITES, GU_TEXTURE_16BIT | GU_VERTEX_32BITF | GU_TRANSFORM_2D, 2, 0, v);
+	}
+
 
 void pmp_gu_draw(unsigned int aspect_ratio, unsigned int zoom, unsigned int luminosity_boost, unsigned int show_interface, unsigned int show_subtitle, unsigned int subtitle_format, unsigned int frame_number, void *video_frame_buffer)
 	{
@@ -281,7 +306,10 @@ void pmp_gu_draw_without_tvout_supported(unsigned int aspect_ratio, unsigned int
 	do
 		{
 		texture_subdivision_get(&texture_subdivision);
-		pmp_gu_draw_sprite(&texture_subdivision);
+		if ( output_inversion )
+			pmp_gu_draw_sprite_180(&texture_subdivision, 480, 272);
+		else
+			pmp_gu_draw_sprite(&texture_subdivision);
 		}
 	while (texture_subdivision.output_last == 0);
 	
@@ -300,7 +328,7 @@ void pmp_gu_draw_without_tvout_supported(unsigned int aspect_ratio, unsigned int
 	if (info_count)
 		{
 		info_count--;
-		gu_font_print( (476-gu_font_width_get(info_string,0)), 2, 0, info_string );
+		gu_font_print( (476-gu_font_width_get(info_string,0)), 2, 0, info_string, output_inversion );
 		previous_info = 1;
 		}
 	
@@ -323,9 +351,9 @@ void pmp_gu_draw_without_tvout_supported(unsigned int aspect_ratio, unsigned int
 						pwidth = gu_font_width_get(frame->p_string,0);
 					unsigned int sub_distance = gu_font_distance_get();
 					if ( gu_font_align_get() > 0 ) 
-						gu_font_print( (480-pwidth)/2, 272-(frame->p_num_lines)*gu_font_height()-sub_distance, flags | FLAG_ALIGN_CENTER, frame->p_string);
+						gu_font_print( (480-pwidth)/2, 272-(frame->p_num_lines)*gu_font_height()-sub_distance, flags | FLAG_ALIGN_CENTER, frame->p_string, output_inversion);
 					else
-						gu_font_print( (480-pwidth)/2, sub_distance, flags | FLAG_ALIGN_CENTER, frame->p_string);
+						gu_font_print( (480-pwidth)/2, sub_distance, flags | FLAG_ALIGN_CENTER, frame->p_string, output_inversion);
 					//gu_font_print( (480-pwidth)/2, gu_font_height(), flags | FLAG_ALIGN_CENTER, frame->p_string);
 					
 					previous_subtitle = 1;//(pwidth<=vertex_width?(vertex_height<272?1:0):1);
@@ -400,7 +428,10 @@ void pmp_gu_draw_psplcd(unsigned int aspect_ratio, unsigned int zoom, unsigned i
 	do
 		{
 		texture_subdivision_get(&texture_subdivision);
-		pmp_gu_draw_sprite(&texture_subdivision);
+		if ( output_inversion )
+			pmp_gu_draw_sprite_180(&texture_subdivision, 480, 272);
+		else
+			pmp_gu_draw_sprite(&texture_subdivision);
 		}
 	while (texture_subdivision.output_last == 0);
 	
@@ -419,7 +450,7 @@ void pmp_gu_draw_psplcd(unsigned int aspect_ratio, unsigned int zoom, unsigned i
 	if (info_count)
 		{
 		info_count--;
-		gu_font_print( (476-gu_font_width_get(info_string,0)), 2, 0, info_string );
+		gu_font_print( (476-gu_font_width_get(info_string,0)), 2, 0, info_string, output_inversion );
 		previous_info = 1;
 		}
 	
@@ -442,9 +473,9 @@ void pmp_gu_draw_psplcd(unsigned int aspect_ratio, unsigned int zoom, unsigned i
 						pwidth = gu_font_width_get(frame->p_string,0);
 					unsigned int sub_distance = gu_font_distance_get();
 					if ( gu_font_align_get() > 0 ) 
-						gu_font_print( (480-pwidth)/2, 272-(frame->p_num_lines)*gu_font_height()-sub_distance, flags | FLAG_ALIGN_CENTER, frame->p_string);
+						gu_font_print( (480-pwidth)/2, 272-(frame->p_num_lines)*gu_font_height()-sub_distance, flags | FLAG_ALIGN_CENTER, frame->p_string, output_inversion);
 					else
-						gu_font_print( (480-pwidth)/2, sub_distance, flags | FLAG_ALIGN_CENTER, frame->p_string);
+						gu_font_print( (480-pwidth)/2, sub_distance, flags | FLAG_ALIGN_CENTER, frame->p_string, output_inversion);
 					//gu_font_print( (480-pwidth)/2, gu_font_height(), flags | FLAG_ALIGN_CENTER, frame->p_string);
 					
 					previous_subtitle = 1;//(pwidth<=vertex_width?(vertex_height<272?1:0):1);
@@ -539,7 +570,7 @@ void pmp_gu_draw_tvout_interlace(unsigned int aspect_ratio, unsigned int zoom, u
 	if (info_count)
 		{
 		info_count--;
-		gu_font_print( (476-gu_font_width_get(info_string,0)), 2, 0, info_string );
+		gu_font_print( (476-gu_font_width_get(info_string,0)), 2, 0, info_string, 0 );
 		previous_info = 1;
 		}
 	
@@ -562,9 +593,9 @@ void pmp_gu_draw_tvout_interlace(unsigned int aspect_ratio, unsigned int zoom, u
 						pwidth = gu_font_width_get(frame->p_string,0);
 					unsigned int sub_distance = gu_font_distance_get();
 					if ( gu_font_align_get() > 0 ) 
-						gu_font_print( (480-pwidth)/2, 272-(frame->p_num_lines)*gu_font_height()-sub_distance, flags | FLAG_ALIGN_CENTER, frame->p_string);
+						gu_font_print( (480-pwidth)/2, 272-(frame->p_num_lines)*gu_font_height()-sub_distance, flags | FLAG_ALIGN_CENTER, frame->p_string, 0);
 					else
-						gu_font_print( (480-pwidth)/2, sub_distance, flags | FLAG_ALIGN_CENTER, frame->p_string);
+						gu_font_print( (480-pwidth)/2, sub_distance, flags | FLAG_ALIGN_CENTER, frame->p_string, 0);
 					//gu_font_print( (480-pwidth)/2, gu_font_height(), flags | FLAG_ALIGN_CENTER, frame->p_string);
 					
 					previous_subtitle = 1;//(pwidth<=vertex_width?(vertex_height<272?1:0):1);
@@ -670,7 +701,7 @@ void pmp_gu_draw_tvout_progressive(unsigned int aspect_ratio, unsigned int zoom,
 	if (info_count)
 		{
 		info_count--;
-		gu_font_print( (476-gu_font_width_get(info_string,0)), 2, 0, info_string );
+		gu_font_print( (476-gu_font_width_get(info_string,0)), 2, 0, info_string, 0 );
 		previous_info = 1;
 		}
 	
@@ -693,9 +724,9 @@ void pmp_gu_draw_tvout_progressive(unsigned int aspect_ratio, unsigned int zoom,
 						pwidth = gu_font_width_get(frame->p_string,0);
 					unsigned int sub_distance = gu_font_distance_get();
 					if ( gu_font_align_get() > 0 ) 
-						gu_font_print( (480-pwidth)/2, 272-(frame->p_num_lines)*gu_font_height()-sub_distance, flags | FLAG_ALIGN_CENTER, frame->p_string);
+						gu_font_print( (480-pwidth)/2, 272-(frame->p_num_lines)*gu_font_height()-sub_distance, flags | FLAG_ALIGN_CENTER, frame->p_string, 0);
 					else
-						gu_font_print( (480-pwidth)/2, sub_distance, flags | FLAG_ALIGN_CENTER, frame->p_string);
+						gu_font_print( (480-pwidth)/2, sub_distance, flags | FLAG_ALIGN_CENTER, frame->p_string, 0);
 					//gu_font_print( (480-pwidth)/2, gu_font_height(), flags | FLAG_ALIGN_CENTER, frame->p_string);
 					
 					previous_subtitle = 1;//(pwidth<=vertex_width?(vertex_height<272?1:0):1);

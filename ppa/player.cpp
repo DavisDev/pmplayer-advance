@@ -74,8 +74,10 @@ struct subtitle_ext_charset_struct subtitleExt[] = {
 	{".eng.srt", 8, "UTF-8"},
 	{".gb.srt", 7, "GBK"},
 	{".chs.srt", 8, "GBK"},
+	{".sc.srt", 7, "GBK"},
 	{".big5.srt", 9, "BIG5"},
 	{".cht.srt", 8, "BIG5"},
+	{".tc.srt", 7, "BIG5"},
 	{NULL, 0, NULL}	
 };
 
