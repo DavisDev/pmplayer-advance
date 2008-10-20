@@ -238,14 +238,14 @@ static void pmp_gu_draw_sprite_180(struct texture_subdivision_struct *t, int w, 
 
 	v[0].texture_x = t->output_texture_x_start;
 	v[0].texture_y = t->output_texture_y_start;
-	v[0].vertex_x  = (w-1.0) - (int) t->output_vertex_x_start;
-	v[0].vertex_y  = (h-1.0) - t->output_vertex_y_start;
+	v[0].vertex_x  = (w) - (int) t->output_vertex_x_start;
+	v[0].vertex_y  = (h) - t->output_vertex_y_start;
 	v[0].vertex_z  = 0.0;
 
 	v[1].texture_x = t->output_texture_x_end;
 	v[1].texture_y = t->output_texture_y_end;
-	v[1].vertex_x  = (w-1.0) - (int) t->output_vertex_x_end;
-	v[1].vertex_y  = (h-1.0) - t->output_vertex_y_end;
+	v[1].vertex_x  = (w) - (int) t->output_vertex_x_end;
+	v[1].vertex_y  = (h) - t->output_vertex_y_end;
 	v[1].vertex_z  = 0.0;
 
 	sceGuDrawArray(GU_SPRITES, GU_TEXTURE_16BIT | GU_VERTEX_32BITF | GU_TRANSFORM_2D, 2, 0, v);
