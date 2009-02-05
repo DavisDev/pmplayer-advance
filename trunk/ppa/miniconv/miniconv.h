@@ -27,6 +27,12 @@ char* ms_ee_to_utf8(const unsigned char* ms_ee);
 #ifdef MS_CYRL_CONV
 char* ms_cyrl_to_utf8(const unsigned char* ms_cyrl);
 #endif
+#ifdef MS_ARAB_CONV
+char* ms_arab_to_utf8(const unsigned char* ms_cyrl);
+#endif
+#ifdef ISO8859_6_CONV
+char* iso8859_6_to_utf8(const unsigned char* iso8859_6);
+#endif
 #ifdef ISO8859_2_CONV
 char* iso8859_2_to_utf8(const unsigned char* iso8859_2);
 #endif

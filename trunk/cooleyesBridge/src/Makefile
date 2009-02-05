@@ -1,5 +1,5 @@
 TARGET = cooleyesBridge
-OBJS = main.o sceAudio_driver3xx.o
+OBJS = main.o sceAudio_driver3xx.o sceMeCore_driver3xx.o
 
 INCDIR = 
 CFLAGS = -O2 -G0 -Wall
