@@ -21,6 +21,7 @@
 
 
 #include "mp4avcdecoder.h"
+#include "me_boot_start.h"
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -62,7 +63,7 @@ void mp4_avc_close(struct mp4_avc_struct *p) {
 }
 
 
-char *mp4_avc_open(struct mp4_avc_struct *p, int mpeg_mode, void* sps_buffer, int sps_size, void* pps_buffer, int pps_size, int nal_prefix_size) {
+char *mp4_avc_open(struct mp4_avc_struct *p, int avc_profile, int mpeg_mode, void* sps_buffer, int sps_size, void* pps_buffer, int pps_size, int nal_prefix_size) {
 	mp4_avc_safe_constructor(p);
 	
 	p->mpeg_sps_size = sps_size;
@@ -75,6 +76,11 @@ char *mp4_avc_open(struct mp4_avc_struct *p, int mpeg_mode, void* sps_buffer, in
 	}
 	memcpy(p->mpeg_sps_pps_buffer, sps_buffer, sps_size);
 	memcpy(p->mpeg_sps_pps_buffer+sps_size, pps_buffer, pps_size);
+	
+	if ( avc_profile == 0x4D )
+		me_boot_start(3);
+	else if ( avc_profile == 0x42 )
+		me_boot_start(4);
 
 	p->mpeg_init = sceMpegInit();
 	if (p->mpeg_init != 0) {

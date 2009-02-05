@@ -68,6 +68,7 @@ typedef struct {
 	uint32_t stco_entry_count;
 	uint32_t *stco_chunk_offset;
 	
+	uint32_t avc_profile;
 	uint32_t avc_sps_size;
 	uint8_t* avc_sps;
 	uint32_t avc_pps_size;

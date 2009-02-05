@@ -1,5 +1,5 @@
 /* 
- *	Copyright (C) 2007 cooleyes
+ *	Copyright (C) 2006 cooleyes
  *	eyes.cooleyes@gmail.com 
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -18,28 +18,19 @@
  *  http://www.gnu.org/copyleft/gpl.html
  *
  */
-#ifndef COOLEYESBRIDGE_H
-#define COOLEYESBRIDGE_H
+ 
+#ifndef __ME_BOOT_START__
+#define __ME_BOOT_START__
+
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/**
-  * Set audio sampling frequency
-  *
-  * @param frequency - Sampling frequency to set audio output to - either 44100 or 48000.
-  *
-  * @returns 0 on success, an error if less than 0.
-  */
-int cooleyesAudioSetFrequency(int devkitVersion, int frequency);
-
-int cooleyesMeBootStart(int devkitVersion, int mebooterType);
-
-/*@}*/
+int me_boot_start(int meBooterType);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* COOLEYESBRIDGE_H */
+#endif

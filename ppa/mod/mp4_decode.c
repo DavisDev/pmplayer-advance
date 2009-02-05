@@ -66,6 +66,7 @@ char *mp4_decode_open(struct mp4_decode_struct *p, char *s, int pspType, int tvA
 
 	if ( p->video_format == 0x61766331 /*avc1*/ )
 		result = mp4_avc_open(&p->avc, 
+			p->reader.file.info->tracks[p->reader.file.video_track_id]->avc_profile,
 			4, 
 			p->reader.file.info->tracks[p->reader.file.video_track_id]->avc_sps, 
 			p->reader.file.info->tracks[p->reader.file.video_track_id]->avc_sps_size,
