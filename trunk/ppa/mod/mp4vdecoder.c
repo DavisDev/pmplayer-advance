@@ -20,7 +20,6 @@
  */
  
 #include "mp4vdecoder.h"
-#include "me_boot_start.h"
 
 void mp4v_safe_constructor(struct mp4v_struct *p){
 	p->mpeg_init = -1;
@@ -48,8 +47,6 @@ void mp4v_close(struct mp4v_struct *p) {
 
 char *mp4v_open(struct mp4v_struct *p){
 	mp4v_safe_constructor(p);
-	
-	me_boot_start(3);
 	
 	p->mpeg_init = sceMpegInit();
 	if (p->mpeg_init != 0) {

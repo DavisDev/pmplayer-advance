@@ -22,7 +22,7 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
-#include "util.h"
+#include "bufferedio.h"
 #include "mp4info_type.h"
 
 #define ATOM_TYPE(a,b,c,d) \
@@ -71,7 +71,7 @@ static uint64_t atom_read_header(void* handle, uint32_t *atom_type, uint32_t *he
 
     if (size == 1) {
         *header_size = 16;
-        size = io_read_int64(handle);
+        size = io_read_be64(handle);
     }
 
     *atom_type = atom_get_type(&atom_header[4]);
@@ -89,7 +89,7 @@ static uint32_t read_mp4_descr_length(mp4info_t* info) {
 	uint32_t length = 0;
 
 	do {
-		b = io_read_int8(info->handle);
+		b = io_read_8(info->handle);
 		numBytes++;
 		length = (length << 7) | (b & 0x7F);
 	} while ((b & 0x80) && numBytes < 4);
@@ -99,24 +99,24 @@ static uint32_t read_mp4_descr_length(mp4info_t* info) {
 static void read_esds_atom(mp4info_t* info, const uint64_t total_size) {
 	int32_t dest_position = io_get_position(info->handle) + total_size;
 	
-	io_read_int8(info->handle); //version
-	io_read_int24(info->handle); //flag
+	io_read_8(info->handle); //version
+	io_read_be24(info->handle); //flag
 	
 	uint8_t tag;
 	uint32_t temp;
 	
-	tag = io_read_int8(info->handle);
+	tag = io_read_8(info->handle);
 	if (tag == 0x03) {
         	if (read_mp4_descr_length(info) < 5 + 15) {
         		io_set_position(info->handle, dest_position);
         		return;
         	}
-        	io_read_int24(info->handle);
+        	io_read_be24(info->handle);
 	} else {
-        	io_read_int16(info->handle);
+        	io_read_be16(info->handle);
 	}
 
-	if (io_read_int8(info->handle) != 0x04) {
+	if (io_read_8(info->handle) != 0x04) {
 		io_set_position(info->handle, dest_position);
         	return;
 	}
@@ -127,18 +127,18 @@ static void read_esds_atom(mp4info_t* info, const uint64_t total_size) {
         	return;
 	}
 
-	io_read_int8(info->handle); //objectType
-	io_read_int32(info->handle);
-	io_read_int32(info->handle);//maxBitrate
-	io_read_int32(info->handle);//avgBitrate
+	io_read_8(info->handle); //objectType
+	io_read_be32(info->handle);
+	io_read_be32(info->handle);//maxBitrate
+	io_read_be32(info->handle);//avgBitrate
 
-	if (io_read_int8(info->handle) != 0x05) {
+	if (io_read_8(info->handle) != 0x05) {
 		io_set_position(info->handle, dest_position);
         	return;
 	}
 	temp = read_mp4_descr_length(info);
 	if ( info->tracks[info->total_tracks-1]->audio_type == ATOM_TYPE('m','p','4','a') ) {
-		uint32_t samplerate = ((io_read_int8(info->handle) & 0x7) << 1) | (io_read_int8(info->handle)>>7);
+		uint32_t samplerate = ((io_read_8(info->handle) & 0x7) << 1) | (io_read_8(info->handle)>>7);
 		info->tracks[info->total_tracks-1]->samplerate = aac_samplerates[samplerate];
 	}
 	else if ( info->tracks[info->total_tracks-1]->video_type == ATOM_TYPE('m','p','4','v') ) {
@@ -158,16 +158,16 @@ static void read_mp4a_atom(mp4info_t* info, const uint64_t total_size) {
 	
 	int32_t i;
 	for(i = 0; i < 6; i++)
-		io_read_int8(info->handle); //reserved1
-	io_read_int16(info->handle); //dataReferenceIndex
-	io_read_int16(info->handle); //soundVersion 
+		io_read_8(info->handle); //reserved1
+	io_read_be16(info->handle); //dataReferenceIndex
+	io_read_be16(info->handle); //soundVersion 
 	for(i = 0; i < 6; i++)
-		io_read_int8(info->handle); //reserved2
-	info->tracks[info->total_tracks-1]->channels = io_read_int16(info->handle);
-	info->tracks[info->total_tracks-1]->samplebits = io_read_int16(info->handle);
-	io_read_int16(info->handle); //packetSize 
-	info->tracks[info->total_tracks-1]->samplerate = io_read_int32(info->handle);
-	io_read_int16(info->handle); //reserved3
+		io_read_8(info->handle); //reserved2
+	info->tracks[info->total_tracks-1]->channels = io_read_be16(info->handle);
+	info->tracks[info->total_tracks-1]->samplebits = io_read_be16(info->handle);
+	io_read_be16(info->handle); //packetSize 
+	info->tracks[info->total_tracks-1]->samplerate = io_read_be32(info->handle);
+	io_read_be16(info->handle); //reserved3
 	
 	uint32_t atom_type = 0;
 	uint32_t header_size = 0;
@@ -184,21 +184,21 @@ static void read_mp4a_atom(mp4info_t* info, const uint64_t total_size) {
 static void read_avcC_atom(mp4info_t* info, const uint64_t total_size) {
 	int32_t dest_position = io_get_position(info->handle) + total_size;
 	
-	io_read_int8(info->handle); //configurationVersion
-	info->tracks[info->total_tracks - 1]->avc_profile = io_read_int8(info->handle); //AVCProfileIndication
-	io_read_int8(info->handle); //profile_compatibility
-	io_read_int8(info->handle); //AVCLevelIndication
-	uint8_t value = io_read_int8(info->handle); //reserved <6bits> & lengthSizeMinusOne <2bits>
+	io_read_8(info->handle); //configurationVersion
+	info->tracks[info->total_tracks - 1]->avc_profile = io_read_8(info->handle); //AVCProfileIndication
+	io_read_8(info->handle); //profile_compatibility
+	io_read_8(info->handle); //AVCLevelIndication
+	uint8_t value = io_read_8(info->handle); //reserved <6bits> & lengthSizeMinusOne <2bits>
 	info->tracks[info->total_tracks - 1]->avc_nal_prefix_size = (value & 0x03) + 1;
-	io_read_int8(info->handle); //reserved1 <3bits> & numOfSequenceParameterSets <5bits>
+	io_read_8(info->handle); //reserved1 <3bits> & numOfSequenceParameterSets <5bits>
     
-	info->tracks[info->total_tracks - 1]->avc_sps_size = io_read_int16(info->handle);
+	info->tracks[info->total_tracks - 1]->avc_sps_size = io_read_be16(info->handle);
 	info->tracks[info->total_tracks - 1]->avc_sps = (uint8_t*)malloc(info->tracks[info->total_tracks - 1]->avc_sps_size);
 	if ( info->tracks[info->total_tracks - 1]->avc_sps ) {
 		io_read_data(info->handle, info->tracks[info->total_tracks - 1]->avc_sps, info->tracks[info->total_tracks - 1]->avc_sps_size);
 		
-		io_read_int8(info->handle); /* numOfPictureParameterSets */
-		info->tracks[info->total_tracks - 1]->avc_pps_size = io_read_int16(info->handle);
+		io_read_8(info->handle); /* numOfPictureParameterSets */
+		info->tracks[info->total_tracks - 1]->avc_pps_size = io_read_be16(info->handle);
 		info->tracks[info->total_tracks - 1]->avc_pps = (uint8_t*)malloc(info->tracks[info->total_tracks - 1]->avc_pps_size);
 		if ( info->tracks[info->total_tracks - 1]->avc_pps ) {
 			io_read_data(info->handle, info->tracks[info->total_tracks - 1]->avc_pps, info->tracks[info->total_tracks - 1]->avc_pps_size);
@@ -217,19 +217,19 @@ static void read_avc1_atom(mp4info_t* info, const uint64_t total_size) {
 	
 	int32_t i;
 	for(i = 0; i < 6; i++)
-		io_read_int8(info->handle); //reserved1
-	io_read_int16(info->handle); //dataReferenceIndex
-	io_read_int32(info->handle); //reserved2
-	io_read_int32(info->handle); //reserved2
-	io_read_int32(info->handle); //reserved2
-	io_read_int32(info->handle); //reserved2
-	info->tracks[info->total_tracks - 1]->width = io_read_int16(info->handle);
-	info->tracks[info->total_tracks - 1]->height = io_read_int16(info->handle);
+		io_read_8(info->handle); //reserved1
+	io_read_be16(info->handle); //dataReferenceIndex
+	io_read_be32(info->handle); //reserved2
+	io_read_be32(info->handle); //reserved2
+	io_read_be32(info->handle); //reserved2
+	io_read_be32(info->handle); //reserved2
+	info->tracks[info->total_tracks - 1]->width = io_read_be16(info->handle);
+	info->tracks[info->total_tracks - 1]->height = io_read_be16(info->handle);
 	for (i = 0; i < 14; i++) 
-		io_read_int8(info->handle); //reserved3
+		io_read_8(info->handle); //reserved3
 	for (i = 0; i < 32; i++) 
-		io_read_int8(info->handle); //compressorName
-	io_read_int32(info->handle); //reserved4
+		io_read_8(info->handle); //compressorName
+	io_read_be32(info->handle); //reserved4
 	
 	uint32_t atom_type = 0;
 	uint32_t header_size = 0;
@@ -248,19 +248,19 @@ static void read_mp4v_atom(mp4info_t* info, const uint64_t total_size) {
 	
 	int32_t i;
 	for(i = 0; i < 6; i++)
-		io_read_int8(info->handle); //reserved1
-	io_read_int16(info->handle); //dataReferenceIndex
-	io_read_int32(info->handle); //reserved2
-	io_read_int32(info->handle); //reserved2
-	io_read_int32(info->handle); //reserved2
-	io_read_int32(info->handle); //reserved2
-	info->tracks[info->total_tracks - 1]->width = io_read_int16(info->handle);
-	info->tracks[info->total_tracks - 1]->height = io_read_int16(info->handle);
+		io_read_8(info->handle); //reserved1
+	io_read_be16(info->handle); //dataReferenceIndex
+	io_read_be32(info->handle); //reserved2
+	io_read_be32(info->handle); //reserved2
+	io_read_be32(info->handle); //reserved2
+	io_read_be32(info->handle); //reserved2
+	info->tracks[info->total_tracks - 1]->width = io_read_be16(info->handle);
+	info->tracks[info->total_tracks - 1]->height = io_read_be16(info->handle);
 	for (i = 0; i < 14; i++) 
-		io_read_int8(info->handle); //reserved3
+		io_read_8(info->handle); //reserved3
 	for (i = 0; i < 32; i++) 
-		io_read_int8(info->handle); //compressorName
-	io_read_int32(info->handle); //reserved4
+		io_read_8(info->handle); //compressorName
+	io_read_be32(info->handle); //reserved4
 	
 	uint32_t atom_type = 0;
 	uint32_t header_size = 0;
@@ -277,10 +277,10 @@ static void read_mp4v_atom(mp4info_t* info, const uint64_t total_size) {
 static void read_stsd_atom(mp4info_t* info, const uint64_t total_size) {
 	int32_t dest_position = io_get_position(info->handle) + total_size;
 	
-	io_read_int8(info->handle); //version
-	io_read_int24(info->handle); //flags
+	io_read_8(info->handle); //version
+	io_read_be24(info->handle); //flags
 	
-	int32_t stsd_entry_count = io_read_int32(info->handle);
+	int32_t stsd_entry_count = io_read_be32(info->handle);
 	int32_t i;
 	
 	uint32_t atom_type = 0;
@@ -314,12 +314,12 @@ static void read_stts_atom(mp4info_t* info, const uint64_t total_size) {
 	
 	mp4info_track_t* current_track = info->tracks[info->total_tracks-1];
 	
-	io_read_int8(info->handle); //version
-	io_read_int24(info->handle); //flags
+	io_read_8(info->handle); //version
+	io_read_be24(info->handle); //flags
 	
 	int32_t i;
 	
-	current_track->stts_entry_count = io_read_int32(info->handle);
+	current_track->stts_entry_count = io_read_be32(info->handle);
 	
 	current_track->stts_sample_count = (uint32_t*)malloc(current_track->stts_entry_count * sizeof(uint32_t));
 	current_track->stts_sample_duration = (uint32_t*)malloc(current_track->stts_entry_count * sizeof(uint32_t));
@@ -337,8 +337,8 @@ static void read_stts_atom(mp4info_t* info, const uint64_t total_size) {
 	}
 	else {
 		for (i = 0; i < current_track->stts_entry_count; i++) {
-			current_track->stts_sample_count[i] = io_read_int32(info->handle);
-			current_track->stts_sample_duration[i] = io_read_int32(info->handle);
+			current_track->stts_sample_count[i] = io_read_be32(info->handle);
+			current_track->stts_sample_duration[i] = io_read_be32(info->handle);
 		}
 	}
 	io_set_position(info->handle, dest_position);
@@ -349,12 +349,12 @@ static void read_ctts_atom(mp4info_t* info, const uint64_t total_size) {
 	
 	mp4info_track_t* current_track = info->tracks[info->total_tracks-1];
 	
-	io_read_int8(info->handle); //version
-	io_read_int24(info->handle); //flags
+	io_read_8(info->handle); //version
+	io_read_be24(info->handle); //flags
 	
 	int32_t i;
 	
-	current_track->ctts_entry_count = io_read_int32(info->handle);
+	current_track->ctts_entry_count = io_read_be32(info->handle);
 	
 	current_track->ctts_sample_count = (uint32_t*)malloc(current_track->ctts_entry_count * sizeof(uint32_t));
 	current_track->ctts_sample_offset = (uint32_t*)malloc(current_track->ctts_entry_count * sizeof(uint32_t));
@@ -372,8 +372,8 @@ static void read_ctts_atom(mp4info_t* info, const uint64_t total_size) {
 	}
 	else {
 		for (i = 0; i < current_track->ctts_entry_count; i++) {
-			current_track->ctts_sample_count[i] = io_read_int32(info->handle);
-			current_track->ctts_sample_offset[i] = io_read_int32(info->handle);
+			current_track->ctts_sample_count[i] = io_read_be32(info->handle);
+			current_track->ctts_sample_offset[i] = io_read_be32(info->handle);
 		}
 	}
 	io_set_position(info->handle, dest_position);
@@ -384,12 +384,12 @@ static void read_stss_atom(mp4info_t* info, const uint64_t total_size) {
 	
 	mp4info_track_t* current_track = info->tracks[info->total_tracks-1];
 	
-	io_read_int8(info->handle); //version
-	io_read_int24(info->handle); //flags
+	io_read_8(info->handle); //version
+	io_read_be24(info->handle); //flags
 	
 	int32_t i;
 	
-	current_track->stss_entry_count = io_read_int32(info->handle);
+	current_track->stss_entry_count = io_read_be32(info->handle);
 	
 	current_track->stss_sync_sample = (uint32_t*)malloc(current_track->stss_entry_count * sizeof(uint32_t));
 	
@@ -398,7 +398,7 @@ static void read_stss_atom(mp4info_t* info, const uint64_t total_size) {
 	}
 	else {
 		for (i = 0; i < current_track->stss_entry_count; i++) {
-			current_track->stss_sync_sample[i] = io_read_int32(info->handle);
+			current_track->stss_sync_sample[i] = io_read_be32(info->handle);
 		}
 	}
 	io_set_position(info->handle, dest_position);
@@ -409,12 +409,12 @@ static void read_stsc_atom(mp4info_t* info, const uint64_t total_size) {
 	
 	mp4info_track_t* current_track = info->tracks[info->total_tracks-1];
 	
-	io_read_int8(info->handle); //version
-	io_read_int24(info->handle); //flags
+	io_read_8(info->handle); //version
+	io_read_be24(info->handle); //flags
 	
 	int32_t i;
 	
-	current_track->stsc_entry_count = io_read_int32(info->handle);
+	current_track->stsc_entry_count = io_read_be32(info->handle);
 	
 	current_track->stsc_first_chunk = (uint32_t*)malloc((current_track->stsc_entry_count+1) * sizeof(uint32_t));
 	current_track->stsc_samples_per_chunk = (uint32_t*)malloc((current_track->stsc_entry_count+1) * sizeof(uint32_t));
@@ -437,9 +437,9 @@ static void read_stsc_atom(mp4info_t* info, const uint64_t total_size) {
 	}
 	else {
 		for (i = 0; i < current_track->stsc_entry_count; i++) {
-			current_track->stsc_first_chunk[i] = io_read_int32(info->handle);
-			current_track->stsc_samples_per_chunk[i] = io_read_int32(info->handle);
-			current_track->stsc_sample_desc_id[i] = io_read_int32(info->handle);
+			current_track->stsc_first_chunk[i] = io_read_be32(info->handle);
+			current_track->stsc_samples_per_chunk[i] = io_read_be32(info->handle);
+			current_track->stsc_sample_desc_id[i] = io_read_be32(info->handle);
 		}
 	}
 	io_set_position(info->handle, dest_position);
@@ -450,13 +450,13 @@ static void read_stsz_atom(mp4info_t* info, const uint64_t total_size) {
 	
 	mp4info_track_t* current_track = info->tracks[info->total_tracks-1];
 	
-	io_read_int8(info->handle); //version
-	io_read_int24(info->handle); //flags
+	io_read_8(info->handle); //version
+	io_read_be24(info->handle); //flags
 	
 	int32_t i;
 	
-	current_track->stsz_sample_size = io_read_int32(info->handle);
-	current_track->stsz_entry_count = io_read_int32(info->handle);
+	current_track->stsz_sample_size = io_read_be32(info->handle);
+	current_track->stsz_entry_count = io_read_be32(info->handle);
 	
 	if ( current_track->stsz_sample_size == 0 ) {
 	
@@ -467,7 +467,7 @@ static void read_stsz_atom(mp4info_t* info, const uint64_t total_size) {
 		}
 		else {
 			for (i = 0; i < current_track->stsz_entry_count; i++) {
-				current_track->stsz_sample_size_table[i] = io_read_int32(info->handle);
+				current_track->stsz_sample_size_table[i] = io_read_be32(info->handle);
 			}
 		}
 	}
@@ -479,12 +479,12 @@ static void read_stco_atom(mp4info_t* info, const uint64_t total_size) {
 	
 	mp4info_track_t* current_track = info->tracks[info->total_tracks-1];
 	
-	io_read_int8(info->handle); //version
-	io_read_int24(info->handle); //flags
+	io_read_8(info->handle); //version
+	io_read_be24(info->handle); //flags
 	
 	int32_t i;
 	
-	current_track->stco_entry_count = io_read_int32(info->handle);
+	current_track->stco_entry_count = io_read_be32(info->handle);
 	
 	current_track->stco_chunk_offset = (uint32_t*)malloc(current_track->stco_entry_count * sizeof(uint32_t));
 	
@@ -493,7 +493,7 @@ static void read_stco_atom(mp4info_t* info, const uint64_t total_size) {
 	}
 	else {
 		for (i = 0; i < current_track->stco_entry_count; i++) {
-			current_track->stco_chunk_offset[i] = io_read_int32(info->handle);
+			current_track->stco_chunk_offset[i] = io_read_be32(info->handle);
 		}
 	}
 	io_set_position(info->handle, dest_position);
@@ -570,13 +570,13 @@ static void parse_minf_atom(mp4info_t* info, const uint64_t total_size) {
 static void read_mdhd_atom(mp4info_t* info, const uint64_t total_size) {
 	int32_t dest_position = io_get_position(info->handle) + total_size;
 	
-	io_read_int8(info->handle); //version
-	io_read_int24(info->handle); //flags
-	io_read_int32(info->handle); //creationTime
-	io_read_int32(info->handle); //modificationTime
+	io_read_8(info->handle); //version
+	io_read_be24(info->handle); //flags
+	io_read_be32(info->handle); //creationTime
+	io_read_be32(info->handle); //modificationTime
 	
-	info->tracks[info->total_tracks-1]->time_scale = io_read_int32(info->handle);
-	info->tracks[info->total_tracks-1]->duration = io_read_int32(info->handle);
+	info->tracks[info->total_tracks-1]->time_scale = io_read_be32(info->handle);
+	info->tracks[info->total_tracks-1]->duration = io_read_be32(info->handle);
 		
 	io_set_position(info->handle, dest_position);
 }
@@ -608,22 +608,22 @@ static void parse_mdia_atom(mp4info_t* info, const uint64_t total_size) {
 static void read_tkhd_atom(mp4info_t* info, const uint64_t total_size) {
 	int32_t dest_position = io_get_position(info->handle) + total_size;
 	
-	io_read_int8(info->handle); //version
-	io_read_int24(info->handle); //flags
-	io_read_int32(info->handle); //creationTime
-	io_read_int32(info->handle); //modificationTime
-	io_read_int32(info->handle); //trackId
-	io_read_int32(info->handle); //reserved1 <4 bytes>
-	io_read_int32(info->handle); //duration
+	io_read_8(info->handle); //version
+	io_read_be24(info->handle); //flags
+	io_read_be32(info->handle); //creationTime
+	io_read_be32(info->handle); //modificationTime
+	io_read_be32(info->handle); //trackId
+	io_read_be32(info->handle); //reserved1 <4 bytes>
+	io_read_be32(info->handle); //duration
 	int i;
 	for(i = 0; i < 12; i++)
-		io_read_int8(info->handle); //reserved2 <12 bytes>
-	io_read_int16(info->handle); //volume 
+		io_read_8(info->handle); //reserved2 <12 bytes>
+	io_read_be16(info->handle); //volume 
 	for(i = 0; i < 38; i++)
-		io_read_int8(info->handle); //reserved3 <38 bytes>
+		io_read_8(info->handle); //reserved3 <38 bytes>
 	
-	info->tracks[info->total_tracks-1]->width = io_read_int32(info->handle);
-	info->tracks[info->total_tracks-1]->height = io_read_int32(info->handle);
+	info->tracks[info->total_tracks-1]->width = io_read_be32(info->handle);
+	info->tracks[info->total_tracks-1]->height = io_read_be32(info->handle);
 		
 	io_set_position(info->handle, dest_position);
 }
@@ -661,12 +661,12 @@ static void parse_trak_atom(mp4info_t* info, const uint64_t total_size) {
 static void read_mvhd_atom(mp4info_t* info, const uint64_t total_size) {
 	int32_t dest_position = io_get_position(info->handle) + total_size;
 	
-	io_read_int8(info->handle); //version
-	io_read_int24(info->handle); //flags
-	io_read_int32(info->handle); //creationTime
-	io_read_int32(info->handle); //modificationTime
-	info->time_scale = io_read_int32(info->handle); //timeScale
-	info->duration = io_read_int32(info->handle); //duration
+	io_read_8(info->handle); //version
+	io_read_be24(info->handle); //flags
+	io_read_be32(info->handle); //creationTime
+	io_read_be32(info->handle); //modificationTime
+	info->time_scale = io_read_be32(info->handle); //timeScale
+	info->duration = io_read_be32(info->handle); //duration
 	//rate = <4 bytes>
 	//volume = <2 bytes>
 	//reserved1 = <70 bytes> 

@@ -21,7 +21,6 @@
 
 
 #include "mp4avcdecoder.h"
-#include "me_boot_start.h"
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -76,11 +75,6 @@ char *mp4_avc_open(struct mp4_avc_struct *p, int avc_profile, int mpeg_mode, voi
 	}
 	memcpy(p->mpeg_sps_pps_buffer, sps_buffer, sps_size);
 	memcpy(p->mpeg_sps_pps_buffer+sps_size, pps_buffer, pps_size);
-	
-	if ( avc_profile == 0x4D )
-		me_boot_start(3);
-	else if ( avc_profile == 0x42 )
-		me_boot_start(4);
 
 	p->mpeg_init = sceMpegInit();
 	if (p->mpeg_init != 0) {
@@ -158,6 +152,7 @@ char *mp4_avc_get(struct mp4_avc_struct *p, int mode, void *source_buffer, int s
 	}
 	if ( p->mpeg_pic_num > 0 ) {
 		Mp4AvcCscStruct csc;
+		int csc_width;
 		csc.height = (p->mpeg_detail2->info_buffer->height+15) >> 4;
 		csc.width = (p->mpeg_detail2->info_buffer->width+15) >> 4;
 		csc.mode0 = 0;
@@ -170,7 +165,11 @@ char *mp4_avc_get(struct mp4_avc_struct *p, int mode, void *source_buffer, int s
 		csc.buffer5 = p->mpeg_detail2->yuv_buffer->buffer5 ;
 		csc.buffer6 = p->mpeg_detail2->yuv_buffer->buffer6 ;
 		csc.buffer7 = p->mpeg_detail2->yuv_buffer->buffer7 ;
-		if ( sceMpegBaseCscAvc(destination_buffer, 0, 512, &csc) != 0 ) {
+		if ( p->mpeg_detail2->info_buffer->width > 512 )
+			csc_width = 768;
+		else
+			csc_width = 512;
+		if ( sceMpegBaseCscAvc(destination_buffer, 0, csc_width, &csc) != 0 ) {
 			return("avc_get: sceMpegBaseCscAvc failed");
 		}
 	}
@@ -183,6 +182,7 @@ char *mp4_avc_get_cache(struct mp4_avc_struct *p, void *destination_buffer, int 
 	Mp4AvcInfoStruct* info_buffer = p->mpeg_detail2->info_buffer + (p->mpeg_pic_num-pic_num);
 	Mp4AvcYuvStruct* yuv_buffer = p->mpeg_detail2->yuv_buffer + (p->mpeg_pic_num-pic_num);
 	Mp4AvcCscStruct csc;
+	int csc_width;
 	csc.height = (info_buffer->height+15) >> 4;
 	csc.width = (info_buffer->width+15) >> 4;
 	csc.mode0 = 0;
@@ -195,7 +195,11 @@ char *mp4_avc_get_cache(struct mp4_avc_struct *p, void *destination_buffer, int 
 	csc.buffer5 = yuv_buffer->buffer5 ;
 	csc.buffer6 = yuv_buffer->buffer6 ;
 	csc.buffer7 = yuv_buffer->buffer7 ;
-	if ( sceMpegBaseCscAvc(destination_buffer, 0, 512, &csc) != 0 ) {
+	if ( info_buffer->width > 512 )
+			csc_width = 768;
+		else
+			csc_width = 512;
+	if ( sceMpegBaseCscAvc(destination_buffer, 0, csc_width, &csc) != 0 ) {
 		return("avc_get: sceMpegBaseCscAvc failed");
 	}
 	return (0);

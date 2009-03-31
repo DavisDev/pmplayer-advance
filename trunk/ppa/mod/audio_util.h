@@ -1,5 +1,5 @@
 /* 
- *	Copyright (C) 2008 cooleyes
+ *	Copyright (C) 2009 cooleyes
  *	eyes.cooleyes@gmail.com 
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -19,34 +19,19 @@
  *
  */
  
-#ifndef __MP4INFO_UTIL_H__
-#define __MP4INFO_UTIL_H__
+#ifndef __AUDIO_UTIL__
+#define __AUDIO_UTIL__
 
-#include <pspiofilemgr.h>
-
-#define CACHE_BUFFER_SIZE 4096
-
-typedef struct {
-	SceUID handle;
-	int32_t length;
-	int32_t cache_first_position;
-	int32_t cache_last_position;
-	int32_t current_position;
-	uint8_t cache_buffer[CACHE_BUFFER_SIZE];
-} cache_io_t;
+#include <pspsdk.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-int32_t io_set_position(void* handle, const int32_t position);
-int32_t io_get_position(void* handle);
-uint32_t io_read_data(void* handle, uint8_t* data, const uint32_t size);
-uint64_t io_read_int64(void* handle);
-uint32_t io_read_int32(void* handle);
-uint32_t io_read_int24(void* handle);
-uint16_t io_read_int16(void* handle);
-uint8_t io_read_int8(void* handle);
+void pcm_set_normalize_ratio(unsigned int ratio_type);
+void pcm_normalize(short *pcm_buffer, unsigned int number_of_samples);
+void pcm_select_channel(short *pcm_buffer, unsigned int number_of_samples, int channel);
+void pcm_double_sample(short *dest_pcm_buffer, short *src_pcm_buffer, unsigned int number_of_samples);
 
 #ifdef __cplusplus
 }

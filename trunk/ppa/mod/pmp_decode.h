@@ -48,8 +48,8 @@ av decoding in a ring buffer
 
 #define FF_INPUT_BUFFER_PADDING_SIZE 8
 
-#define maximum_frame_buffers 64
-#define number_of_free_video_frame_buffers 8
+#define pmp_maximum_frame_buffers 64
+#define pmp_number_of_free_video_frame_buffers 8
 
 
 struct pmp_decode_buffer_struct
@@ -75,14 +75,14 @@ struct pmp_decode_struct
 	int audio_decoder;
 
 
-	void *video_frame_buffers[maximum_frame_buffers];
-	void *audio_frame_buffers[maximum_frame_buffers];
+	void *video_frame_buffers[pmp_maximum_frame_buffers];
+	void *audio_frame_buffers[pmp_maximum_frame_buffers];
 
 	unsigned int audio_frame_size;
 	unsigned int number_of_frame_buffers;
 
 
-	struct pmp_decode_buffer_struct output_frame_buffers[maximum_frame_buffers];
+	struct pmp_decode_buffer_struct output_frame_buffers[pmp_maximum_frame_buffers];
 
 	unsigned int current_buffer_number;
 	

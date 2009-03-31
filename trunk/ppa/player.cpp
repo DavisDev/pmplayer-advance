@@ -58,6 +58,8 @@
 
 #include "mod/mp4.h"
 
+#include "mod/mkv.h"
+
 #include "mod/codec_prx.h"
 #include "mod/gu_font.h"
 #include "mod/movie_file.h"
@@ -84,6 +86,7 @@ struct subtitle_ext_charset_struct subtitleExt[] = {
 file_type_ext_struct movieFileFilter[] = {
 	{"pmp", FS_PMP_FILE},
 	{"mp4", FS_MP4_FILE},
+	{"mkv", FS_MKV_FILE},
 	{NULL, FS_UNKNOWN_FILE}
 };
 
@@ -939,7 +942,7 @@ void PmpAvcPlayer::paintFilmPreview(){
 			filmPreviewImage = NULL;
 		}
 		
-		if ( fileItems[fileItemCurrent].filetype == FS_PMP_FILE || fileItems[fileItemCurrent].filetype == FS_MP4_FILE ) {
+		if ( fileItems[fileItemCurrent].filetype == FS_PMP_FILE || fileItems[fileItemCurrent].filetype == FS_MP4_FILE || fileItems[fileItemCurrent].filetype == FS_MKV_FILE) {
 			char previewFileName[512];
 			memset(previewFileName, 0, 512);
 	
@@ -1020,12 +1023,18 @@ void PmpAvcPlayer::getCurrentMp4FilmInformation() {
 			mp4info_track_t* track = info->tracks[i];
 			if (track->type != TRACK_VIDEO)
 				continue;
-//			if ( track->video_type != 0x61766331 /*avc1*/)
-//				continue; 
 			if ( track->width < 1 || track->height < 1 )
 				continue;
-			if ( track->width > 480 || track->height > 272 )
+			if ( track->width > 720 || track->height > 480 ) 
 				continue;
+			if ( track->video_type == 0x61766331 /*avc1*/) {
+				if ( track->avc_profile==0x42 && (track->width > 480 || track->height > 272) ) 
+					continue;
+			}
+			else {
+				if ( track->width > 480 || track->height > 272 ) 
+					continue;
+			}
 			video_track_id = i;
 			break;
 		}
@@ -1085,6 +1094,98 @@ void PmpAvcPlayer::getCurrentMp4FilmInformation() {
 	}
 }
 
+void PmpAvcPlayer::getCurrentMkvFilmInformation() {
+	initFilmInformation();
+	char previewFileName[512];
+	memset(previewFileName, 0, 512);
+	
+	sprintf(previewFileName,"%s%s", fileShortPath, fileItems[fileItemCurrent].shortname);
+	
+	mkvinfo_t* info = mkvinfo_open(previewFileName);
+	if ( info == 0 ) {
+		initFilmInformation();
+	}
+	else {
+		int i;
+		int video_track_id = -1;
+		for(i = 0; i < info->total_tracks; i++) {
+			mkvinfo_track_t* track = info->tracks[i];
+			if (track->type != MATROSKA_TRACK_VIDEO)
+				continue;
+			if ( track->width < 1 || track->height < 1 )
+				continue;
+			if ( track->width > 720 || track->height > 480 ) 
+				continue;
+			if ( track->video_type == 0x61766331 /*avc1*/) {
+				if ( track->private_size < 2 )
+					continue;
+				uint8_t avc_profile = track->private_data[1];
+				if ( avc_profile==0x42 && (track->width > 480 || track->height > 272) ) 
+					continue;
+			}
+			else {
+				if ( track->width > 480 || track->height > 272 ) 
+					continue;
+			}
+			video_track_id = i;
+			break;
+		}
+		if ( video_track_id < 0 ) {
+			mkvinfo_close(info);
+			initFilmInformation();
+			return;
+		} 
+		
+		int audio_tracks = 0;
+		int first_audio_track_id = 0;
+		for(i = 0; i < info->total_tracks; i++) {
+			mkvinfo_track_t* track = info->tracks[i];
+			if (track->type != MATROSKA_TRACK_AUDIO)
+				continue;
+			if ( audio_tracks == 0 ) {
+				if ( track->audio_type != 0x6D703461 /*mp4a*/)
+					continue;
+//				if ( track->channels != 2 )
+//					continue;
+				if ( track->samplerate != 22050 && track->samplerate != 24000 && track->samplerate != 44100 && track->samplerate != 48000 )
+					continue;
+//				if ( track->samplebits != 16 )
+//					continue;
+				first_audio_track_id = i;
+				audio_tracks++;
+			}
+			else {
+				mkvinfo_track_t* old_track = info->tracks[first_audio_track_id];
+				if ( old_track->audio_type != track->audio_type )
+					continue;
+//				if ( old_track->channels != track->channels )
+//					continue;
+				if ( old_track->samplerate != track->samplerate )
+					continue;
+//				if ( old_track->samplebits != track->samplebits )
+//					continue;
+				audio_tracks++;
+			}
+			if ( audio_tracks == 6 )
+				break;
+		}
+		if ( audio_tracks == 0 ) {
+			mkvinfo_close(info);
+			initFilmInformation();
+			return;
+		}
+		filmTotalFrames = (u32)(1LL*info->duration/(1000LL*info->tracks[video_track_id]->duration/info->tracks[video_track_id]->time_scale));
+		filmWidth = info->tracks[video_track_id]->width;
+		filmHeight = info->tracks[video_track_id]->height;
+		filmScale = info->tracks[video_track_id]->duration;
+		filmRate = info->tracks[video_track_id]->time_scale;
+		filmAudioStreams = audio_tracks;
+		mkvinfo_close(info);
+		
+		filmSubtitles = getSelectMovieSubtitles();
+	}
+}
+
 void PmpAvcPlayer::paintFilmInformation() {
 	if ( !filmReloadEnable )
 		return;
@@ -1097,9 +1198,12 @@ void PmpAvcPlayer::paintFilmInformation() {
 		else if ( fileItems[fileItemCurrent].filetype == FS_MP4_FILE ) {
 			getCurrentMp4FilmInformation();
 		}
+		else if ( fileItems[fileItemCurrent].filetype == FS_MKV_FILE ) {
+			getCurrentMkvFilmInformation();
+		}
 		filmInformationReload = false;
 	}
-	if ( fileItems[fileItemCurrent].filetype == FS_PMP_FILE || fileItems[fileItemCurrent].filetype == FS_MP4_FILE ) {
+	if ( fileItems[fileItemCurrent].filetype == FS_PMP_FILE || fileItems[fileItemCurrent].filetype == FS_MP4_FILE || fileItems[fileItemCurrent].filetype == FS_MKV_FILE) {
 		FtFont* mainFont = FtFontManager::getInstance()->getMainFont();
 		Color color = Skin::getInstance()->getColorValue("skin/font_color/color", 0xFFFFFF);
 		char stringBuffer[64];
@@ -1181,7 +1285,7 @@ void PmpAvcPlayer::showPadHelp() {
 };
 
 void PmpAvcPlayer::deleteSelectMovie() {
-	if ( fileItems[fileItemCurrent].filetype != FS_PMP_FILE && fileItems[fileItemCurrent].filetype != FS_MP4_FILE )
+	if ( fileItems[fileItemCurrent].filetype != FS_PMP_FILE && fileItems[fileItemCurrent].filetype != FS_MP4_FILE && fileItems[fileItemCurrent].filetype != FS_MKV_FILE)
 		return;
 	int deleteFileCount = 1;
 	char deleteFiles[5120];
@@ -1298,15 +1402,19 @@ void PmpAvcPlayer::playMovie(bool resume) {
 		result = pmp_play(&currentMovie, usePos, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode() );
 	else if ( fileItems[fileItemCurrent].filetype == FS_MP4_FILE )
 		result = mp4_play(&currentMovie, usePos, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode() );
+	else if ( fileItems[fileItemCurrent].filetype == FS_MKV_FILE )
+		result = mkv_play(&currentMovie, usePos, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode() );
 	else
 		result = "unsupported movie";
 	
 	sceKernelDcacheWritebackInvalidateAll();
 	sceKernelDelayThread(1000000);
 	if ( result ) {
-//		FILE* log = fopen("ms0:/playlog.txt","w+");
-//		fprintf(log, "%s\n", result);
-//		fclose(log);
+#ifdef DEBUG
+		FILE* log = fopen("ms0:/playlog.txt","w+");
+		fprintf(log, "%s\n", result);
+		fclose(log);
+#endif
 #ifdef ENABLE_SUSPEND	
 		scePowerUnlock(0);
 #endif
@@ -1331,6 +1439,8 @@ void PmpAvcPlayer::playMovie(bool resume) {
 					result = pmp_play(&currentMovie, 0, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode());
 				else if ( fileItems[fileItemCurrent].filetype == FS_MP4_FILE )
 					result = mp4_play(&currentMovie, 0, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode());
+				else if ( fileItems[fileItemCurrent].filetype == FS_MKV_FILE )
+					result = mkv_play(&currentMovie, 0, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode());			
 				else
 					result = "unsupported movie";
 					
@@ -1353,6 +1463,8 @@ void PmpAvcPlayer::playMovie(bool resume) {
 				result = pmp_play(&currentMovie, 0, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode());
 			else if ( fileItems[fileItemCurrent].filetype == FS_MP4_FILE )
 				result = mp4_play(&currentMovie, 0, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode());
+			else if ( fileItems[fileItemCurrent].filetype == FS_MKV_FILE )
+				result = mkv_play(&currentMovie, 0, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode());
 			else
 				result = "unsupported movie";
 			sceKernelDcacheWritebackInvalidateAll();

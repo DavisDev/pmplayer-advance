@@ -7683,6 +7683,36 @@ cp1256_mbtowc (ucs4_t *pwc, const unsigned char *s, int n)
 }
 #endif
 
+#ifdef ISO8859_9_CONV
+/*
+ * ISO-8859-9
+ */
+
+static const unsigned short iso8859_9_2uni[48] = {
+  /* 0xd0 */
+  0x011e, 0x00d1, 0x00d2, 0x00d3, 0x00d4, 0x00d5, 0x00d6, 0x00d7,
+  0x00d8, 0x00d9, 0x00da, 0x00db, 0x00dc, 0x0130, 0x015e, 0x00df,
+  /* 0xe0 */
+  0x00e0, 0x00e1, 0x00e2, 0x00e3, 0x00e4, 0x00e5, 0x00e6, 0x00e7,
+  0x00e8, 0x00e9, 0x00ea, 0x00eb, 0x00ec, 0x00ed, 0x00ee, 0x00ef,
+  /* 0xf0 */
+  0x011f, 0x00f1, 0x00f2, 0x00f3, 0x00f4, 0x00f5, 0x00f6, 0x00f7,
+  0x00f8, 0x00f9, 0x00fa, 0x00fb, 0x00fc, 0x0131, 0x015f, 0x00ff,
+};
+
+static int
+iso8859_9_mbtowc (ucs4_t *pwc, const unsigned char *s, int n)
+{
+  unsigned char c = *s;
+  if (c >= 0xd0)
+    *pwc = (ucs4_t) iso8859_9_2uni[c-0xd0];
+  else
+    *pwc = (ucs4_t) c;
+  return 1;
+}
+
+#endif
+
 #ifdef ISO8859_6_CONV
 /*
  * ISO-8859-6
@@ -8082,6 +8112,39 @@ char* ms_arab_to_utf8(const unsigned char* ms_arab) {
 	j = 0; 
 	while( i < ilen) {
 		ret_val = cp1256_mbtowc(&ucs4_char, ms_arab+i, ilen-i);
+		if ( ret_val < 0 ) { 
+			i++;
+			convert_buffer[j] = '?';
+			j++;
+		}
+		else {
+			i += ret_val;
+			ret_val = utf8_wctomb(convert_buffer+j, ucs4_char, 6);
+			if ( ret_val > 0 )
+				j += ret_val;
+		}
+	}
+	return convert_buffer;//return strdup(convert_buffer);
+}
+#endif
+
+#ifdef ISO8859_9_CONV
+char* iso8859_9_to_utf8(const unsigned char* iso8859_9) {
+	if ( iso8859_9 == NULL )
+		return NULL;
+	
+	int ilen = strlen(iso8859_9);
+	if (ilen == 0)
+		return NULL;
+	
+	memset(convert_buffer, 0, CONVERT_BUFFER_SIZE+1);
+	
+	ucs4_t ucs4_char;
+	int i,j, ret_val;
+	i = 0;
+	j = 0; 
+	while( i < ilen) {
+		ret_val = iso8859_9_mbtowc(&ucs4_char, iso8859_9+i, ilen-i);
 		if ( ret_val < 0 ) { 
 			i++;
 			convert_buffer[j] = '?';

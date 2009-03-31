@@ -20,7 +20,6 @@
  */
  
 #include "mp4_file.h"
-#include "time_math.h"
 
 void mp4_file_safe_constructor(struct mp4_file_struct *p) {
 	p->info = 0;
@@ -39,35 +38,7 @@ void mp4_file_close(struct mp4_file_struct *p) {
 		mp4info_close(p->info);
 	}
 	mp4_file_safe_constructor(p);
-}
-
-
-static void minimum_and_maximum_number_of_audio_frames_get(struct mp4_file_struct *p, unsigned int *minimum, unsigned int *maximum) {
-	struct time_math_interleaving_struct t;
-
-	time_math_interleaving_constructor(&t, 
-		p->video_rate, 
-		p->video_scale, 
-		p->audio_rate, 
-		p->audio_resample_scale);
-
-	unsigned int video_frame_number = 0;
-	while (video_frame_number < p->number_of_video_frames) {
-		time_math_interleaving_get(&t);
-
-		if (video_frame_number == 0) {
-			*minimum = t.output_number_of_audio_frames;
-			*maximum = t.output_number_of_audio_frames;
-		}
-		else {
-			if (t.output_number_of_audio_frames < *minimum) *minimum = t.output_number_of_audio_frames;
-			if (t.output_number_of_audio_frames > *maximum) *maximum = t.output_number_of_audio_frames;
-		}
-		video_frame_number++;
-	}
-}
-
-	
+}	
 
 char *mp4_file_open(struct mp4_file_struct *p, char *s) {
 	mp4_file_safe_constructor(p);
@@ -85,12 +56,19 @@ char *mp4_file_open(struct mp4_file_struct *p, char *s) {
 		mp4info_track_t* track = p->info->tracks[i];
 		if (track->type != TRACK_VIDEO)
 			continue;
-//		if ( track->video_type != 0x61766331 /*avc1*/)
-//			continue; 
+		
 		if ( track->width < 1 || track->height < 1 )
 			continue;
-		if ( track->width > 480 || track->height > 320 )
+		if ( track->width > 720 || track->height > 480 ) 
 			continue;
+		if ( track->video_type == 0x61766331 /*avc1*/) {
+			if ( track->avc_profile==0x42 && (track->width > 480 || track->height > 272) ) 
+				continue;
+		}
+		else {
+			if ( track->width > 480 || track->height > 272 ) 
+				continue;
+		}
 		p->video_track_id = i;
 		p->video_type = track->video_type;
 		break;
@@ -210,12 +188,6 @@ char *mp4_file_open(struct mp4_file_struct *p, char *s) {
 	p->audio_resample_scale = p->audio_scale * (p->audio_double_sample?2:1);
 	//p->audio_scale = p->info->tracks[p->audio_track_ids[0]]->stts_sample_duration[0] / (p->audio_double_sample?2:1);
 	p->audio_stereo = 1;//(p->info->tracks[p->audio_track_ids[0]]->channels == 2 ? 1 : 0);
-	
-	unsigned int minimum_number_of_audio_frames = 0;
-	unsigned int maximum_number_of_audio_frames = 0;
-	minimum_and_maximum_number_of_audio_frames_get(p, &minimum_number_of_audio_frames, &maximum_number_of_audio_frames);
-	
-	p->maximun_audio_sample_number = maximum_number_of_audio_frames;
 	
 	return(0);
 }

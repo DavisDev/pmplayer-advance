@@ -27,6 +27,7 @@
 #include <pspsdk.h>
 #include <pspaudiocodec.h>
 #include <malloc.h>
+#include "common/mem64.h"
 
 typedef int (*audio_decoder_decode_func)(void *data, int *data_size, uint8_t *buf, int buf_size);
 
@@ -152,10 +153,16 @@ int audio_decoder_open(int type, int samplerate, int samplecount, int blockalign
 	else if ( type == 0x1003 ) {
 		if ( sceAudiocodecCheckNeedMem(audio_codec_buffer, 0x1003) < 0 ) 
 			return -1;
-		if ( sceAudiocodecGetEDRAM(audio_codec_buffer, 0x1003) < 0 ) 
+		void* p1003 = malloc_64(audio_codec_buffer[4]);
+		if ( !p1003 )
 			return -1;
+		audio_codec_buffer[3] = (unsigned long)p1003;
+//		if ( sceAudiocodecGetEDRAM(audio_codec_buffer, 0x1003) < 0 ) 
+//			return -1;
 		audio_codec_buffer[10] = samplerate;
 		if ( sceAudiocodecInit(audio_codec_buffer, 0x1003) < 0 ) {
+			free((void*)audio_codec_buffer[3]);
+			audio_codec_buffer[3] = 0;
 			sceAudiocodecReleaseEDRAM(audio_codec_buffer);
 			return -1;
 		}	
@@ -171,8 +178,12 @@ int audio_decoder_open(int type, int samplerate, int samplecount, int blockalign
 }
 
 int audio_decoder_close() {
-    sceAudiocodecReleaseEDRAM(audio_codec_buffer);
-    return 0;
+	if ( audio_type == 0x1003 && audio_codec_buffer[3] != 0) {
+		free((void*)audio_codec_buffer[3]);
+		audio_codec_buffer[3] = 0;
+	}
+	sceAudiocodecReleaseEDRAM(audio_codec_buffer);
+	return 0;
 }
 
 int audio_decoder_decode(void *data, int *data_size,

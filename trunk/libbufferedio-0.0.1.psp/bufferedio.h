@@ -1,5 +1,5 @@
 /* 
- *	Copyright (C) 2006 cooleyes
+ *	Copyright (C) 2009 cooleyes
  *	eyes.cooleyes@gmail.com 
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -18,53 +18,41 @@
  *  http://www.gnu.org/copyleft/gpl.html
  *
  */
-#ifndef __DIRECTORY_H__
-#define __DIRECTORY_H__
+ 
+#ifndef __MKVINFO_UTIL_H__
+#define __MKVINFO_UTIL_H__
 
-typedef enum {
-//*/
-	FS_DIRECTORY = 0,
-	FS_PMP_FILE,
-	FS_MP4_FILE,
-	FS_MKV_FILE,
-	FS_SUB_FILE,
-	FS_SRT_FILE,
-	FS_PNG_FILE,
-	FS_UNKNOWN_FILE
-//*/
-} file_type_enum;
+#include <pspiofilemgr.h>
+
+#define CACHE_BUFFER_SIZE 4096
 
 typedef struct {
-	const char * ext;
-	file_type_enum filetype;
-} file_type_ext_struct;
-
-typedef struct {
-	char shortname[256];
-	char longname[256];
-	char* compname; 
-	u32 filesize;
-	u16 cdate;
-	u16 ctime;
-	u16 mdate;
-	u16 mtime;
-	file_type_enum filetype;
-} directory_item_struct;
+	SceUID handle;
+	int32_t length;
+	int32_t cache_first_position;
+	int32_t cache_last_position;
+	int32_t current_position;
+	uint8_t cache_buffer[CACHE_BUFFER_SIZE];
+} buffered_io_t;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-
-file_type_enum directory_get_filetype(const char* filename, file_type_ext_struct* file_type_ext_table);
-
-int open_directory(const char* dir, char* sdir, int show_hidden, int show_unknown, file_type_ext_struct* file_type_ext_table, directory_item_struct** list); 
-
-int is_next_movie(const char* prev, const char* next);
+int32_t io_open(const char* filename, void* handle);
+int32_t io_set_position(void* handle, const int32_t position);
+int32_t io_get_position(void* handle);
+int32_t io_get_length(void* handle);
+uint32_t io_read_data(void* handle, uint8_t* data, const uint32_t size);
+uint64_t io_read_be64(void* handle);
+uint32_t io_read_be32(void* handle);
+uint32_t io_read_be24(void* handle);
+uint16_t io_read_be16(void* handle);
+uint8_t io_read_8(void* handle);
+void io_close(void* handle);
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif
-
