@@ -315,10 +315,11 @@ static void pmp_input(volatile struct pmp_play_struct *p, SceCtrlData *previous_
 					}
 				else if ((controller.Buttons & PSP_CTRL_UP) && ((previous_controller->Buttons & PSP_CTRL_UP) == 0))
 					{
-					if (p->volume_boost != 3)
+					if (p->volume_boost != 6)
 						{
 						p->volume_boost ++;
 						}
+					pcm_set_normalize_ratio(p->volume_boost);
 					}
 				else if ((controller.Buttons & PSP_CTRL_DOWN) && ((previous_controller->Buttons & PSP_CTRL_DOWN) == 0))
 					{
@@ -326,6 +327,7 @@ static void pmp_input(volatile struct pmp_play_struct *p, SceCtrlData *previous_
 						{
 						p->volume_boost --;
 						}
+					pcm_set_normalize_ratio(p->volume_boost);
 					}
 				else if ((controller.Buttons & PSP_CTRL_RTRIGGER) && ((previous_controller->Buttons & PSP_CTRL_RTRIGGER) == 0))
 					{
@@ -721,7 +723,7 @@ char *pmp_play_open(struct pmp_play_struct *p, struct movie_file_struct *movie, 
 	//add by cooleyes 2007/02/01
 	p->audio_channel    = 0;
 	//add end
-	p->volume_boost     = 0;
+	p->volume_boost     = 3;
 	p->aspect_ratio     = 0;
 	p->zoom             = 100;
 	p->luminosity_boost = 0;

@@ -26,6 +26,8 @@ av decoding in a ring buffer
 
 
 #include "pmp_decode.h"
+#include "me_boot_start.h"
+#include "audio_util.h"
 
 
 void pmp_decode_safe_constructor(struct pmp_decode_struct *p)
@@ -36,7 +38,7 @@ void pmp_decode_safe_constructor(struct pmp_decode_struct *p)
 	mp4v_safe_constructor(&p->mp4v);
 
 	int i = 0;
-	for (; i < maximum_frame_buffers; i++)
+	for (; i < pmp_maximum_frame_buffers; i++)
 		{
 		p->video_frame_buffers[i] = 0;
 		p->audio_frame_buffers[i] = 0;
@@ -59,14 +61,14 @@ void pmp_decode_close(struct pmp_decode_struct *p, int pspType)
 	int i = 0;
 	if (m33IsTVOutSupported(pspType)) 
 		{
-		for (; i < maximum_frame_buffers; i++)
+		for (; i < pmp_maximum_frame_buffers; i++)
 			{
 			if (p->audio_frame_buffers[i] != 0) free_64(p->audio_frame_buffers[i]);
 			}
 		}
 	else
 		{
-		for (; i < maximum_frame_buffers; i++)
+		for (; i < pmp_maximum_frame_buffers; i++)
 			{
 			if (p->video_frame_buffers[i] != 0) free_64(p->video_frame_buffers[i]);
 			if (p->audio_frame_buffers[i] != 0) free_64(p->audio_frame_buffers[i]);
@@ -81,8 +83,7 @@ char *pmp_decode_open(struct pmp_decode_struct *p, char *s, int pspType, int tvA
 	{
 	pmp_decode_safe_constructor(p);
 
-
-
+	cpu_clock_set_maximum();
 
 	char *result = pmp_read_open(&p->reader, FF_INPUT_BUFFER_PADDING_SIZE, s);
 	if (result != 0)
@@ -95,6 +96,8 @@ char *pmp_decode_open(struct pmp_decode_struct *p, char *s, int pspType, int tvA
 
 
 	p->video_format = p->reader.file.header.video.format;
+	
+	me_boot_start(3);
 
 	if ( p->video_format == 1 )
 		result = avc_open(&p->avc, p->reader.file.maximum_packet_size);
@@ -105,14 +108,14 @@ char *pmp_decode_open(struct pmp_decode_struct *p, char *s, int pspType, int tvA
 		pmp_decode_close(p, pspType);
 		return(result);
 		}
+	
+	unsigned int display_width = p->reader.file.header.video.width;
+	unsigned int display_height = p->reader.file.header.video.height;
+	if (display_width == 720 && display_height == 480 ) {
+		display_width = 853; 
+	}
+	aspect_ratio_struct_init(p->reader.file.header.video.width, p->reader.file.header.video.height, display_width, display_height, pspType, tvAspectRatio, tvWidth, tvHeight, videoMode);
 
-
-
-
-	aspect_ratio_struct_init(p->reader.file.header.video.width, p->reader.file.header.video.height, pspType, tvAspectRatio, tvWidth, tvHeight, videoMode);
-
-
-	cpu_clock_set_maximum();
 	
 	//*/
 	if ( p->reader.file.header.audio.format == 0 )
@@ -135,6 +138,7 @@ char *pmp_decode_open(struct pmp_decode_struct *p, char *s, int pspType, int tvA
 		return("pmp_decode_open: avcodec_find_decoder failed on CODEC_ID_MP3");
 		}
 	//*/
+	
 	cpu_clock_set_minimum();
 
 	int i = 0;
@@ -147,6 +151,7 @@ char *pmp_decode_open(struct pmp_decode_struct *p, char *s, int pspType, int tvA
 		for (; i < p->number_of_frame_buffers; i++)
 			{
 			p->video_frame_buffers[i] = (void*)(0x0a000000 + (i+1)*1572864);
+			//p->video_frame_buffers[i] = (void*)(0x0a000000 + i*1572864);
 			memset(p->video_frame_buffers[i], 0, 1572864);
 			}
 		}
@@ -156,7 +161,7 @@ char *pmp_decode_open(struct pmp_decode_struct *p, char *s, int pspType, int tvA
 		p->number_of_frame_buffers = 0;
 	
 		i = 0;
-		for (; i < maximum_frame_buffers; i++)
+		for (; i < pmp_maximum_frame_buffers; i++)
 			{
 			p->video_frame_buffers[i] = malloc_64(557056);
 	
@@ -171,17 +176,17 @@ char *pmp_decode_open(struct pmp_decode_struct *p, char *s, int pspType, int tvA
 			}
 	
 	
-		if (p->number_of_frame_buffers < (number_of_free_video_frame_buffers + 4))
+		if (p->number_of_frame_buffers < (pmp_number_of_free_video_frame_buffers + 4))
 			{
 			pmp_decode_close(p, pspType);
 			return("pmp_decode_open: number_of_frame_buffers < 4");
 			}
 	
 	
-		p->number_of_frame_buffers -= number_of_free_video_frame_buffers;
+		p->number_of_frame_buffers -= pmp_number_of_free_video_frame_buffers;
 	
 		i = 0;
-		for (; i < number_of_free_video_frame_buffers; i++)
+		for (; i < pmp_number_of_free_video_frame_buffers; i++)
 			{
 			free_64(p->video_frame_buffers[p->number_of_frame_buffers + i]);
 	
@@ -217,59 +222,6 @@ char *pmp_decode_open(struct pmp_decode_struct *p, char *s, int pspType, int tvA
 	return(0);
 	}
 
-
-static void boost_volume(short *audio_buffer, unsigned int number_of_samples, unsigned int volume_boost)
-	{
-	if (volume_boost != 0)
-		{
-		while (number_of_samples--)
-			{
-			int sample = *audio_buffer;
-			sample <<= volume_boost;
-
-
-			if (sample > 32767)
-				{
-				*audio_buffer++ = 32767;
-				}
-			else if (sample < -32768)
-				{
-				*audio_buffer++ = -32768;
-				}
-			else
-				{
-				*audio_buffer++ = sample;
-				}
-			}
-		}
-	}
-
-//add by cooleyes 2007/02/01
-static void select_audio_channel(short *audio_buffer, unsigned int number_of_samples, int audio_channel)
-	{
-	if (audio_channel != 0)
-		{
-		if(audio_channel == -1)
-			{
-			while(number_of_samples)
-				{
-				*(audio_buffer+1) = *audio_buffer;
-				audio_buffer+=2;
-				number_of_samples-=2;
-				}
-			}
-		else
-			{
-			while(number_of_samples)
-				{
-				*audio_buffer = *(audio_buffer+1);
-				audio_buffer+=2;
-				number_of_samples-=2;
-				}
-			}
-		}
-	}
-//add end
 
 //modify by cooleyes 2007/02/01
 char *pmp_decode_get(struct pmp_decode_struct *p, unsigned int frame_number, unsigned int audio_stream, int audio_channel, int decode_audio, unsigned int volume_boost, unsigned int aspect_ratio, unsigned int zoom, unsigned int luminosity_boost, unsigned int show_interface, unsigned int show_subtitle, unsigned int subtitle_format, unsigned int loop)
@@ -381,8 +333,8 @@ char *pmp_decode_get(struct pmp_decode_struct *p, unsigned int frame_number, uns
 				}
 			else
 				{
-				boost_volume(p->audio_frame_buffers[p->current_buffer_number] + p->audio_frame_size * i, p->reader.file.header.audio.scale << p->reader.file.header.audio.stereo, volume_boost);
-				select_audio_channel(p->audio_frame_buffers[p->current_buffer_number] + p->audio_frame_size * i, p->reader.file.header.audio.scale << p->reader.file.header.audio.stereo, audio_channel);
+				pcm_normalize(p->audio_frame_buffers[p->current_buffer_number] + p->audio_frame_size * i, p->reader.file.header.audio.scale << p->reader.file.header.audio.stereo);
+				pcm_select_channel(p->audio_frame_buffers[p->current_buffer_number] + p->audio_frame_size * i, p->reader.file.header.audio.scale << p->reader.file.header.audio.stereo, audio_channel);
 				}
 			}
 		}

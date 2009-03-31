@@ -17,18 +17,13 @@
 #include "subtitle_parse.h"
 #include "gu_font.h"
 
-#define maximum_frame_buffers 64
-#define number_of_free_video_frame_buffers 8
+#define mp4_maximum_frame_buffers 64
+#define mp4_number_of_free_video_frame_buffers 6
 
 
 struct mp4_decode_buffer_struct {
-	void *video_frame;
-	void *audio_frame;
-
-	unsigned int number_of_audio_frames;
-
-	int first_delay;
-	int last_delay;
+	void *data;
+	int timestamp;
 };
 
 
@@ -43,29 +38,32 @@ struct mp4_decode_struct {
 	int audio_decoder;
 
 
-	void *video_frame_buffers[maximum_frame_buffers];
-	void *audio_frame_buffers[maximum_frame_buffers];
+	void *video_frame_buffers[mp4_maximum_frame_buffers];
+	void *audio_frame_buffers[mp4_maximum_frame_buffers];
 	
 	unsigned int video_frame_size;
 	unsigned int audio_frame_size;
 	unsigned int number_of_frame_buffers;
 
 
-	struct mp4_decode_buffer_struct output_frame_buffers[maximum_frame_buffers];
+	struct mp4_decode_buffer_struct output_audio_frame_buffers[mp4_maximum_frame_buffers];
+	struct mp4_decode_buffer_struct output_video_frame_buffers[mp4_maximum_frame_buffers];
 
-	unsigned int current_buffer_number;
+	unsigned int current_audio_buffer_number;
+	unsigned int current_video_buffer_number;
 	
 	int output_texture_width;
+	int video_frame_duration;
+	int audio_frame_duration;
 	
-	unsigned int next_video_frame;
-	unsigned int next_video_read_frame;
-	unsigned int number_of_decoded_frame;
 };
 
 
 void mp4_decode_safe_constructor(struct mp4_decode_struct *p);
 char *mp4_decode_open(struct mp4_decode_struct *p, char *s, int pspType, int tvAspectRatio, int tvWidth, int tvHeight, int videoMode);
 void mp4_decode_close(struct mp4_decode_struct *p, int pspType);
-char *mp4_decode_get(struct mp4_decode_struct *p, unsigned int frame_number, unsigned int audio_stream, int audio_channel, int decode_audio, unsigned int volume_boost, unsigned int aspect_ratio, unsigned int zoom, unsigned int luminosity_boost, unsigned int show_interface, unsigned int show_subtitle, unsigned int subtitle_format, unsigned int loop);
+char *mp4_decode_get_video(struct mp4_decode_struct *p, unsigned int read_num, unsigned int frame_number, unsigned int audio_stream, unsigned int volume_boost, unsigned int aspect_ratio, unsigned int zoom, unsigned int luminosity_boost, unsigned int show_interface, unsigned int show_subtitle, unsigned int subtitle_format, unsigned int loop, int* pic_num );
+char *mp4_decode_get_cached_video(struct mp4_decode_struct *p, unsigned int pic_num, unsigned int frame_number, unsigned int audio_stream, unsigned int volume_boost, unsigned int aspect_ratio, unsigned int zoom, unsigned int luminosity_boost, unsigned int show_interface, unsigned int show_subtitle, unsigned int subtitle_format, unsigned int loop);
+char *mp4_decode_get_audio(struct mp4_decode_struct *p, unsigned int frame_number, unsigned int audio_stream, int audio_channel, int decode_audio, unsigned int volume_boost);
 
 #endif

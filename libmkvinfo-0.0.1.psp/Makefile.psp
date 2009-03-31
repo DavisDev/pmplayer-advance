@@ -1,7 +1,7 @@
 PSPSDK=$(shell psp-config --pspsdk-path)
 PSPDIR=$(shell psp-config --psp-prefix)
-TARGET_LIB = ../libmp4info.a
-OBJS = 	atom.o mp4info.o
+TARGET_LIB = ../libmkvinfo.a
+OBJS = 	mkvinfo.o ebml.o
 INCDIR = ../libbufferedio-0.0.1.psp
 CFLAGS = -O2 -G0 -fomit-frame-pointer -fPIC
 CXXFLAGS = $(CFLAGS) -fno-rtti

@@ -39,6 +39,8 @@ static unsigned char __attribute__((aligned(64))) luminosity_textures[64 * numbe
 
 typedef void (*f_pmp_gu_draw)(unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, void *);
 
+//static unsigned char __attribute__((aligned(64))) static_rgb_buffer[0x1E0000];
+
 void *pmp_gu_draw_buffer;
 void *pmp_gu_rgb_buffer;
 
@@ -90,8 +92,10 @@ void pmp_gu_start_without_tvout_supported()
 
 	pmp_gu_draw_buffer  = (void *) 0x04000000;
 	pmp_gu_rgb_buffer  = pmp_gu_draw_buffer + (4 * 512 * 272);
-
 	memset(pmp_gu_rgb_buffer, 0, 4 * 768 * 480);
+//	pmp_gu_rgb_buffer = static_rgb_buffer;
+//	memset(pmp_gu_rgb_buffer, 0, 4 * 1024 * 480);
+	
 	sceKernelDcacheWritebackInvalidateAll();
 	}
 
@@ -101,8 +105,9 @@ void pmp_gu_start_psplcd()
 
 	pmp_gu_draw_buffer  = (void *) (0x04000000);
 	pmp_gu_rgb_buffer  = (void*)0x0a000000;
-
 	memset(pmp_gu_rgb_buffer, 0, 4 * 768 * 480);
+//	pmp_gu_rgb_buffer = static_rgb_buffer;
+//	memset(pmp_gu_rgb_buffer, 0, 4 * 1024 * 480);	
 	sceKernelDcacheWritebackInvalidateAll();
 	}
 
@@ -112,8 +117,9 @@ void pmp_gu_start_tvout_interlace()
 
 	pmp_gu_draw_buffer  = (void *) (0x04000000);
 	pmp_gu_rgb_buffer  = (void*)0x0a000000;
-
 	memset(pmp_gu_rgb_buffer, 0, 4 * 768 * 480);
+//	pmp_gu_rgb_buffer = static_rgb_buffer;
+//	memset(pmp_gu_rgb_buffer, 0, 4 * 1024 * 480);
 	sceKernelDcacheWritebackInvalidateAll();
 	}
 
@@ -123,8 +129,9 @@ void pmp_gu_start_tvout_progressive()
 
 	pmp_gu_draw_buffer  = (void *) (0x04000000);
 	pmp_gu_rgb_buffer  = (void*)0x0a000000;
-
 	memset(pmp_gu_rgb_buffer, 0, 4 * 768 * 480);
+//	pmp_gu_rgb_buffer = static_rgb_buffer;
+//	memset(pmp_gu_rgb_buffer, 0, 4 * 1024 * 480);
 	sceKernelDcacheWritebackInvalidateAll();
 	}
 
@@ -180,11 +187,11 @@ void pmp_gu_wait()
 	}
 
 
-static void pmp_gu_load(void *image, int filter)
+static void pmp_gu_load(void *image, int texture_width, int filter)
 	{
 	sceGuDisable(GU_BLEND);
 	sceGuTexMode(GU_PSM_8888, 0, 0, 0);
-	sceGuTexImage(0, 512, 512, 512, image);
+	sceGuTexImage(0, 512, 512, texture_width, image);
 	sceGuTexFunc(GU_TFX_REPLACE, GU_TCC_RGB);
 	sceGuTexFilter(filter, filter);
 	sceGuTexWrap(GU_CLAMP, GU_CLAMP);
@@ -300,20 +307,52 @@ void pmp_gu_draw_without_tvout_supported(unsigned int aspect_ratio, unsigned int
 
 	struct texture_subdivision_struct texture_subdivision;
 
-
-	pmp_gu_load(pmp_gu_rgb_buffer, filter);
-	texture_subdivision_constructor(&texture_subdivision, texture_width, texture_height, 16, vertex_width, vertex_height, vertex_x, vertex_y);
-	do
-		{
-		texture_subdivision_get(&texture_subdivision);
-		if ( output_inversion )
-			pmp_gu_draw_sprite_180(&texture_subdivision, 480, 272);
-		else
-			pmp_gu_draw_sprite(&texture_subdivision);
+	if ( texture_width > 512 ) {
+		short texture_x = 0;
+		if ( texture_width == 720 && texture_height == 480 ) {
+			texture_width = 704;
+			texture_x = 8;
 		}
-	while (texture_subdivision.output_last == 0);
-	
-
+		int part_width = 512 * vertex_width / texture_width;
+		
+		pmp_gu_load(pmp_gu_rgb_buffer+texture_x*4, 768, filter);
+		texture_subdivision_constructor(&texture_subdivision, 512, texture_height, 16, part_width, vertex_height, vertex_x, vertex_y);
+		do
+			{
+			texture_subdivision_get(&texture_subdivision);
+			if ( output_inversion )
+				pmp_gu_draw_sprite_180(&texture_subdivision, 480, 272);
+			else
+				pmp_gu_draw_sprite(&texture_subdivision);
+			}
+		while (texture_subdivision.output_last == 0);
+		
+		pmp_gu_load(pmp_gu_rgb_buffer+(texture_x+512)*4, 768, filter);
+		texture_subdivision_constructor(&texture_subdivision, texture_width-512, texture_height, 16, vertex_width-part_width, vertex_height, vertex_x+part_width, vertex_y);
+		do
+			{
+			texture_subdivision_get(&texture_subdivision);
+			if ( output_inversion )
+				pmp_gu_draw_sprite_180(&texture_subdivision, 480, 272);
+			else
+				pmp_gu_draw_sprite(&texture_subdivision);
+			}
+		while (texture_subdivision.output_last == 0);
+		
+	}
+	else {
+		pmp_gu_load(pmp_gu_rgb_buffer, 512, filter);
+		texture_subdivision_constructor(&texture_subdivision, texture_width, texture_height, 16, vertex_width, vertex_height, vertex_x, vertex_y);
+		do
+			{
+			texture_subdivision_get(&texture_subdivision);
+			if ( output_inversion )
+				pmp_gu_draw_sprite_180(&texture_subdivision, 480, 272);
+			else
+				pmp_gu_draw_sprite(&texture_subdivision);
+			}
+		while (texture_subdivision.output_last == 0);
+	}
 
 
 	pmp_gu_load_luminosity_texture(luminosity_textures + 64 * luminosity_boost);
@@ -423,17 +462,52 @@ void pmp_gu_draw_psplcd(unsigned int aspect_ratio, unsigned int zoom, unsigned i
 	struct texture_subdivision_struct texture_subdivision;
 
 
-	pmp_gu_load(pmp_gu_rgb_buffer, filter);
-	texture_subdivision_constructor(&texture_subdivision, texture_width, texture_height, 16, vertex_width, vertex_height, vertex_x, vertex_y);
-	do
-		{
-		texture_subdivision_get(&texture_subdivision);
-		if ( output_inversion )
-			pmp_gu_draw_sprite_180(&texture_subdivision, 480, 272);
-		else
-			pmp_gu_draw_sprite(&texture_subdivision);
+	if ( texture_width > 512 ) {
+		short texture_x = 0;
+		if ( texture_width == 720 && texture_height == 480 ) {
+			texture_width = 704;
+			texture_x = 8;
 		}
-	while (texture_subdivision.output_last == 0);
+		int part_width = 512 * vertex_width / texture_width;
+		
+		pmp_gu_load(pmp_gu_rgb_buffer+texture_x*4, 768, filter);
+		texture_subdivision_constructor(&texture_subdivision, 512, texture_height, 16, part_width, vertex_height, vertex_x, vertex_y);
+		do
+			{
+			texture_subdivision_get(&texture_subdivision);
+			if ( output_inversion )
+				pmp_gu_draw_sprite_180(&texture_subdivision, 480, 272);
+			else
+				pmp_gu_draw_sprite(&texture_subdivision);
+			}
+		while (texture_subdivision.output_last == 0);
+		
+		pmp_gu_load(pmp_gu_rgb_buffer+(texture_x+512)*4, 768, filter);
+		texture_subdivision_constructor(&texture_subdivision, texture_width-512, texture_height, 16, vertex_width-part_width, vertex_height, vertex_x+part_width, vertex_y);
+		do
+			{
+			texture_subdivision_get(&texture_subdivision);
+			if ( output_inversion )
+				pmp_gu_draw_sprite_180(&texture_subdivision, 480, 272);
+			else
+				pmp_gu_draw_sprite(&texture_subdivision);
+			}
+		while (texture_subdivision.output_last == 0);
+		
+	}
+	else {
+		pmp_gu_load(pmp_gu_rgb_buffer, 512, filter);
+		texture_subdivision_constructor(&texture_subdivision, texture_width, texture_height, 16, vertex_width, vertex_height, vertex_x, vertex_y);
+		do
+			{
+			texture_subdivision_get(&texture_subdivision);
+			if ( output_inversion )
+				pmp_gu_draw_sprite_180(&texture_subdivision, 480, 272);
+			else
+				pmp_gu_draw_sprite(&texture_subdivision);
+			}
+		while (texture_subdivision.output_last == 0);
+	}
 	
 
 
@@ -545,16 +619,45 @@ void pmp_gu_draw_tvout_interlace(unsigned int aspect_ratio, unsigned int zoom, u
 
 	struct texture_subdivision_struct texture_subdivision;
 
-
-	pmp_gu_load(pmp_gu_rgb_buffer, filter);
-	texture_subdivision_constructor(&texture_subdivision, texture_width, texture_height, 16, vertex_width, vertex_height, vertex_x, vertex_y);
-	do
-		{
-		texture_subdivision_get(&texture_subdivision);
-		pmp_gu_draw_sprite(&texture_subdivision);
+	if ( texture_width > 512 ) {
+		short texture_x = 0;
+		if ( texture_width == 720 && texture_height == 480 ) {
+			texture_width = 704;
+			texture_x = 8;
 		}
-	while (texture_subdivision.output_last == 0);
+		int part_width = 512 * vertex_width / texture_width;
+		
+		pmp_gu_load(pmp_gu_rgb_buffer+texture_x*4, 768, filter);
+		texture_subdivision_constructor(&texture_subdivision, 512, texture_height, 16, part_width, vertex_height, vertex_x, vertex_y);
+		do
+			{
+			texture_subdivision_get(&texture_subdivision);
+			pmp_gu_draw_sprite(&texture_subdivision);
+			}
+		while (texture_subdivision.output_last == 0);
+		
+		pmp_gu_load(pmp_gu_rgb_buffer+(texture_x+512)*4, 768, filter);
+		texture_subdivision_constructor(&texture_subdivision, texture_width-512, texture_height, 16, vertex_width-part_width, vertex_height, vertex_x+part_width, vertex_y);
+		do
+			{
+			texture_subdivision_get(&texture_subdivision);
+			pmp_gu_draw_sprite(&texture_subdivision);
+			}
+		while (texture_subdivision.output_last == 0);
+		
+	}
+	else {
+
+		pmp_gu_load(pmp_gu_rgb_buffer, 512, filter);
+		texture_subdivision_constructor(&texture_subdivision, texture_width, texture_height, 16, vertex_width, vertex_height, vertex_x, vertex_y);
+		do
+			{
+			texture_subdivision_get(&texture_subdivision);
+			pmp_gu_draw_sprite(&texture_subdivision);
+			}
+		while (texture_subdivision.output_last == 0);
 	
+	}
 
 
 
@@ -675,18 +778,44 @@ void pmp_gu_draw_tvout_progressive(unsigned int aspect_ratio, unsigned int zoom,
 
 
 	struct texture_subdivision_struct texture_subdivision;
-
-
-	pmp_gu_load(pmp_gu_rgb_buffer, filter);
-	texture_subdivision_constructor(&texture_subdivision, texture_width, texture_height, 16, vertex_width, vertex_height, vertex_x, vertex_y);
-	do
-		{
-		texture_subdivision_get(&texture_subdivision);
-		pmp_gu_draw_sprite(&texture_subdivision);
-		}
-	while (texture_subdivision.output_last == 0);
 	
-
+	if ( texture_width > 512 ) {
+		short texture_x = 0;
+		if ( texture_width == 720 && texture_height == 480 ) {
+			texture_width = 704;
+			texture_x = 8;
+		}
+		int part_width = 512 * vertex_width / texture_width;
+		
+		pmp_gu_load(pmp_gu_rgb_buffer+texture_x*4, 768, filter);
+		texture_subdivision_constructor(&texture_subdivision, 512, texture_height, 16, part_width, vertex_height, vertex_x, vertex_y);
+		do
+			{
+			texture_subdivision_get(&texture_subdivision);
+			pmp_gu_draw_sprite(&texture_subdivision);
+			}
+		while (texture_subdivision.output_last == 0);
+		
+		pmp_gu_load(pmp_gu_rgb_buffer+(texture_x+512)*4, 768, filter);
+		texture_subdivision_constructor(&texture_subdivision, texture_width-512, texture_height, 16, vertex_width-part_width, vertex_height, vertex_x+part_width, vertex_y);
+		do
+			{
+			texture_subdivision_get(&texture_subdivision);
+			pmp_gu_draw_sprite(&texture_subdivision);
+			}
+		while (texture_subdivision.output_last == 0);
+		
+	}
+	else {
+		pmp_gu_load(pmp_gu_rgb_buffer, 512, filter);
+		texture_subdivision_constructor(&texture_subdivision, texture_width, texture_height, 16, vertex_width, vertex_height, vertex_x, vertex_y);
+		do
+			{
+			texture_subdivision_get(&texture_subdivision);
+			pmp_gu_draw_sprite(&texture_subdivision);
+			}
+		while (texture_subdivision.output_last == 0);
+	}
 
 
 	pmp_gu_load_luminosity_texture(luminosity_textures + 64 * luminosity_boost);

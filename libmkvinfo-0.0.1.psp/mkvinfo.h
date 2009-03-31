@@ -1,5 +1,5 @@
 /* 
- *	Copyright (C) 2006 cooleyes
+ *	Copyright (C) 2009 cooleyes
  *	eyes.cooleyes@gmail.com 
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -18,53 +18,23 @@
  *  http://www.gnu.org/copyleft/gpl.html
  *
  */
-#ifndef __DIRECTORY_H__
-#define __DIRECTORY_H__
+ 
+#ifndef __MKVINFO_H__
+#define __MKVINFO_H__
 
-typedef enum {
-//*/
-	FS_DIRECTORY = 0,
-	FS_PMP_FILE,
-	FS_MP4_FILE,
-	FS_MKV_FILE,
-	FS_SUB_FILE,
-	FS_SRT_FILE,
-	FS_PNG_FILE,
-	FS_UNKNOWN_FILE
-//*/
-} file_type_enum;
-
-typedef struct {
-	const char * ext;
-	file_type_enum filetype;
-} file_type_ext_struct;
-
-typedef struct {
-	char shortname[256];
-	char longname[256];
-	char* compname; 
-	u32 filesize;
-	u16 cdate;
-	u16 ctime;
-	u16 mdate;
-	u16 mtime;
-	file_type_enum filetype;
-} directory_item_struct;
+#include "mkvinfo_type.h"
 
 #ifdef __cplusplus
 extern "C" {
-#endif
+#endif /* __cplusplus */
 
+mkvinfo_t* mkvinfo_open(const char* filename);
+void mkvinfo_close(mkvinfo_t* info);
 
-file_type_enum directory_get_filetype(const char* filename, file_type_ext_struct* file_type_ext_table);
-
-int open_directory(const char* dir, char* sdir, int show_hidden, int show_unknown, file_type_ext_struct* file_type_ext_table, directory_item_struct** list); 
-
-int is_next_movie(const char* prev, const char* next);
+void mkvinfo_dump(mkvinfo_t* info, const char* dumpfile);
 
 #ifdef __cplusplus
 }
-#endif
+#endif /* __cplusplus */
 
 #endif
-

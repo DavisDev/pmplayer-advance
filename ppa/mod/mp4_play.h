@@ -21,10 +21,11 @@ struct mp4_play_struct {
 
 	int audio_reserved;
 
-	SceUID semaphore_can_get;
-	SceUID semaphore_can_put;
-	SceUID semaphore_can_show;
-	SceUID semaphore_show_done;
+	SceUID semaphore_can_put_video;
+	SceUID semaphore_can_put_audio;
+	SceUID semaphore_can_get_video;
+	SceUID semaphore_can_get_audio;
+	
 
 	SceUID output_thread;
 	SceUID show_thread;
@@ -51,6 +52,10 @@ struct mp4_play_struct {
 	unsigned int subtitle_fontcolor;
 	unsigned int subtitle_bordercolor;
 	unsigned int loop;
+	
+	int current_video_buffer_number;
+	int current_audio_buffer_number;
+
 };
 
 

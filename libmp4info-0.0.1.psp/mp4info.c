@@ -20,7 +20,7 @@
  */
  
 #include "atom.h"
-#include "util.h"
+#include "bufferedio.h"
 #include "mp4info_type.h"
 #include<stdio.h>
 #include<stdlib.h>
@@ -32,20 +32,15 @@ mp4info_t* mp4info_open(const char* filename) {
 		return 0;
 	memset(info, 0, sizeof(mp4info_t));
 	
-	cache_io_t cache_io;	
-	cache_io.handle = sceIoOpen(filename, PSP_O_RDONLY, 0777);
-	if ( !cache_io.handle ) {
+	buffered_io_t io;	
+	int32_t result = io_open(filename, (void*)(&io));
+	if ( result < 0 ) {
 		free(info);
 		return 0;
 	}
-	cache_io.cache_first_position = 0;
-	cache_io.cache_last_position = 0;
-	cache_io.current_position = 0;
-	cache_io.length = sceIoLseek32(cache_io.handle, 0, PSP_SEEK_END);
-	io_set_position(&cache_io, 0);
-	info->handle = &cache_io;
+	info->handle = &io;
 	parse_atoms(info);
-	sceIoClose(cache_io.handle);
+	io_close(&io);
 	info->handle = 0;
 	
 	int i;

@@ -59,7 +59,7 @@ void buffered_reader_close(buffered_reader_t* reader) {
 	}
 }
 
-buffered_reader_t* buffered_reader_open(const char* path, int32_t buffer_size, int32_t seek_mode) {
+buffered_reader_t* buffered_reader_open(const char* path, int32_t buffer_size, int32_t seek_mode, uint32_t priority) {
 	buffered_reader_t *reader = malloc(sizeof(buffered_reader_t));
 	if ( reader == 0 )
 		return 0;
@@ -92,7 +92,7 @@ buffered_reader_t* buffered_reader_open(const char* path, int32_t buffer_size, i
 		buffered_reader_close(reader);
 		return 0;
 	}
-	if (sceIoChangeAsyncPriority(reader->handle, 0x10) < 0) {
+	if (sceIoChangeAsyncPriority(reader->handle, priority) < 0) {
 		buffered_reader_close(reader);
 		return 0;
 	}

@@ -24,7 +24,6 @@ http://forums.ps2dev.org/viewtopic.php?t=5820
 
 
 #include "avcdecoder.h"
-#include "me_boot_start.h"
 
 void avc_safe_constructor(struct avc_struct *p)
 	{
@@ -64,8 +63,6 @@ void avc_close(struct avc_struct *p)
 char *avc_open(struct avc_struct *p, unsigned int maximum_frame_size)
 	{
 	avc_safe_constructor(p);
-
-	me_boot_start(3);
 
 	p->mpeg_init = sceMpegInit();
 	if (p->mpeg_init != 0)

@@ -1,7 +1,27 @@
-#include "mp4_play.h"
+/* 
+ *	Copyright (C) 2009 cooleyes
+ *	eyes.cooleyes@gmail.com 
+ *
+ *  This Program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2, or (at your option)
+ *  any later version.
+ *   
+ *  This Program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ *  GNU General Public License for more details.
+ *   
+ *  You should have received a copy of the GNU General Public License
+ *  along with GNU Make; see the file COPYING.  If not, write to
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  http://www.gnu.org/copyleft/gpl.html
+ *
+ */
+#include "mkv_play.h"
 
 
-void mp4_play_safe_constructor(struct mp4_play_struct *p) {
+void mkv_play_safe_constructor(struct mkv_play_struct *p) {
 	p->audio_reserved = -1;
 
 	p->semaphore_can_get_video   = -1;
@@ -10,14 +30,13 @@ void mp4_play_safe_constructor(struct mp4_play_struct *p) {
 	p->semaphore_can_put_audio   = -1;
 
 	p->output_thread = -1;
-	p->show_thread   = -1;
+	p->show_thread   = -1;	
 	
-	
-	mp4_decode_safe_constructor(&p->decoder);
+	mkv_decode_safe_constructor(&p->decoder);
 }
 
 
-void mp4_play_close(struct mp4_play_struct *p, int usePos, int pspType) {
+void mkv_play_close(struct mkv_play_struct *p, int usePos, int pspType) {
 	
 	if (!(p->audio_reserved < 0)) {
 		while(sceAudioGetChannelRestLen(0) > 0 );
@@ -33,20 +52,20 @@ void mp4_play_close(struct mp4_play_struct *p, int usePos, int pspType) {
 	if (!(p->output_thread < 0)) sceKernelDeleteThread(p->output_thread);
 	if (!(p->show_thread   < 0)) sceKernelDeleteThread(p->show_thread);
 
-	mp4_decode_close(&p->decoder, pspType);
+	mkv_decode_close(&p->decoder, pspType);
 
 	int i = 0;
 	for (i=0; i<p->subtitle_count; i++)
 		subtitle_parse_close( &subtitle_parser[i] );
 	
-	//if (usePos) mp4_stat_save( p );
-	mp4_stat_save( p );
+	//if (usePos) mkv_stat_save( p );
+	mkv_stat_save( p );
 	
-	mp4_play_safe_constructor(p);
+	mkv_play_safe_constructor(p);
 }
 	
 
-static int mp4_wait(volatile struct mp4_play_struct *p, SceUID s, char *e) {
+static int mkv_wait(volatile struct mkv_play_struct *p, SceUID s, char *e) {
 	SceUInt t = 1;
 	
 	int result = sceKernelWaitSema(s, 1, &t);
@@ -65,7 +84,7 @@ static int mp4_wait(volatile struct mp4_play_struct *p, SceUID s, char *e) {
 	
 }
 
-static int mp4_avsync_status(int audio_timestamp, int video_timestamp, int video_frame_duration) {
+static int mkv_avsync_status(int audio_timestamp, int video_timestamp, int video_frame_duration) {
 
 	// if video ahead of audio, do nothing
 	if(video_timestamp - audio_timestamp > 2 * video_frame_duration)
@@ -79,8 +98,8 @@ static int mp4_avsync_status(int audio_timestamp, int video_timestamp, int video
 }
 
 
-static int mp4_show_thread(SceSize input_length, void *input) {
-	volatile struct mp4_play_struct *p = *((void **) input);
+static int mkv_show_thread(SceSize input_length, void *input) {
+	volatile struct mkv_play_struct *p = *((void **) input);
 
 
 	p->current_video_buffer_number = 0;
@@ -90,13 +109,13 @@ static int mp4_show_thread(SceSize input_length, void *input) {
 	
 	while (p->return_request == 0) {
 		
-		wait = mp4_wait(p, p->semaphore_can_get_video, "mp4_show_thread: sceKernelWaitSema failed on semaphore_can_get_video");
+		wait = mkv_wait(p, p->semaphore_can_get_video, "mkv_show_thread: sceKernelWaitSema failed on semaphore_can_get_video");
 		if ( wait == -1) {
 			break;
 		}
 		else if ( wait == 1 ) {
 			
-			avsync_status = mp4_avsync_status( p->decoder.output_audio_frame_buffers[p->current_audio_buffer_number].timestamp,
+			avsync_status = mkv_avsync_status( p->decoder.output_audio_frame_buffers[p->current_audio_buffer_number].timestamp,
 				p->decoder.output_video_frame_buffers[p->current_video_buffer_number].timestamp,
 				p->decoder.video_frame_duration);
 
@@ -111,7 +130,7 @@ static int mp4_show_thread(SceSize input_length, void *input) {
 				}
 				else {
 					if (sceKernelSignalSema(p->semaphore_can_put_video, 1) < 0) {
-						p->return_result  = "mp4_show_thread: sceKernelSignalSema failed on semaphore_can_put_video";
+						p->return_result  = "mkv_show_thread: sceKernelSignalSema failed on semaphore_can_put_video";
 						p->return_request = 1;
 						break;
 					}		
@@ -119,7 +138,7 @@ static int mp4_show_thread(SceSize input_length, void *input) {
 			}
 			else {
 				if (sceKernelSignalSema(p->semaphore_can_get_video, 1) < 0) {
-					p->return_result  = "mp4_show_thread: sceKernelSignalSema failed on semaphore_can_get_video1";
+					p->return_result  = "mkv_show_thread: sceKernelSignalSema failed on semaphore_can_get_video1";
 					p->return_request = 1;
 					break;
 				}
@@ -159,7 +178,7 @@ static unsigned int BORDERCOLORS[] = {
 	0x007f7f
 };
 
-static void mp4_input(volatile struct mp4_play_struct *p, SceCtrlData *previous_controller) {
+static void mkv_input(volatile struct mkv_play_struct *p, SceCtrlData *previous_controller) {
 	scePowerTick(0);
 
 
@@ -310,8 +329,8 @@ static void mp4_input(volatile struct mp4_play_struct *p, SceCtrlData *previous_
 }
 
 
-static int mp4_output_thread(SceSize input_length, void *input) {
-	volatile struct mp4_play_struct *p = *((void **) input);
+static int mkv_output_thread(SceSize input_length, void *input) {
+	volatile struct mkv_play_struct *p = *((void **) input);
 
 	p->current_audio_buffer_number = 0;
 	int wait;
@@ -319,9 +338,9 @@ static int mp4_output_thread(SceSize input_length, void *input) {
 	SceInt32 volume = 0;
 	
 	while (p->return_request == 0) {
-		volatile struct mp4_decode_buffer_struct *current_buffer = &p->decoder.output_audio_frame_buffers[p->current_audio_buffer_number];
+		volatile struct mkv_decode_buffer_struct *current_buffer = &p->decoder.output_audio_frame_buffers[p->current_audio_buffer_number];
 		
-		wait = mp4_wait(p, p->semaphore_can_get_audio, "mp4_output_thread: sceKernelWaitSema failed on semaphore_can_get_audio");
+		wait = mkv_wait(p, p->semaphore_can_get_audio, "mkv_output_thread: sceKernelWaitSema failed on semaphore_can_get_audio");
 		if ( wait == -1) {
 			break;
 		}
@@ -331,6 +350,7 @@ static int mp4_output_thread(SceSize input_length, void *input) {
 				if ( volume >= PSP_AUDIO_VOLUME_MAX ) 
 					volume = PSP_AUDIO_VOLUME_MAX;
 			}
+			p->current_timestamp = current_buffer->timestamp;
 			sceAudioOutputBlocking(0, volume, current_buffer->data);
 			p->current_audio_buffer_number = (p->current_audio_buffer_number + 1) % p->decoder.number_of_frame_buffers;
 			if (first == 1) {
@@ -338,7 +358,7 @@ static int mp4_output_thread(SceSize input_length, void *input) {
 			}
 			else {	
 				if (sceKernelSignalSema(p->semaphore_can_put_audio, 1) < 0) {
-					p->return_result  = "mp4_output_thread: sceKernelSignalSema failed on semaphore_can_put_audio";
+					p->return_result  = "mkv_output_thread: sceKernelSignalSema failed on semaphore_can_put_audio";
 					p->return_request = 1;
 					break;
 				}
@@ -358,121 +378,64 @@ static int mp4_output_thread(SceSize input_length, void *input) {
 	return(0);
 }
 
-static int is_video_keyframe(volatile struct mp4_play_struct *p, int video_frame) {
-	int i;
-	mp4info_track_t* track = p->decoder.reader.file.info->tracks[p->decoder.reader.file.video_track_id];
-	for(i = 0; i < track->stss_entry_count; i++ ) {
-		if ( video_frame+1 == track->stss_sync_sample[i] )
-			return 1;
-	}
-	return 0;
+void mkv_play_do_seek(volatile struct mkv_play_struct *p) {
 	
-}
-
-static int mp4_next_audio_frame(volatile struct mp4_play_struct *p, int current_video_frame) {
-	
-	uint64_t timestamp = current_video_frame;
-	timestamp *= p->decoder.video_frame_duration;
-	timestamp /= p->decoder.audio_frame_duration;
-	return (int)timestamp;
-}
-
-static void mp4_next_frame(volatile struct mp4_play_struct *p, int* current_video_frame, int* current_audio_frame, int video_step, int audio_step) {
-	// save last keyframe pos
-	if (is_video_keyframe(p, *current_video_frame))
-		p->last_keyframe_pos = *current_video_frame;
+	p->last_keyframe_pos = p->current_timestamp;
 		
 	if (p->resume_pos>0) {
 		int pos = p->resume_pos;
 		p->resume_pos = 0;
-		*current_video_frame = pos;
-		*current_audio_frame = mp4_next_audio_frame(p, pos);
+		mkv_decode_seek((struct mkv_decode_struct *) &p->decoder, pos);
 		return;
 	}
 	
 	if (p->seek > 0) {
-        	int number_of_skips = 0;
+        	int seek_timestamp = p->current_timestamp + p->decoder.reader.file.seek_duration;
 
         	if (p->seek == 2) {
-			number_of_skips = 20;
+			seek_timestamp += p->decoder.reader.file.seek_duration;
 		}
+		
+		mkv_decode_seek((struct mkv_decode_struct *) &p->decoder, seek_timestamp);
 
-		int new_video_frame = *current_video_frame + 1;
-
-		while (new_video_frame < p->decoder.reader.file.number_of_video_frames) {
-			if (is_video_keyframe(p, new_video_frame)) {
-				if (number_of_skips == 0) {
-					break;//return(new_video_frame);
-				}
-				else {
-					number_of_skips--;
-				}
-			}
-
-			new_video_frame++;
-		}
-		if ( new_video_frame > p->decoder.reader.file.number_of_video_frames ) {
-			*current_video_frame = p->decoder.reader.file.number_of_video_frames;
-		}
-		else {
-			*current_video_frame = new_video_frame;
-		}
-		*current_audio_frame = mp4_next_audio_frame(p, *current_video_frame);
 		return;
 	}
 
 
 	if (p->seek < 0) {
-        	int number_of_skips = 0;
+        	int seek_timestamp = p->current_timestamp - p->decoder.reader.file.seek_duration;
 
-		if (p->seek == -2) {
-			number_of_skips = 20;
+        	if (p->seek == -2) {
+			seek_timestamp -= p->decoder.reader.file.seek_duration;
 		}
-
-
-		int new_video_frame = *current_video_frame - 1;
-
-		while (new_video_frame > 0) {
-			if (is_video_keyframe(p, new_video_frame)) {
-				if (number_of_skips == 0) {
-					break;//return(new_video_frame);
-				}
-				else {
-					number_of_skips--;
-				}
-			}
-
-			new_video_frame--;
-		}
-		if ( new_video_frame < 0 ) {
-			*current_video_frame = 0;
-		}
-		else {
-			*current_video_frame = new_video_frame;
-		}
-		*current_audio_frame = mp4_next_audio_frame(p, *current_video_frame);
 		
-		//seek back, skip all decoded frame in cahce
+		if ( seek_timestamp < 0 )
+			seek_timestamp = 0;
+
 		int i;
 		for(i = 0; i < p->decoder.number_of_frame_buffers; i++)
 			p->decoder.output_video_frame_buffers[i].timestamp = -p->decoder.video_frame_duration;
+		
+		mkv_decode_seek((struct mkv_decode_struct *) &p->decoder, seek_timestamp);
+		
 		return;
 	}
 	
-	*current_video_frame = *current_video_frame + video_step;
-	*current_audio_frame = *current_audio_frame + audio_step;
 	return;
+	
 }
 
+void mkv_play_reset(volatile struct mkv_play_struct *p) {
+	int i;
+	for(i = 0; i < p->decoder.number_of_frame_buffers; i++)
+		p->decoder.output_video_frame_buffers[i].timestamp = -p->decoder.video_frame_duration;
+	mkv_decode_reset((struct mkv_decode_struct *) &p->decoder);
+}
 
-char *mp4_play_start(volatile struct mp4_play_struct *p) {
+char *mkv_play_start(volatile struct mkv_play_struct *p) {
 	sceKernelStartThread(p->output_thread, 4, &p);
 	sceKernelStartThread(p->show_thread,   4, &p);
 
-	int current_video_frame = 0;
-	int current_audio_frame = 0;
-	int next_video_frame = 0;
-	int next_read_video_frame = 0;
 	int cached_video_frame = 0;
 	
 	sceCtrlSetSamplingCycle(0);
@@ -481,23 +444,20 @@ char *mp4_play_start(volatile struct mp4_play_struct *p) {
 	sceCtrlPeekBufferPositive(&previous_controller, 1);
 
 
-	while (p->return_request == 0 && current_video_frame != p->decoder.reader.file.number_of_video_frames) {
+	while (p->return_request == 0 && !mkv_decode_is_eof((struct mkv_decode_struct *) &p->decoder)) {
 		
 		
-		mp4_input(p, &previous_controller);
+		mkv_input(p, &previous_controller);
 		
 		int wait;
 		char* result;
-		int video_step = 0;
-		int audio_step = 0;
 		
-		wait = mp4_wait(p, p->semaphore_can_put_audio, "mp4_play_start: sceKernelWaitSema failed on semaphore_can_put_audio");
+		wait = mkv_wait(p, p->semaphore_can_put_audio, "mkv_play_start: sceKernelWaitSema failed on semaphore_can_put_audio");
 		if ( wait == -1) {
 			break;
 		}
 		else if ( wait == 1) {
-			result = mp4_decode_get_audio((struct mp4_decode_struct *) &p->decoder, current_audio_frame, p->audio_stream, p->audio_channel, 1, p->volume_boost);
-			audio_step++;
+			result = mkv_decode_get_audio((struct mkv_decode_struct *) &p->decoder, p->audio_stream, p->audio_channel, 1, p->volume_boost);
 			if (result != 0) {
 				p->return_result  = result;
 				p->return_request = 1;
@@ -505,60 +465,50 @@ char *mp4_play_start(volatile struct mp4_play_struct *p) {
 			}
 
 			if (sceKernelSignalSema(p->semaphore_can_get_audio, 1) < 0) {
-				p->return_result  = "mp4_play_start: sceKernelSignalSema failed on semaphore_can_get_audio";
+				p->return_result  = "mkv_play_start: sceKernelSignalSema failed on semaphore_can_get_audio";
 				p->return_request = 1;
 				break;
 			}
 		}
 		
-		wait = mp4_wait(p, p->semaphore_can_put_video, "mp4_play_start: sceKernelWaitSema failed on semaphore_can_put_video");
+		wait = mkv_wait(p, p->semaphore_can_put_video, "mkv_play_start: sceKernelWaitSema failed on semaphore_can_put_video");
 		if ( wait == -1) {
 			break;
 		}
 		else if ( wait == 1) {
-			if ( current_video_frame != next_video_frame ) {
-				next_read_video_frame = current_video_frame;
-				cached_video_frame = 0;
-			}
 			if ( cached_video_frame > 0 ) {
-				result = mp4_decode_get_cached_video((struct mp4_decode_struct *) &p->decoder, cached_video_frame, current_video_frame, p->audio_stream, p->volume_boost, p->aspect_ratio, p->zoom, p->luminosity_boost, p->show_interface, p->subtitle, p->subtitle_format, p->loop);
+				result = mkv_decode_get_cached_video((struct mkv_decode_struct *) &p->decoder, cached_video_frame, p->audio_stream, p->volume_boost, p->aspect_ratio, p->zoom, p->luminosity_boost, p->show_interface, p->subtitle, p->subtitle_format, p->loop);
 				if (result != 0) {
 					p->return_result  = result;
 					p->return_request = 1;
 					break;
 				}
 				cached_video_frame--;
-				next_video_frame = current_video_frame+1;
-				video_step++;
-
+				
 				if (sceKernelSignalSema(p->semaphore_can_get_video, 1) < 0) {
-					p->return_result  = "mp4_play_start: sceKernelSignalSema failed on semaphore_can_get_video";
+					p->return_result  = "mkv_play_start: sceKernelSignalSema failed on semaphore_can_get_video";
 					p->return_request = 1;
 					break;
 				}
 			}
 			else {
-				result = mp4_decode_get_video((struct mp4_decode_struct *) &p->decoder, next_read_video_frame, current_video_frame, p->audio_stream, p->volume_boost, p->aspect_ratio, p->zoom, p->luminosity_boost, p->show_interface, p->subtitle, p->subtitle_format, p->loop, &cached_video_frame);
+				result = mkv_decode_get_video((struct mkv_decode_struct *) &p->decoder, p->audio_stream, p->volume_boost, p->aspect_ratio, p->zoom, p->luminosity_boost, p->show_interface, p->subtitle, p->subtitle_format, p->loop, &cached_video_frame);
 				if (result != 0) {
 					p->return_result  = result;
 					p->return_request = 1;
 					break;
 				}
-				next_read_video_frame++;
 				if ( cached_video_frame >= 0 ) {
-					next_video_frame = current_video_frame+1;
-					video_step++;
-
+				
 					if (sceKernelSignalSema(p->semaphore_can_get_video, 1) < 0) {
-						p->return_result  = "mp4_play_start: sceKernelSignalSema failed on semaphore_can_get_video";
+						p->return_result  = "mkv_play_start: sceKernelSignalSema failed on semaphore_can_get_video";
 						p->return_request = 1;
 						break;
 					}
 				}
 				else {
-					next_video_frame = current_video_frame;
 					if (sceKernelSignalSema(p->semaphore_can_put_video, 1) < 0) {
-						p->return_result  = "mp4_play_start: sceKernelSignalSema failed on semaphore_can_put_video1";
+						p->return_result  = "mkv_play_start: sceKernelSignalSema failed on semaphore_can_put_video1";
 						p->return_request = 1;
 						break;
 					}
@@ -566,38 +516,38 @@ char *mp4_play_start(volatile struct mp4_play_struct *p) {
 			}
 			
 		}	
+		if ( p->decoder.reader.file.audio_double_sample == 0 ) {
+			wait = mkv_wait(p, p->semaphore_can_put_audio, "mkv_play_start: sceKernelWaitSema failed on semaphore_can_put_audio");
+			if ( wait == -1) {
+				break;
+			}
+			else if ( wait == 1) {
+				result = mkv_decode_get_audio((struct mkv_decode_struct *) &p->decoder, p->audio_stream, p->audio_channel, 1, p->volume_boost);
+				if (result != 0) {
+					p->return_result  = result;
+					p->return_request = 1;
+					break;
+				}
+	
+				if (sceKernelSignalSema(p->semaphore_can_get_audio, 1) < 0) {
+					p->return_result  = "mkv_play_start: sceKernelSignalSema failed on semaphore_can_get_audio";
+					p->return_request = 1;
+					break;
+				}
+			}		
+		}
 		
-//		wait = mp4_wait(p, p->semaphore_can_put_audio, "mp4_play_start: sceKernelWaitSema failed on semaphore_can_put_audio");
-//		if ( wait == -1) {
-//			break;
-//		}
-//		else if ( wait == 1) {
-//			result = mp4_decode_get_audio((struct mp4_decode_struct *) &p->decoder, current_audio_frame, p->audio_stream, p->audio_channel, 1, p->volume_boost);
-//			audio_step++;
-//			if (result != 0) {
-//				p->return_result  = result;
-//				p->return_request = 1;
-//				break;
-//			}
-//
-//			if (sceKernelSignalSema(p->semaphore_can_get_audio, 1) < 0) {
-//				p->return_result  = "mp4_play_start: sceKernelSignalSema failed on semaphore_can_get_audio";
-//				p->return_request = 1;
-//				break;
-//			}
-//		}		
-
-		mp4_next_frame(p, &current_video_frame, &current_audio_frame, video_step, audio_step);
+		mkv_play_do_seek(p);
 
 
-		if ((p->loop == 1) && (current_video_frame == p->decoder.reader.file.number_of_video_frames)) {
-			current_video_frame = 0;
-			current_audio_frame = 0;
+		if ((p->loop == 1) && (mkv_decode_is_eof((struct mkv_decode_struct *) &p->decoder))) {
+			cached_video_frame = 0;
+			mkv_play_reset(p);
 		}
 		sceKernelDelayThread(10);
 	}
 
-	if (current_video_frame == p->decoder.reader.file.number_of_video_frames) {
+	if (mkv_decode_is_eof((struct mkv_decode_struct *) &p->decoder)) {
 		p->last_keyframe_pos = 0;
 	}
 	
@@ -615,74 +565,71 @@ char *mp4_play_start(volatile struct mp4_play_struct *p) {
 }
 
 
-char *mp4_play_open(struct mp4_play_struct *p, struct movie_file_struct *movie, int usePos, int pspType, int tvAspectRatio, int tvWidth, int tvHeight, int videoMode) {
-	mp4_play_safe_constructor(p);
+char *mkv_play_open(struct mkv_play_struct *p, struct movie_file_struct *movie, int usePos, int pspType, int tvAspectRatio, int tvWidth, int tvHeight, int videoMode) {
+	mkv_play_safe_constructor(p);
 	p->subtitle = 0;
 	p->subtitle_count = 0;
 
 	
-	char *result = mp4_decode_open(&p->decoder, movie->movie_file, pspType, tvAspectRatio, tvWidth, tvHeight, videoMode);
+	char *result = mkv_decode_open(&p->decoder, movie->movie_file, pspType, tvAspectRatio, tvWidth, tvHeight, videoMode);
 	if (result != 0) {
-		mp4_play_close(p, 0, pspType);
+		mkv_play_close(p, 0, pspType);
 		return(result);
 	}
 
 	if (subtitle_parse_search( movie, p->decoder.reader.file.video_rate, p->decoder.reader.file.video_scale, &p->subtitle_count)==0) p->subtitle = 1;
 	
 	if ( cooleyesAudioSetFrequency(sceKernelDevkitVersion(), p->decoder.reader.file.audio_rate) != 0) {
-		mp4_play_close(p, 0, pspType);
-		return("mp4_play_open: sceAudioSetFrequency failed");
+		mkv_play_close(p, 0, pspType);
+		return("mkv_play_open: sceAudioSetFrequency failed");
 	}
 	p->audio_reserved = sceAudioChReserve(0, p->decoder.reader.file.audio_resample_scale, PSP_AUDIO_FORMAT_STEREO);
 	if (p->audio_reserved < 0) {
-		mp4_play_close(p, 0, pspType);
-		return("mp4_play_open: sceAudioChReserve failed");
+		mkv_play_close(p, 0, pspType);
+		return("mkv_play_open: sceAudioChReserve failed");
 	}
 
 	p->semaphore_can_get_video = sceKernelCreateSema("can_get_video", 0, 0, p->decoder.number_of_frame_buffers, 0);
 	if (p->semaphore_can_get_video < 0) {
-		mp4_play_close(p, 0, pspType);
-		return("mp4_play_open: sceKernelCreateSema failed on semaphore_can_get_video");
+		mkv_play_close(p, 0, pspType);
+		return("mkv_play_open: sceKernelCreateSema failed on semaphore_can_get_video");
 	}
 
 
 	p->semaphore_can_put_video = sceKernelCreateSema("can_put_video", 0, p->decoder.number_of_frame_buffers, p->decoder.number_of_frame_buffers, 0);
 	if (p->semaphore_can_put_video < 0) {
-		mp4_play_close(p, 0, pspType);
-		return("mp4_play_open: sceKernelCreateSema failed on semaphore_can_put_video");
+		mkv_play_close(p, 0, pspType);
+		return("mkv_play_open: sceKernelCreateSema failed on semaphore_can_put_video");
 	}
 
 
 	p->semaphore_can_get_audio = sceKernelCreateSema("can_get_audio", 0, 0, p->decoder.number_of_frame_buffers, 0);
 	if (p->semaphore_can_get_audio < 0) {
-		mp4_play_close(p, 0, pspType);
-		return("mp4_play_open: sceKernelCreateSema failed on semaphore_can_get_audio");
+		mkv_play_close(p, 0, pspType);
+		return("mkv_play_open: sceKernelCreateSema failed on semaphore_can_get_audio");
 	}
 
 
 	p->semaphore_can_put_audio = sceKernelCreateSema("can_put_audio", 0, p->decoder.number_of_frame_buffers, p->decoder.number_of_frame_buffers, 0);
 	if (p->semaphore_can_put_audio < 0) {
-		mp4_play_close(p, 0, pspType);
-		return("mp4_play_open: sceKernelCreateSema failed on semaphore_can_put_audio");
+		mkv_play_close(p, 0, pspType);
+		return("mkv_play_open: sceKernelCreateSema failed on semaphore_can_put_audio");
 	}
 
 
-	//p->output_thread = sceKernelCreateThread("output", mp4_output_thread, 0x8, 0x10000, 0, 0);
-	p->output_thread = sceKernelCreateThread("output", mp4_output_thread, 0x3D, 0x10000, PSP_THREAD_ATTR_USER, 0);
+	//p->output_thread = sceKernelCreateThread("output", mkv_output_thread, 0x8, 0x10000, 0, 0);
+	p->output_thread = sceKernelCreateThread("output", mkv_output_thread, 0x3D, 0x10000, PSP_THREAD_ATTR_USER, 0);
 	if (p->output_thread < 0) {
-		mp4_play_close(p, 0, pspType);
-		return("mp4_play_open: sceKernelCreateThread failed on output_thread");
+		mkv_play_close(p, 0, pspType);
+		return("mkv_play_open: sceKernelCreateThread failed on output_thread");
 	}
 
-	//p->show_thread = sceKernelCreateThread("show", mp4_show_thread, 0x8, 0x10000, 0, 0);
-	p->show_thread = sceKernelCreateThread("show", mp4_show_thread, 0x3F, 0x10000, PSP_THREAD_ATTR_USER, 0);
+	//p->show_thread = sceKernelCreateThread("show", mkv_show_thread, 0x8, 0x10000, 0, 0);
+	p->show_thread = sceKernelCreateThread("show", mkv_show_thread, 0x3F, 0x10000, PSP_THREAD_ATTR_USER, 0);
 	if (p->show_thread < 0) {
-		mp4_play_close(p, 0, pspType);
-		return("mp4_play_open: sceKernelCreateThread failed on show_thread");
+		mkv_play_close(p, 0, pspType);
+		return("mkv_play_open: sceKernelCreateThread failed on show_thread");
 	}
-
-
-
 
 	p->return_request = 0;
 	p->return_result  = 0;
@@ -690,6 +637,8 @@ char *mp4_play_open(struct mp4_play_struct *p, struct movie_file_struct *movie, 
 
 	p->paused = 0;
 	p->seek   = 0;
+	
+	p->current_timestamp = 0;
 
 
 	p->audio_stream     = 0;
@@ -708,7 +657,7 @@ char *mp4_play_open(struct mp4_play_struct *p, struct movie_file_struct *movie, 
 	
 	memcpy(p->hash, movie->movie_hash, 16);
 	
-	if (usePos) mp4_stat_load( p );
+	if (usePos) mkv_stat_load( p );
 
 	return(0);
 }

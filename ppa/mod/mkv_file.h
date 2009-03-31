@@ -1,5 +1,5 @@
 /* 
- *	Copyright (C) 2008 cooleyes
+ *	Copyright (C) 2009 cooleyes
  *	eyes.cooleyes@gmail.com 
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -19,28 +19,26 @@
  *
  */
  
-#ifndef __MP4_FILE_H__
-#define __MP4_FILE_H__
+#ifndef __MKV_FILE_H__
+#define __MKV_FILE_H__
 
 #include <stdio.h>
-#include "mp4info.h"
+#include "mkvinfo.h"
 
-struct mp4_file_struct {
-	mp4info_t *info;
+struct mkv_file_struct {
+	mkvinfo_t *info;
 	int video_track_id;
 	int audio_tracks;
 	int audio_track_ids[6];
-	unsigned int maximum_video_trunk_size;
-	unsigned int maximum_video_sample_size;
-	unsigned int maximum_audio_trunk_size;
-	unsigned int maximum_audio_sample_size;
 	
 	unsigned int video_type;
 	unsigned int video_width;
 	unsigned int video_height;
-	unsigned int number_of_video_frames;
+	unsigned int display_width;
+	unsigned int display_height;
 	unsigned int video_rate;
 	unsigned int video_scale;
+	unsigned int number_of_video_frames;
 	
 	unsigned int audio_type;
 	unsigned int audio_actual_rate;
@@ -50,11 +48,13 @@ struct mp4_file_struct {
 	unsigned int audio_stereo;
 	
 	int audio_double_sample;
+	
+	int seek_duration;
 };
 
-void mp4_file_safe_constructor(struct mp4_file_struct *p);
-void mp4_file_close(struct mp4_file_struct *p);
-char *mp4_file_open(struct mp4_file_struct *p, char *s);
+void mkv_file_safe_constructor(struct mkv_file_struct *p);
+void mkv_file_close(struct mkv_file_struct *p);
+char *mkv_file_open(struct mkv_file_struct *p, char *s);
 
 #endif
 
