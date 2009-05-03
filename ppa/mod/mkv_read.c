@@ -21,6 +21,8 @@
 
 #include "mkv_read.h"
 #include "ebml_id.h"
+#include "subtitle_parse.h"
+#include "common/libminiconv.h"
 
 static void zero_set_mkv_read_output_struct(struct mkv_read_output_struct *p) {
 	p->size = 0;
@@ -390,7 +392,79 @@ int mkv_read_block_lacing(uint8_t *buffer, uint64_t *size, uint8_t *laces, int32
 	return 1;
 }
 
-int mkv_handle_block(struct mkv_read_struct *p, uint8_t *block_buffer, uint64_t block_size,
+int mkv_is_subtitle_track(struct mkv_read_struct *p, int32_t tracknum, uint32_t* type) {
+	int i;
+	for(i=0; i<p->file.subtitle_tracks; i++) {
+		if ( p->file.info->tracks[p->file.subtitle_track_ids[i]]->tracknum == tracknum ) {
+			*type = p->file.info->tracks[p->file.subtitle_track_ids[i]]->video_type;
+			return 1;
+		}
+	}
+	return 0;
+}
+
+void mkv_handle_text_subtitle_block(struct mkv_read_struct *p, uint8_t *block_buffer, uint64_t block_size, 
+	uint64_t timecode, uint64_t duration, int32_t tracknum, uint32_t type) {
+	char trackname[32];
+	memset(trackname, 0, 32);
+	sprintf(trackname, "mkv subtitle track(%d)", tracknum);
+	struct subtitle_parse_struct *cur_parser = 0;
+	int i;
+	for(i=0; i < MAX_SUBTITLES; i++) {
+		if (strcmp(trackname, subtitle_parser[i].filename) == 0 ) {
+			cur_parser = &subtitle_parser[i];
+			break;
+		}
+	}
+	if ( cur_parser ) {
+		struct subtitle_frame_struct* frame = (struct subtitle_frame_struct*)malloc_64( sizeof(struct subtitle_frame_struct) );
+		if (frame==0) {
+			return;
+		}
+		subtitle_frame_safe_constructor(frame);
+		double tmp ;
+		tmp = 1.0f*timecode;
+		tmp *= p->file.video_rate;
+		tmp /= p->file.video_scale;
+		tmp /= 1000.0f;
+		frame->p_start_frame = (unsigned int)tmp;
+		tmp = 1.0f*(timecode+duration);
+		tmp *= p->file.video_rate;
+		tmp /= p->file.video_scale;
+		tmp /= 1000.0f;
+		frame->p_end_frame = (unsigned int)tmp;
+		frame->p_num_lines = 1;
+		
+		memset(frame->p_string, 0, max_subtitle_string);
+		strncpy(frame->p_string, block_buffer, ((max_subtitle_string - 1 > block_size) ? block_size : (max_subtitle_string - 1)) );
+		
+		int j = 0;
+		while(j < max_subtitle_string ) {
+			if ( frame->p_string[j] == 0 )
+				break;
+			else if ( frame->p_string[j] == '\n' || frame->p_string[j] == '\r' ) {
+				frame->p_num_lines++;
+				do {
+					j++;
+				}while( frame->p_string[j] == '\n' || frame->p_string[j] == '\r' );				
+			}
+			else
+				j++; 
+		}
+		if ( type == 0x7478746C ) {
+			if ( miniConvHaveDefaultSubtitleConv() ){
+				char* temp_str = miniConvDefaultSubtitleConv(frame->p_string);
+				if( temp_str != NULL ) {
+					strncpy(frame->p_string, temp_str, max_subtitle_string-1);
+				}
+			}
+		}
+		
+		subtitle_parse_add_frame( cur_parser, cur_parser->p_cur_sub_frame, frame);
+	}
+}
+
+int mkv_handle_block(struct mkv_read_struct *p, uint8_t *block_buffer, uint64_t block_size, uint64_t block_duration, 
 	int64_t block_bref, int64_t block_fref, uint8_t simpleblock, int track_id, int skip_to_keyframe) {
 	int32_t tracknum;
 	int32_t current_tracknum, video_tracknum, audio_tracknum;
@@ -401,6 +475,7 @@ int mkv_handle_block(struct mkv_read_struct *p, uint8_t *block_buffer, uint64_t 
 	int32_t lace_size[16];
 	uint8_t laces;
 	int64_t timecode;
+	uint64_t duration;
 	int res;
 	int use_this_block = 1;
 	
@@ -426,9 +501,16 @@ int mkv_handle_block(struct mkv_read_struct *p, uint8_t *block_buffer, uint64_t 
 	timecode = ((p->cluster_timecode + time - p->file.info->first_timecode) * p->file.info->timecode_scale /1000000.0);
 	if (timecode < 0)
 		timecode = 0;
+	duration = block_duration * p->file.info->timecode_scale /1000000.0;
 		
-	res = 1;	
-	if ( tracknum == current_tracknum ) {
+	res = 1;
+	uint32_t subtitle_type;	
+	if ( mkv_is_subtitle_track(p, tracknum, &subtitle_type) ) {
+		mkv_handle_text_subtitle_block(p, block_buffer, block_size, timecode, duration, tracknum, subtitle_type);
+		use_this_block = 0;
+		res = 0;
+	}
+	else if ( tracknum == current_tracknum ) {
 		if ( skip_to_keyframe ) {
 			if ( simpleblock ) {
 				if (!(flags&0x80)) {
@@ -554,7 +636,7 @@ char *mkv_read_fill_buffer(struct mkv_read_struct *p, int track_id, int skip_to_
 				p->cluster_size -= l + il;
 			}
 			if (p->block_buffer) {
-				res = mkv_handle_block(p, (uint8_t *)(p->block_buffer), p->block_size, block_bref, block_fref, 0, track_id, skip_to_keyframe);
+				res = mkv_handle_block(p, (uint8_t *)(p->block_buffer), p->block_size, block_duration, block_bref, block_fref, 0, track_id, skip_to_keyframe);
 				free_64(p->block_buffer);
 				p->block_buffer = 0;
 				if (res < 0) {
@@ -601,7 +683,7 @@ char *mkv_read_fill_buffer(struct mkv_read_struct *p, int track_id, int skip_to_
 							return("mkv_read_fill_buffer: can not read block");
 						}
 						l = tmp + p->block_size;
-						res = mkv_handle_block (p, (uint8_t *)(p->block_buffer), p->block_size, block_bref, block_fref, 1, track_id, skip_to_keyframe);
+						res = mkv_handle_block (p, (uint8_t *)(p->block_buffer), p->block_size, block_duration, block_bref, block_fref, 1, track_id, skip_to_keyframe);
 						free_64(p->block_buffer);
 						p->block_buffer = 0;
 						p->cluster_size -= l + il;

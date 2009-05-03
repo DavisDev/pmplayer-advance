@@ -39,7 +39,7 @@ struct subtitle_frame_struct* subtitle_parse_subrip( FILE *f, char* charset, uns
 	
 	struct subtitle_frame_struct *p = (struct subtitle_frame_struct*)malloc_64( sizeof(struct subtitle_frame_struct) );
 	if (p==0) return(0);
-	p->p_string[0] = '\0';
+	subtitle_frame_safe_constructor(p);
 	
 	
     char line[1024];

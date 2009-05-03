@@ -576,8 +576,31 @@ char *mkv_play_open(struct mkv_play_struct *p, struct movie_file_struct *movie, 
 		mkv_play_close(p, 0, pspType);
 		return(result);
 	}
-
-	if (subtitle_parse_search( movie, p->decoder.reader.file.video_rate, p->decoder.reader.file.video_scale, &p->subtitle_count)==0) p->subtitle = 1;
+	
+	if ( p->decoder.reader.file.subtitle_tracks > 0 ) {
+		int subtitle_track = 0;
+		while(p->subtitle_count < MAX_SUBTITLES && subtitle_track < p->decoder.reader.file.subtitle_tracks) {
+			struct subtitle_parse_struct *cur_parser = &subtitle_parser[p->subtitle_count];
+			subtitle_parse_safe_constructor(cur_parser);
+			int32_t tracknum = p->decoder.reader.file.info->tracks[p->decoder.reader.file.subtitle_track_ids[subtitle_track]]->tracknum;
+			sprintf(cur_parser->filename, "mkv subtitle track(%d)", tracknum);
+			subtitle_track++;
+			
+			cur_parser->p_sub_frame = (struct subtitle_frame_struct*)malloc_64( sizeof(struct subtitle_frame_struct) );
+			if (cur_parser->p_sub_frame==0) {
+				subtitle_parse_close(cur_parser);
+				continue;
+			}
+			subtitle_frame_safe_constructor(cur_parser->p_sub_frame);
+			cur_parser->p_cur_sub_frame = cur_parser->p_sub_frame;
+			
+			p->subtitle_count++;
+		} 
+	}
+	if ( p->subtitle_count < MAX_SUBTITLES )
+		subtitle_parse_search( movie, p->decoder.reader.file.video_rate, p->decoder.reader.file.video_scale, &p->subtitle_count);
+	if ( p->subtitle_count > 0 )
+		p->subtitle = 1;
 	
 	if ( cooleyesAudioSetFrequency(sceKernelDevkitVersion(), p->decoder.reader.file.audio_rate) != 0) {
 		mkv_play_close(p, 0, pspType);

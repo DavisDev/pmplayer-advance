@@ -131,6 +131,19 @@ char *mkv_file_open(struct mkv_file_struct *p, char *s) {
 		return("mkv_file_open: can't found audio track in mkv file");
 	}
 	
+	for(i = 0; i < p->info->total_tracks; i++) {
+		mkvinfo_track_t* track = p->info->tracks[i];
+		if (track->type != MATROSKA_TRACK_SUBTITLE)
+			continue;
+		if ( (track->video_type != 0x74787475) && (track->video_type != 0x7478746C) /*txtu & txtl*/)
+			continue;
+		p->subtitle_tracks++;
+		p->subtitle_track_ids[p->subtitle_tracks-1] = i;
+		p->subtitle_track_types[p->subtitle_tracks-1] = track->video_type;
+		if ( p->subtitle_tracks == 4 )
+			break;
+	}
+	
 	p->video_width = p->info->tracks[p->video_track_id]->width;
 	p->video_height = p->info->tracks[p->video_track_id]->height;
 	p->display_width = p->info->tracks[p->video_track_id]->display_width;

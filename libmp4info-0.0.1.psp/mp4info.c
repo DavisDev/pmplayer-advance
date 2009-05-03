@@ -118,6 +118,8 @@ void mp4info_dump(mp4info_t* info, const char* dumpfile) {
 		fprintf(fp, "\tvideo_avc_sps_size : %d\n", info->tracks[i]->avc_sps_size);
 		fprintf(fp, "\tvideo_avc_pps_size : %d\n", info->tracks[i]->avc_pps_size);
 		
+		fprintf(fp, "\tvideo_mp4v_decinfo_size : %d\n", info->tracks[i]->mp4v_decinfo_size);
+		
 		fprintf(fp, "\taudio_type : 0x%08X\n", info->tracks[i]->audio_type);
 		fprintf(fp, "\taudio_channels : %d\n", info->tracks[i]->channels);
 		fprintf(fp, "\taudio_samplerate : %d\n", info->tracks[i]->samplerate);
