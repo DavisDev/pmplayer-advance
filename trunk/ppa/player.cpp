@@ -1174,6 +1174,15 @@ void PmpAvcPlayer::getCurrentMkvFilmInformation() {
 			initFilmInformation();
 			return;
 		}
+		
+		for(i = 0; i < info->total_tracks; i++) {
+			mkvinfo_track_t* track = info->tracks[i];
+			if (track->type != MATROSKA_TRACK_SUBTITLE)
+				continue;
+			if ( (track->video_type == 0x74787475) || (track->video_type == 0x7478746C) /*txtu & txtl*/)
+				filmSubtitles++;
+		}
+		
 		filmTotalFrames = (u32)(1LL*info->duration/(1000LL*info->tracks[video_track_id]->duration/info->tracks[video_track_id]->time_scale));
 		filmWidth = info->tracks[video_track_id]->width;
 		filmHeight = info->tracks[video_track_id]->height;
@@ -1182,7 +1191,7 @@ void PmpAvcPlayer::getCurrentMkvFilmInformation() {
 		filmAudioStreams = audio_tracks;
 		mkvinfo_close(info);
 		
-		filmSubtitles = getSelectMovieSubtitles();
+		filmSubtitles += getSelectMovieSubtitles();
 	}
 }
 

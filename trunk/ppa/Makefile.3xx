@@ -20,7 +20,7 @@ OBJS = main.o player.o config.o skin.o ftfont.o cfgdialog.o versiondialog.o msgd
 	
 INCDIR = $(PSPM33SDKDIR)/include ../cooleyesBridge ../pspvideocodec ../libmpeg ../libmp4info-0.0.1.psp  ../libmkvinfo-0.0.1.psp \
 	$(PSPLIBSDIR)/include $(PSPLIBSDIR)/include/freetype2 
-CFLAGS = -O3 -G0 -g -Wall -DHAVE_AV_CONFIG_H -DENABLE_USBHOST -DENABLE_NETHOST
+CFLAGS = -O3 -G0 -g -Wall -DHAVE_AV_CONFIG_H -DENABLE_USBHOST -DENABLE_NETHOST 
 CXXFLAGS = $(CFLAGS) -fno-exceptions -fno-rtti
 ASFLAGS = $(CFLAGS)
 

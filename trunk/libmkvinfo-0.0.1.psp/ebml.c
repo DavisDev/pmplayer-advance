@@ -482,6 +482,10 @@ static int32_t parse_ebml_trackentry(mkvinfo_t* info) {
 					!strcmp(codec_id, MKV_V_MPEG4_SP) ||
 					!strcmp(codec_id, MKV_V_MPEG4_ASP) )
 						track->video_type = FOURCC('m','p','4','v');
+				else if (!strcmp(codec_id, MKV_S_TEXTUTF8))
+						track->video_type = FOURCC('t','x','t','u');
+				else if (!strcmp(codec_id, MKV_S_TEXTASCII))
+						track->video_type = FOURCC('t','x','t','l');
 				
 				free(codec_id);
 				break;

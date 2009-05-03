@@ -62,7 +62,8 @@ void subtitle_frame_safe_constructor(struct subtitle_frame_struct *p)
 		p->p_start_frame = 0;
 		p->p_end_frame = 0;
 		p->p_num_lines = 0;
-		p->p_string[0] = '\0';
+		//p->p_string[0] = '\0';
+		memset(p->p_string, 0, max_subtitle_string);
 		p->next = 0;
 		p->prev = 0;
 	}
@@ -80,12 +81,13 @@ void subtitle_frame_safe_destructor(struct subtitle_frame_struct *p)
 
 void subtitle_parse_safe_constructor(struct subtitle_parse_struct *p)
 	{
-		if (p->p_sub_frame != 0) subtitle_frame_safe_destructor(p->p_sub_frame);
+		//if (p->p_sub_frame != 0) subtitle_frame_safe_destructor(p->p_sub_frame);
 		p->p_sub_frame = 0;
 		p->p_num_sub_frames = 0;
 		p->p_cur_sub_frame = 0;
 		p->p_in = 0;
-		p->filename[0] = '\0';
+		//p->filename[0] = '\0';
+		memset(p->filename, 0, 1024);
 	}
 	
 
@@ -160,24 +162,104 @@ char *subtitle_parse_open(struct subtitle_parse_struct *p, char *s, char* charse
 
 		while ((new_frame=subtitle_parse_line( p->p_in, charset, rate, scale ))!=0)
 			{
+			cur_frame = subtitle_parse_add_frame(p, cur_frame, new_frame);
+			/*/
 			if (new_frame->p_start_frame<=cur_frame->p_end_frame) new_frame->p_start_frame=cur_frame->p_end_frame+1;
 			cur_frame->next = new_frame;
 			new_frame->prev = cur_frame;
 			cur_frame = new_frame;
 			p->p_num_sub_frames++;
+			//*/
 			}
 
-		cur_frame->next = 0;
+		//cur_frame->next = 0;
 		
 		fclose(p->p_in);
 		p->p_in = 0;
 		
-		if (p->p_num_sub_frames==0)
+		if (p->p_num_sub_frames==0) {
+			subtitle_parse_close(p);
 			return("subtitle_parse_open: no subtitle frames parsed");
-
+		}
 		return(0);
 	}
+	
+int subtitle_compare_frames(struct subtitle_frame_struct *src, struct subtitle_frame_struct *dest) {
+	if ( dest->p_end_frame < src->p_start_frame )
+		return -1;
+	else if ( dest->p_start_frame > src->p_end_frame )
+		return 1;
+	else {
+		if ( dest->p_start_frame < src->p_start_frame && dest->p_end_frame <= src->p_end_frame ) {
+			dest->p_end_frame = src->p_start_frame-1;
+			return -1;
+		}
+		else if ( dest->p_end_frame > src->p_end_frame && dest->p_start_frame >= src->p_start_frame ) {
+			dest->p_start_frame = src->p_end_frame+1;
+			return 1;
+		}
+		else
+			return 0;
+	} 
+}
 
+struct subtitle_frame_struct* subtitle_parse_add_frame(struct subtitle_parse_struct *p, struct subtitle_frame_struct *cur, struct subtitle_frame_struct *f ) {
+	if (f == 0)
+		return cur;	
+	if ( f->p_start_frame < 0 || f->p_end_frame < 0 || f->p_start_frame > f->p_end_frame ) {
+		free_64(f);
+		return cur;
+	}
+	int comp = subtitle_compare_frames( cur, f );
+	if (  comp == 0 ) {
+		free_64(f);
+		return cur;
+	}
+	else if ( comp > 0 ) {
+		while( cur->next != 0 ) {
+			cur = cur->next;
+			comp = subtitle_compare_frames( cur, f );
+			if ( comp == 0 ) {
+				free_64(f);
+				return cur;
+			}
+			else if ( comp < 0 ) {
+				cur->prev->next = f;
+				f->prev = cur->prev;
+				f->next = cur;
+				cur->prev = f;
+				p->p_num_sub_frames++;
+				return f;
+			}
+		}
+		cur->next = f;
+		f->prev = cur;
+		p->p_num_sub_frames++;
+		return f;
+	}
+ 	else {
+ 		while( cur->prev != 0 ) {
+ 			cur = cur->prev;
+ 			comp = subtitle_compare_frames( cur, f );
+ 			if ( comp == 0 ) {
+				free_64(f);
+				return cur;
+			}
+			else if ( comp > 0 ) {
+				cur->next->prev = f;
+				f->next = cur->next;
+				f->prev = cur;
+				cur->next = f;
+				p->p_num_sub_frames++;
+				return f;
+			}
+ 		}
+ 		f->next = cur;
+ 		p->p_sub_frame = f;
+ 		p->p_num_sub_frames++;
+ 		return f;
+ 	}
+}
 
 char* subtitle_parse_get_frame(struct subtitle_parse_struct *p, struct subtitle_frame_struct **f, unsigned int frame )
 	{

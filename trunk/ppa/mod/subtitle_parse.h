@@ -62,6 +62,7 @@ void subtitle_frame_safe_destructor(struct subtitle_frame_struct *p);
 void subtitle_parse_safe_constructor(struct subtitle_parse_struct *p);
 char *subtitle_parse_search(struct movie_file_struct* movie, unsigned int rate, unsigned int scale, unsigned int *num_subtitles);
 char *subtitle_parse_open(struct subtitle_parse_struct *p, char *s, char* charset, unsigned int rate, unsigned int scale);
+struct subtitle_frame_struct* subtitle_parse_add_frame(struct subtitle_parse_struct *p, struct subtitle_frame_struct *cur, struct subtitle_frame_struct *f );
 void subtitle_parse_close(struct subtitle_parse_struct *p);
 char* subtitle_parse_get_frame(struct subtitle_parse_struct *p, struct subtitle_frame_struct **f, unsigned int frame );
 

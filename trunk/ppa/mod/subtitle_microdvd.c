@@ -36,7 +36,7 @@ struct subtitle_frame_struct* subtitle_parse_microdvd( FILE *f, char* charset, u
 	
 	struct subtitle_frame_struct *p = (struct subtitle_frame_struct*)malloc_64( sizeof(struct subtitle_frame_struct) );
 	if (p==0) return(0);
-	p->p_string[0] = '\0';
+	subtitle_frame_safe_constructor(p);
 	
 	int result = fscanf( f, "{%i}{%i}", &p->p_start_frame, &p->p_end_frame );
 	if (result==EOF)
