@@ -552,9 +552,9 @@ int mkv_handle_block(struct mkv_read_struct *p, uint8_t *block_buffer, uint64_t 
 			}
 			block_buffer+=packet.size;
 			if ( tracknum == video_tracknum )
-				timecode+=(1000LL*p->file.audio_resample_scale/p->file.audio_rate);
-			else
 				timecode+=(1000LL*p->file.video_scale/p->file.video_rate);
+			else
+				timecode+=(1000LL*p->file.audio_resample_scale/p->file.audio_rate);	
 		}
 	}
 	

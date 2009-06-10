@@ -10,9 +10,9 @@ eboot3xx:
 	make -C libmpeg
 	make -C pspvideocodec
 	make -C cooleyesBridge
-	make -C libbufferedio-0.0.1.psp
-	make -C libmp4info-0.0.1.psp
-	make -C libmkvinfo-0.0.1.psp
+	make -C libbufferedio.psp
+	make -C libmp4info.psp
+	make -C libmkvinfo.psp
 	make -C ppa/miniconv
 	make -C ppa ppa3xx
 	mkdir -p ppa/PPA3xx
@@ -79,8 +79,8 @@ clean:
 	make -C libmpeg clean
 	make -C pspvideocodec clean
 	make -C cooleyesBridge clean
-	make -C libbufferedio-0.0.1.psp clean
-	make -C libmp4info-0.0.1.psp clean
-	make -C libmkvinfo-0.0.1.psp clean
+	make -C libbufferedio.psp clean
+	make -C libmp4info.psp clean
+	make -C libmkvinfo.psp clean
 	make -C ppa clean
 	rm -f *.bak

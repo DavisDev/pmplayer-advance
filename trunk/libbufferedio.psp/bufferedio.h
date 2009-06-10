@@ -19,8 +19,8 @@
  *
  */
  
-#ifndef __MKVINFO_UTIL_H__
-#define __MKVINFO_UTIL_H__
+#ifndef __LIB_BUFFERED_IO_H__
+#define __LIB_BUFFERED_IO_H__
 
 #include <pspiofilemgr.h>
 
