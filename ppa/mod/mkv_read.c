@@ -519,9 +519,9 @@ int mkv_handle_block(struct mkv_read_struct *p, uint8_t *block_buffer, uint64_t 
 				}
 			}
 			else if (block_bref != 0 || block_fref != 0) {
-            			use_this_block = 0;
-            			res = 0;
-            		}
+            	use_this_block = 0;
+            	res = 0;
+            }
 		}
 	}
 	else {
@@ -741,8 +741,16 @@ char *mkv_read_seek(struct mkv_read_struct *p, int timestamp) {
 	
 	clear_mkv_read_queue(p->audio_queue, &p->audio_queue_size, &p->audio_queue_front, &p->audio_queue_rear, MKV_VIDEO_QUEUE_MAX);
 	clear_mkv_read_queue(p->video_queue, &p->video_queue_size, &p->video_queue_front, &p->video_queue_rear, MKV_AUDIO_QUEUE_MAX);
-	
-	return(mkv_read_fill_buffer(p, p->file.video_track_id, 1));
+	char* result = 0;
+	while(1) {
+		result = mkv_read_fill_buffer(p, p->file.video_track_id, 1);
+		if (result) {
+			return (result);
+		}
+		if ( p->video_queue_size > 0 )
+			break; 
+	}
+	return(0);
 }
 
 char *mkv_read_get_video(struct mkv_read_struct *p, struct mkv_read_output_struct *output) {
