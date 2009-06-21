@@ -1,6 +1,64 @@
+/* 
+ *	Copyright (C) 2009 cooleyes
+ *	eyes.cooleyes@gmail.com 
+ *
+ *  This Program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2, or (at your option)
+ *  any later version.
+ *   
+ *  This Program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ *  GNU General Public License for more details.
+ *   
+ *  You should have received a copy of the GNU General Public License
+ *  along with GNU Make; see the file COPYING.  If not, write to
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  http://www.gnu.org/copyleft/gpl.html
+ *
+ */
 #include "mp4_decode.h"
 #include "me_boot_start.h"
 #include "audio_util.h"
+
+
+static int in_mp4_timestamp_queue(int* queue, unsigned int* queue_size, unsigned int queue_max, int timestamp) {
+	if ( *queue_size+1 > queue_max )
+		return 0;
+	int i,j;
+	for(i=0; i<*queue_size; i++) {
+		if ( timestamp < queue[i] ) {
+			for(j=*queue_size-1; j>=i; j--) {
+				queue[j+1] = queue[j];
+			}		
+			break;
+		}
+	}
+	queue[i] = timestamp;
+	*queue_size += 1;
+	return 1;
+}
+
+static int out_mp4_timestamp_queue(int* queue, unsigned int* queue_size, unsigned int queue_max, int* timestamp) {
+	if ( *queue_size == 0 )
+		return 0;
+	*timestamp  = queue[0];
+	int i;
+	for(i=1; i<*queue_size; i++)
+		queue[i-1] = queue[i];
+	queue[i-1] = -1;
+	*queue_size -= 1;
+	return 1;
+}
+
+static void clear_mp4_timestamp_queue(int* queue, unsigned int* queue_size, unsigned int queue_max) {
+	int i;
+	for(i=0; i<queue_max; i++) {
+		queue[i] = -1;
+	}
+	*queue_size = 0;
+}
 
 void mp4_decode_safe_constructor(struct mp4_decode_struct *p) {
 	mp4_read_safe_constructor(&p->reader);
@@ -13,6 +71,11 @@ void mp4_decode_safe_constructor(struct mp4_decode_struct *p) {
 		p->video_frame_buffers[i] = 0;
 		p->audio_frame_buffers[i] = 0;
 	}
+	
+	clear_mp4_timestamp_queue(p->timestamp_queue, &p->timestamp_queue_size, mp4_timestamp_queue_max);
+	p->last_audio_timestamp = 0;
+	p->last_video_timestamp = 0;
+	p->is_eof = 0;
 
 }
 
@@ -28,6 +91,8 @@ void mp4_decode_close(struct mp4_decode_struct *p, int pspType) {
 	if (p->audio_decoder == 0 )
 		audio_decoder_close();
 
+	clear_reset_framebuffer();
+	
 	int i = 0;
 	if (m33IsTVOutSupported(pspType)) {
 		for (; i < mp4_maximum_frame_buffers; i++) {
@@ -69,7 +134,7 @@ char *mp4_decode_open(struct mp4_decode_struct *p, char *s, int pspType, int tvA
 		if ( p->reader.file.video_width > 480 || p->reader.file.video_height > 272 ) {
 			me_boot_start(1);
 		}
-		else if ( p->reader.file.info->tracks[p->reader.file.video_track_id]->avc_profile == 0x42 ) {
+		else if ( p->reader.file.avc_profile == 0x42 ) {
 			me_boot_start(4);
 		}
 		else {
@@ -80,25 +145,28 @@ char *mp4_decode_open(struct mp4_decode_struct *p, char *s, int pspType, int tvA
 		me_boot_start(3);
 	}
 
-	if ( p->video_format == 0x61766331 /*avc1*/ )
+	if ( p->video_format == 0x61766331 /*avc1*/ ) {
+		
 		result = mp4_avc_open(&p->avc, 
-			p->reader.file.info->tracks[p->reader.file.video_track_id]->avc_profile,
+			p->reader.file.avc_profile,
 			((p->reader.file.video_width > 480 || p->reader.file.video_height > 272) ? 5 : 4), 
-			p->reader.file.info->tracks[p->reader.file.video_track_id]->avc_sps, 
-			p->reader.file.info->tracks[p->reader.file.video_track_id]->avc_sps_size,
-			p->reader.file.info->tracks[p->reader.file.video_track_id]->avc_pps, 
-			p->reader.file.info->tracks[p->reader.file.video_track_id]->avc_pps_size,
-			p->reader.file.info->tracks[p->reader.file.video_track_id]->avc_nal_prefix_size);
-	else
+			p->reader.file.avc_sps, 
+			p->reader.file.avc_sps_size,
+			p->reader.file.avc_pps,
+			p->reader.file.avc_pps_size,
+			p->reader.file.avc_nal_prefix_size);
+	}
+	else {
 		result = mp4v_open_ex(&p->mp4v,
-			p->reader.file.info->tracks[p->reader.file.video_track_id]->mp4v_decinfo,
-			p->reader.file.info->tracks[p->reader.file.video_track_id]->mp4v_decinfo_size,
+			p->reader.file.mp4v_decinfo,
+			p->reader.file.mp4v_decinfo_size,
 			p->reader.file.maximum_video_sample_size);
+	}
 	if (result != 0) {
 		mp4_decode_close(p, pspType);
 		return(result);
 	}
-
+	
 	unsigned int display_width = p->reader.file.video_width;
 	unsigned int display_height = p->reader.file.video_height;
 	if (display_width == 720 && display_height == 480 ) {
@@ -201,15 +269,28 @@ char *mp4_decode_open(struct mp4_decode_struct *p, char *s, int pspType, int tvA
 	return(0);
 }
 
+int   mp4_decode_is_eof(struct mp4_decode_struct *p) {
+	return (p->is_eof);
+}
 
+void  mp4_decode_reset(struct mp4_decode_struct *p) {
+	mp4_read_seek(&p->reader, 0, 0);
+	p->is_eof = 0;
+}
 
-char *mp4_decode_get_audio(struct mp4_decode_struct *p, unsigned int frame_number, unsigned int audio_stream, int audio_channel, int decode_audio, unsigned int volume_boost) {
+char *mp4_decode_seek(struct mp4_decode_struct *p, int timestamp, int last_timestamp) {
+	return mp4_read_seek(&p->reader, timestamp, last_timestamp);
+}
+
+char *mp4_decode_get_audio(struct mp4_decode_struct *p, unsigned int audio_stream, int audio_channel, int decode_audio, unsigned int volume_boost) {
 	char *result;
 	struct mp4_read_output_struct a_packet;
+	memset(&a_packet, 0, sizeof(struct mp4_read_output_struct));
 	
-	result = mp4_read_get_audio(&p->reader, frame_number, audio_stream, &a_packet);
-	if (result != 0)
-		return(result);
+	result = mp4_read_get_audio(&p->reader, audio_stream, &a_packet);
+	if (result != 0) {
+		a_packet.timestamp = p->last_audio_timestamp + p->audio_frame_duration;
+	}
 	
 	if (a_packet.data == 0 || decode_audio == 0) {
 		p->output_audio_frame_buffers[p->current_audio_buffer_number].data = p->audio_frame_buffers[p->number_of_frame_buffers];
@@ -232,31 +313,37 @@ char *mp4_decode_get_audio(struct mp4_decode_struct *p, unsigned int frame_numbe
 		
 		pcm_normalize(p->audio_frame_buffers[p->current_audio_buffer_number], p->reader.file.audio_resample_scale << p->reader.file.audio_stereo);
 		pcm_select_channel(p->audio_frame_buffers[p->current_audio_buffer_number], p->reader.file.audio_resample_scale << p->reader.file.audio_stereo, audio_channel);	
+		
+		free_64( a_packet.data );
 	}
-	uint64_t timestamp = 1000LL;
-	timestamp *= frame_number;
-	timestamp *= p->reader.file.audio_resample_scale;
-	timestamp /= p->reader.file.audio_rate;
 	
-	p->output_audio_frame_buffers[p->current_audio_buffer_number].timestamp = timestamp;
+	p->output_audio_frame_buffers[p->current_audio_buffer_number].timestamp = a_packet.timestamp;
+	p->last_audio_timestamp = a_packet.timestamp;
 	p->current_audio_buffer_number = (p->current_audio_buffer_number + 1) % p->number_of_frame_buffers;
 	
 	return(0);
 }
 
-char *mp4_decode_get_cached_video(struct mp4_decode_struct *p, unsigned int pic_num, unsigned int frame_number, unsigned int audio_stream, unsigned int volume_boost, unsigned int aspect_ratio, unsigned int zoom, unsigned int luminosity_boost, unsigned int show_interface, unsigned int show_subtitle, unsigned int subtitle_format, unsigned int loop) {
+char *mp4_decode_get_cached_video(struct mp4_decode_struct *p, unsigned int pic_num, unsigned int audio_stream, unsigned int volume_boost, unsigned int aspect_ratio, unsigned int zoom, unsigned int luminosity_boost, unsigned int show_interface, unsigned int show_subtitle, unsigned int subtitle_format, unsigned int loop) {
 	char *result;
 	sceKernelDcacheWritebackInvalidateAll();
 	result = mp4_avc_get_cache(&p->avc, pmp_gu_rgb_buffer, pic_num);
 	if (result != 0) {
 		return(result);
 	}
+	int timestamp;
+	out_mp4_timestamp_queue(p->timestamp_queue, &p->timestamp_queue_size, mp4_timestamp_queue_max, &timestamp);
+	double tmp ;
+	tmp = 1.0f*timestamp;
+	tmp *= p->reader.file.video_rate;
+	tmp /= p->reader.file.video_scale;
+	tmp /= 1000.0f;
 	if (show_interface == 1){
 		draw_interface(
 			p->reader.file.video_scale,
 			p->reader.file.video_rate,
 			p->reader.file.number_of_video_frames,
-			frame_number,
+			(unsigned int)tmp,
 			aspect_ratio,
 			zoom,
 			luminosity_boost,
@@ -268,18 +355,14 @@ char *mp4_decode_get_cached_video(struct mp4_decode_struct *p, unsigned int pic_
 
 	sceKernelDcacheWritebackInvalidateAll();
 	
-	pmp_gu_draw(aspect_ratio, zoom, luminosity_boost, show_interface, show_subtitle, subtitle_format, frame_number, p->video_frame_buffers[p->current_video_buffer_number]);
+	pmp_gu_draw(aspect_ratio, zoom, luminosity_boost, show_interface, show_subtitle, subtitle_format, (unsigned int)tmp, p->video_frame_buffers[p->current_video_buffer_number]);
 	
 	p->output_video_frame_buffers[p->current_video_buffer_number].data            = p->video_frame_buffers[p->current_video_buffer_number];
 
 	pmp_gu_wait();
 	
-	uint64_t timestamp = 1000LL;
-	timestamp *= frame_number;
-	timestamp *= p->reader.file.video_scale;
-	timestamp /= p->reader.file.video_rate;
 	p->output_video_frame_buffers[p->current_video_buffer_number].timestamp = timestamp;
-
+	p->last_video_timestamp = timestamp;
 	p->current_video_buffer_number = (p->current_video_buffer_number + 1) % p->number_of_frame_buffers;
 	sceKernelDcacheWritebackInvalidateAll();
 
@@ -287,39 +370,63 @@ char *mp4_decode_get_cached_video(struct mp4_decode_struct *p, unsigned int pic_
 	return(0);
 }
 
-char *mp4_decode_get_video(struct mp4_decode_struct *p, unsigned int read_num, unsigned int frame_number, unsigned int audio_stream, unsigned int volume_boost, unsigned int aspect_ratio, unsigned int zoom, unsigned int luminosity_boost, unsigned int show_interface, unsigned int show_subtitle, unsigned int subtitle_format, unsigned int loop, int* pic_num) {
+char *mp4_decode_get_video(struct mp4_decode_struct *p, unsigned int audio_stream, unsigned int volume_boost, unsigned int aspect_ratio, unsigned int zoom, unsigned int luminosity_boost, unsigned int show_interface, unsigned int show_subtitle, unsigned int subtitle_format, unsigned int loop, int* pic_num) {
 	
 	char *result;
 	struct mp4_read_output_struct v_packet;
+	memset(&v_packet, 0, sizeof(struct mp4_read_output_struct));
 	
-	if ( read_num >= p->reader.file.number_of_video_frames ) {
+	if (p->is_eof) {
 		*pic_num = 1;
+		in_mp4_timestamp_queue(p->timestamp_queue, &p->timestamp_queue_size, mp4_timestamp_queue_max, p->last_video_timestamp + p->video_frame_duration);
 	}
 	else {
-		result = mp4_read_get_video(&p->reader, read_num, &v_packet);
-		if (result != 0)
-			return result;
-		sceKernelDcacheWritebackInvalidateAll();
-			
-		if (p->video_format == 0x61766331 /*avc1*/)
-			result = mp4_avc_get(&p->avc, (read_num==0?3:0), v_packet.data, v_packet.size, pmp_gu_rgb_buffer, pic_num);
-		else {
-			result = mp4v_get_rgb(&p->mp4v, v_packet.data, v_packet.size, pmp_gu_rgb_buffer);
-			*pic_num = 1;
+		result = mp4_read_get_video(&p->reader, &v_packet);
+		if (result != 0) {
+			if ( strcmp(result, "mp4_read_fill_buffer: eof") == 0 ) {
+				*pic_num = 1;
+				p->is_eof = 1;
+				in_mp4_timestamp_queue(p->timestamp_queue, &p->timestamp_queue_size, mp4_timestamp_queue_max, p->last_video_timestamp + p->video_frame_duration);
+			}
+			else
+				return result;
 		}
-		if (result != 0)
-			return(result);
+		else {
+			sceKernelDcacheWritebackInvalidateAll();
+			
+			in_mp4_timestamp_queue(p->timestamp_queue, &p->timestamp_queue_size, mp4_timestamp_queue_max, v_packet.timestamp);
+		
+			if (p->video_format == 0x61766331 /*avc1*/)
+				result = mp4_avc_get(&p->avc, (v_packet.timestamp==0?3:0), v_packet.data, v_packet.size, pmp_gu_rgb_buffer, pic_num);
+			else {
+				result = mp4v_get_rgb(&p->mp4v, v_packet.data, v_packet.size, pmp_gu_rgb_buffer);
+				*pic_num = 1;
+			}
+			if( v_packet.data )
+				free_64(v_packet.data);
+			if (result != 0)
+				return(result);
+		}
 	}
 	*pic_num = *pic_num - 1;
 	
 	if ( *pic_num >= 0 ) {
+		
+		int timestamp;
+		out_mp4_timestamp_queue(p->timestamp_queue, &p->timestamp_queue_size, mp4_timestamp_queue_max, &timestamp);
+		
+		double tmp ;
+		tmp = 1.0f*timestamp;
+		tmp *= p->reader.file.video_rate;
+		tmp /= p->reader.file.video_scale;
+		tmp /= 1000.0f;
 	
 		if (show_interface == 1){
 			draw_interface(
 				p->reader.file.video_scale,
 				p->reader.file.video_rate,
 				p->reader.file.number_of_video_frames,
-				frame_number,
+				(unsigned int)tmp,
 				aspect_ratio,
 				zoom,
 				luminosity_boost,
@@ -331,17 +438,14 @@ char *mp4_decode_get_video(struct mp4_decode_struct *p, unsigned int read_num, u
 	
 		sceKernelDcacheWritebackInvalidateAll();
 		
-		pmp_gu_draw(aspect_ratio, zoom, luminosity_boost, show_interface, show_subtitle, subtitle_format, frame_number, p->video_frame_buffers[p->current_video_buffer_number]);
+		pmp_gu_draw(aspect_ratio, zoom, luminosity_boost, show_interface, show_subtitle, subtitle_format, (unsigned int)tmp, p->video_frame_buffers[p->current_video_buffer_number]);
 		
 		p->output_video_frame_buffers[p->current_video_buffer_number].data            = p->video_frame_buffers[p->current_video_buffer_number];
 	
 		pmp_gu_wait();
 		
-		uint64_t timestamp = 1000LL;
-		timestamp *= frame_number;
-		timestamp *= p->reader.file.video_scale;
-		timestamp /= p->reader.file.video_rate;
 		p->output_video_frame_buffers[p->current_video_buffer_number].timestamp = timestamp;
+		p->last_video_timestamp = timestamp;
 	
 		p->current_video_buffer_number = (p->current_video_buffer_number + 1) % p->number_of_frame_buffers;
 		sceKernelDcacheWritebackInvalidateAll();

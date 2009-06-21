@@ -24,11 +24,11 @@
 
 #include <pspiofilemgr.h>
 
-#define MAX_TRACKS 1024
-#define TRACK_UNKNOWN 0
-#define TRACK_AUDIO   1
-#define TRACK_VIDEO   2
-#define TRACK_SYSTEM  3
+#define MP4_MAX_TRACKS 1024
+#define MP4_TRACK_UNKNOWN 0
+#define MP4_TRACK_AUDIO   1
+#define MP4_TRACK_VIDEO   2
+#define MP4_TRACK_SYSTEM  3
 
 typedef struct {
 	uint32_t type;
@@ -87,7 +87,7 @@ typedef struct {
 	int32_t duration;
 
 	int32_t total_tracks;
-	mp4info_track_t* tracks[MAX_TRACKS];
+	mp4info_track_t* tracks[MP4_MAX_TRACKS];
 	
 } mp4info_t;
 

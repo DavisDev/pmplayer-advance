@@ -27,6 +27,7 @@ gu routines
 
 #include "gu_draw.h"
 #include <psprtc.h>
+#include <pspdisplay.h>
 #include <png.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -49,6 +50,7 @@ static unsigned int previous_zoom;
 static unsigned int previous_subtitle;
 static unsigned int previous_info;
 static unsigned int previous_interface;
+static int previous_psp_type;
 static unsigned int output_left;
 static unsigned int output_top;
 static unsigned int output_width;
@@ -142,6 +144,7 @@ void pmp_gu_start(int psp_type, int tv_aspectratio, int tv_overscan_left, int tv
 	sceGuClear(GU_COLOR_BUFFER_BIT);
 	sceGuFinish();
 	sceGuSync(0, 0);
+	previous_psp_type = psp_type;
 	if (!m33IsTVOutSupported(psp_type))
 		{
 		output_left = 0;
@@ -971,6 +974,21 @@ void make_bmp_screenshot() {
 	}
 	sceIoClose(fd);
 	
+}
+
+void clear_reset_framebuffer() {
+	int texture_width = 512;
+	if (!m33IsTVOutSupported(previous_psp_type)) {
+		memset(pmp_gu_draw_buffer, 0, 4 * 512 * 272);
+		texture_width = 512;
+	}
+	else {
+		memset(pmp_gu_draw_buffer, 0, 4 * 768 * 512);
+		texture_width = 768;
+	}
+	sceKernelDcacheWritebackInvalidateAll();
+	sceDisplayWaitVblankStart();
+	sceDisplaySetFrameBuf(pmp_gu_draw_buffer, texture_width, PSP_DISPLAY_PIXEL_FORMAT_8888, PSP_DISPLAY_SETBUF_IMMEDIATE);
 }
 
 void make_screenshot() {

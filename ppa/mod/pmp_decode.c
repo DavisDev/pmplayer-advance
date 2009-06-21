@@ -57,7 +57,9 @@ void pmp_decode_close(struct pmp_decode_struct *p, int pspType)
 
 	if (p->audio_decoder == 0 )
 		audio_decoder_close();
-
+		
+	clear_reset_framebuffer();
+	
 	int i = 0;
 	if (m33IsTVOutSupported(pspType)) 
 		{

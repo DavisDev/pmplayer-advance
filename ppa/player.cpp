@@ -1021,7 +1021,7 @@ void PmpAvcPlayer::getCurrentMp4FilmInformation() {
 		int video_track_id = -1;
 		for(i = 0; i < info->total_tracks; i++) {
 			mp4info_track_t* track = info->tracks[i];
-			if (track->type != TRACK_VIDEO)
+			if (track->type != MP4_TRACK_VIDEO)
 				continue;
 			if ( track->width < 1 || track->height < 1 )
 				continue;
@@ -1048,7 +1048,7 @@ void PmpAvcPlayer::getCurrentMp4FilmInformation() {
 		int first_audio_track_id = 0;
 		for(i = 0; i < info->total_tracks; i++) {
 			mp4info_track_t* track = info->tracks[i];
-			if (track->type != TRACK_AUDIO)
+			if (track->type != MP4_TRACK_AUDIO)
 				continue;
 			if ( audio_tracks == 0 ) {
 				if ( track->audio_type != 0x6D703461 /*mp4a*/)
@@ -1484,6 +1484,8 @@ void PmpAvcPlayer::playMovie(bool resume) {
 	} 
 	scePowerUnlock(0);
 	
+	guStart();
+	flipScreen();
 };
 
 

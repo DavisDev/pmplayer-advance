@@ -26,10 +26,21 @@ void mp4_file_safe_constructor(struct mp4_file_struct *p) {
 	p->video_track_id = -1;
 	p->audio_tracks = 0;
 	p->audio_double_sample = 0;
+	
 	p->maximum_video_sample_size = 0;
-	p->maximum_video_trunk_size = 0;
-	p->maximum_audio_trunk_size = 0;
-	p->maximum_audio_sample_size = 0;
+	
+	p->avc_sps_size = 0;
+	p->avc_sps = 0;
+	p->avc_pps_size = 0;
+	p->avc_pps = 0;
+	
+	p->sample_count = 0;
+	p->samples = 0;
+	p->index_count = 0;
+	p->indexes = 0;
+	
+	p->seek_duration = 5000;
+	
 }
 
 
@@ -37,8 +48,136 @@ void mp4_file_close(struct mp4_file_struct *p) {
 	if (p->info != 0) {
 		mp4info_close(p->info);
 	}
+	if ( p->avc_sps )
+		free_64(p->avc_sps);
+	if ( p->avc_pps )
+		free_64(p->avc_pps);
+	if ( p->samples )
+		free_64(p->samples);
+	if ( p->indexes )
+		free_64(p->indexes);
 	mp4_file_safe_constructor(p);
-}	
+}
+
+unsigned int mp4_get_trunk_offset(mp4info_track_t* track, unsigned int trunk) {
+	if ( trunk >= track->stco_entry_count )
+		return 0xFFFFFFFF;
+	else
+		return track->stco_chunk_offset[trunk];
+}
+
+unsigned int mp4_get_sample_size(mp4info_track_t* track, unsigned int sample) {
+	return (track->stsz_sample_size ? track->stsz_sample_size : track->stsz_sample_size_table[sample]);
+}
+
+unsigned int mp4_get_sample_count(mp4info_track_t* track) {
+	unsigned int i;
+	unsigned int sample_count = 0;
+	for( i = 0; i < track->stts_entry_count; i++)
+		sample_count += track->stts_sample_count[i];
+		
+	return sample_count;
+}
+
+int mp4_is_keyframe(mp4info_track_t* track, unsigned int sample) {
+	unsigned int i;
+	for(i = 0; i < track->stss_entry_count; i++ ) {
+		if ( sample+1 == track->stss_sync_sample[i] )
+			return 1;
+	}
+	return 0;
+}
+
+char *mp4_file_build_index(struct mp4_file_struct *p) {
+	
+	int i,j;
+	unsigned int ui;
+	unsigned int trunk[MP4_MAX_TRACKS];
+	unsigned int current_sample = 0;
+	unsigned int current_index = 0;
+	
+	for(i=0; i<p->info->total_tracks; i++) {
+		p->sample_count += mp4_get_sample_count(p->info->tracks[i]);
+	}
+	
+	p->index_count = p->info->tracks[p->video_track_id]->stss_entry_count;
+	
+	p->samples = malloc_64(p->sample_count * sizeof(struct mp4_sample_struct));
+	if ( !p->samples ) {
+		mp4_file_close(p);
+		return("mp4_file_open: can't malloc samples buffer");
+	}
+	
+	p->indexes = malloc_64(p->index_count * sizeof(struct mp4_index_struct));
+	if ( !p->indexes ) {
+		mp4_file_close(p);
+		return("mp4_file_open: can't malloc indexes buffer");
+	}
+	
+	for(i=0; i<MP4_MAX_TRACKS; i++)
+		trunk[i] = 0;
+	
+	while(1) {
+		int current_track = 0;
+		unsigned int min_offset = 0xFFFFFFFF;
+		unsigned int current_offset = 0xFFFFFFFF;
+		unsigned int first_sample = 0;
+		unsigned int last_sample = 0;
+		for(i=0; i<p->info->total_tracks; i++) {
+			current_offset = mp4_get_trunk_offset(p->info->tracks[i], trunk[i]);
+			if ( current_offset < min_offset ) {
+				min_offset = current_offset;
+				current_track = i;
+			}
+		}
+		
+		if ( 0xFFFFFFFF == min_offset ) 
+			break;
+		
+		mp4info_track_t* track = p->info->tracks[current_track];
+		for( i = 0; i < track->stsc_entry_count-1; i++ ) {
+			if ( (trunk[current_track]+1) >= track->stsc_first_chunk[i] && (trunk[current_track]+1) < track->stsc_first_chunk[i+1] )
+				break;
+		}
+		for( j = 0; j < i; j++ ) {
+			first_sample += ( ( track->stsc_first_chunk[j+1] - track->stsc_first_chunk[j] ) * track->stsc_samples_per_chunk[j] );
+		}
+		first_sample += ( ( (trunk[current_track]+1) - track->stsc_first_chunk[i] ) * track->stsc_samples_per_chunk[i] );
+		last_sample = first_sample + track->stsc_samples_per_chunk[i] - 1;
+		
+		for(ui = first_sample; ui <= last_sample; ui++) {
+			p->samples[current_sample].sample_index = (current_track << 24) | (ui & 0x00FFFFFF);
+			p->samples[current_sample].sample_size = mp4_get_sample_size(track, ui);
+			
+			if ( current_track == p->video_track_id ) {
+			 	if ( p->samples[current_sample].sample_size > p->maximum_video_sample_size) {
+					p->maximum_video_sample_size = p->samples[current_sample].sample_size;
+				}
+			
+				if ( mp4_is_keyframe(track, ui) ) {
+					uint64_t timestamp = 1000LL;
+					timestamp *= ui;
+					timestamp *= p->video_scale;
+					timestamp /= p->video_rate;
+					p->indexes[current_index].timestamp = timestamp;
+					p->indexes[current_index].sample_index = current_sample;
+					p->indexes[current_index].offset = min_offset;
+					current_index++;
+				}
+			}
+			
+			min_offset += p->samples[current_sample].sample_size;
+			current_sample++;
+		}
+		
+		trunk[current_track] += 1;
+		
+	}
+	
+	mp4info_close(p->info);
+	p->info = 0;
+	return(0);
+}
 
 char *mp4_file_open(struct mp4_file_struct *p, char *s) {
 	mp4_file_safe_constructor(p);
@@ -54,7 +193,7 @@ char *mp4_file_open(struct mp4_file_struct *p, char *s) {
 	
 	for(i = 0; i < p->info->total_tracks; i++) {
 		mp4info_track_t* track = p->info->tracks[i];
-		if (track->type != TRACK_VIDEO)
+		if (track->type != MP4_TRACK_VIDEO)
 			continue;
 		
 		if ( track->width < 1 || track->height < 1 )
@@ -71,16 +210,43 @@ char *mp4_file_open(struct mp4_file_struct *p, char *s) {
 		}
 		p->video_track_id = i;
 		p->video_type = track->video_type;
+		if ( p->video_type == 0x61766331 ) {
+			p->avc_profile = track->avc_profile;
+			p->avc_sps_size = track->avc_sps_size;
+			p->avc_pps_size = track->avc_pps_size;
+			p->avc_nal_prefix_size = track->avc_nal_prefix_size;
+			p->avc_sps = malloc_64(p->avc_sps_size);
+			if ( ! p->avc_sps ) {
+				mp4_file_close(p);
+				return("mp4_file_open: can't malloc avc_sps buffer");
+			}
+			memcpy(p->avc_sps, track->avc_sps, p->avc_sps_size);
+			p->avc_pps = malloc_64(p->avc_pps_size);
+			if ( ! p->avc_pps ) {
+				mp4_file_close(p);
+				return("mp4_file_open: can't malloc avc_pps buffer");
+			}
+			memcpy(p->avc_pps, track->avc_pps, p->avc_pps_size);
+		}
+		else {
+			p->mp4v_decinfo_size = track->mp4v_decinfo_size;
+			p->mp4v_decinfo = malloc_64(p->mp4v_decinfo_size);
+			if ( ! p->mp4v_decinfo ) {
+				mp4_file_close(p);
+				return("mp4_file_open: can't malloc mp4v_decinfo buffer");
+			}
+			memcpy(p->mp4v_decinfo, track->mp4v_decinfo, p->mp4v_decinfo_size);
+		}
 		break;
 	}
 	if ( p->video_track_id < 0 ) {
 		mp4_file_close(p);
 		return("mp4_file_open: can't found video track in mp4 file");
-	} 
+	}
 	
 	for(i = 0; i < p->info->total_tracks; i++) {
 		mp4info_track_t* track = p->info->tracks[i];
-		if (track->type != TRACK_AUDIO)
+		if (track->type != MP4_TRACK_AUDIO)
 			continue;
 		if ( p->audio_tracks == 0 ) {
 			if ( track->audio_type != 0x6D703461 /*mp4a*/)
@@ -118,59 +284,59 @@ char *mp4_file_open(struct mp4_file_struct *p, char *s) {
 		return("mp4_file_open: can't found audio track in mp4 file");
 	}
 	
-	int sample_id = 0;
-	unsigned int trunk_size = 0;
-	int j, k;
-	
-	mp4info_track_t* video_track = p->info->tracks[p->video_track_id];
-	for( i = 0; i < video_track->stsc_entry_count-1; i++ ) {
-		int trunk_num = video_track->stsc_first_chunk[i+1] - video_track->stsc_first_chunk[i];
-		for( j = 0; j < trunk_num; j++ ) {
-			trunk_size = 0;
-			for( k = 0; k < video_track->stsc_samples_per_chunk[i]; k++, sample_id++) {
-				unsigned int sample_size = (video_track->stsz_sample_size ? video_track->stsz_sample_size : video_track->stsz_sample_size_table[sample_id]);
-				if ( sample_size > p->maximum_video_sample_size )
-					p->maximum_video_sample_size = sample_size;
-				trunk_size += sample_size;
-			}
-			if ( trunk_size > p->maximum_video_trunk_size )
-				p->maximum_video_trunk_size = trunk_size;
-		}
-	}
-	trunk_size = 0;
-	for( k = 0; k < video_track->stsc_samples_per_chunk[i]; k++, sample_id++)
-		trunk_size += (video_track->stsz_sample_size ? video_track->stsz_sample_size : video_track->stsz_sample_size_table[sample_id]);	
-	if ( trunk_size > p->maximum_video_trunk_size )
-		p->maximum_video_trunk_size = trunk_size;
-		
-	int l;
-	for( l = 0; l < p->audio_tracks; l++ ) {
-		sample_id = 0;
-		mp4info_track_t* audio_track = p->info->tracks[p->audio_track_ids[l]];
-		for( i = 0; i < audio_track->stsc_entry_count-1; i++ ) {
-			int trunk_num = audio_track->stsc_first_chunk[i+1] - audio_track->stsc_first_chunk[i];
-			for( j = 0; j < trunk_num; j++ ) {
-				trunk_size = 0;
-				for( k = 0; k < audio_track->stsc_samples_per_chunk[i]; k++, sample_id++) {
-					unsigned int sample_size = (audio_track->stsz_sample_size ? audio_track->stsz_sample_size : audio_track->stsz_sample_size_table[sample_id]);
-					if ( sample_size > p->maximum_audio_sample_size )
-						p->maximum_audio_sample_size = sample_size;
-					trunk_size += sample_size;
-				}
-				if ( trunk_size > p->maximum_audio_trunk_size )
-					p->maximum_audio_trunk_size = trunk_size;
-			}
-		}
-		trunk_size = 0;
-		for( k = 0; k < audio_track->stsc_samples_per_chunk[i]; k++, sample_id++) {
-			unsigned int sample_size = (audio_track->stsz_sample_size ? audio_track->stsz_sample_size : audio_track->stsz_sample_size_table[sample_id]);
-			if ( sample_size > p->maximum_audio_sample_size )
-				p->maximum_audio_sample_size = sample_size;
-			trunk_size += sample_size;
-		}
-		if ( trunk_size > p->maximum_audio_trunk_size )
-			p->maximum_audio_trunk_size = trunk_size;
-	}
+//	int sample_id = 0;
+//	unsigned int trunk_size = 0;
+//	int j, k;
+//	
+//	mp4info_track_t* video_track = p->info->tracks[p->video_track_id];
+//	for( i = 0; i < video_track->stsc_entry_count-1; i++ ) {
+//		int trunk_num = video_track->stsc_first_chunk[i+1] - video_track->stsc_first_chunk[i];
+//		for( j = 0; j < trunk_num; j++ ) {
+//			trunk_size = 0;
+//			for( k = 0; k < video_track->stsc_samples_per_chunk[i]; k++, sample_id++) {
+//				unsigned int sample_size = (video_track->stsz_sample_size ? video_track->stsz_sample_size : video_track->stsz_sample_size_table[sample_id]);
+//				if ( sample_size > p->maximum_video_sample_size )
+//					p->maximum_video_sample_size = sample_size;
+//				trunk_size += sample_size;
+//			}
+//			if ( trunk_size > p->maximum_video_trunk_size )
+//				p->maximum_video_trunk_size = trunk_size;
+//		}
+//	}
+//	trunk_size = 0;
+//	for( k = 0; k < video_track->stsc_samples_per_chunk[i]; k++, sample_id++)
+//		trunk_size += (video_track->stsz_sample_size ? video_track->stsz_sample_size : video_track->stsz_sample_size_table[sample_id]);	
+//	if ( trunk_size > p->maximum_video_trunk_size )
+//		p->maximum_video_trunk_size = trunk_size;
+//		
+//	int l;
+//	for( l = 0; l < p->audio_tracks; l++ ) {
+//		sample_id = 0;
+//		mp4info_track_t* audio_track = p->info->tracks[p->audio_track_ids[l]];
+//		for( i = 0; i < audio_track->stsc_entry_count-1; i++ ) {
+//			int trunk_num = audio_track->stsc_first_chunk[i+1] - audio_track->stsc_first_chunk[i];
+//			for( j = 0; j < trunk_num; j++ ) {
+//				trunk_size = 0;
+//				for( k = 0; k < audio_track->stsc_samples_per_chunk[i]; k++, sample_id++) {
+//					unsigned int sample_size = (audio_track->stsz_sample_size ? audio_track->stsz_sample_size : audio_track->stsz_sample_size_table[sample_id]);
+//					if ( sample_size > p->maximum_audio_sample_size )
+//						p->maximum_audio_sample_size = sample_size;
+//					trunk_size += sample_size;
+//				}
+//				if ( trunk_size > p->maximum_audio_trunk_size )
+//					p->maximum_audio_trunk_size = trunk_size;
+//			}
+//		}
+//		trunk_size = 0;
+//		for( k = 0; k < audio_track->stsc_samples_per_chunk[i]; k++, sample_id++) {
+//			unsigned int sample_size = (audio_track->stsz_sample_size ? audio_track->stsz_sample_size : audio_track->stsz_sample_size_table[sample_id]);
+//			if ( sample_size > p->maximum_audio_sample_size )
+//				p->maximum_audio_sample_size = sample_size;
+//			trunk_size += sample_size;
+//		}
+//		if ( trunk_size > p->maximum_audio_trunk_size )
+//			p->maximum_audio_trunk_size = trunk_size;
+//	}
 	
 	p->video_width = p->info->tracks[p->video_track_id]->width;
 	p->video_height = p->info->tracks[p->video_track_id]->height;
@@ -189,6 +355,6 @@ char *mp4_file_open(struct mp4_file_struct *p, char *s) {
 	//p->audio_scale = p->info->tracks[p->audio_track_ids[0]]->stts_sample_duration[0] / (p->audio_double_sample?2:1);
 	p->audio_stereo = 1;//(p->info->tracks[p->audio_track_ids[0]]->channels == 2 ? 1 : 0);
 	
-	return(0);
+	return(mp4_file_build_index(p));
 }
 

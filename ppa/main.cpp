@@ -27,8 +27,8 @@
 #include <pspsdk.h>
 #include "player.h"
 
-#define VERS 1
-#define REVS 3
+#define VERS 3
+#define REVS 2
 
 #include "cooleyesBridge.h"
 
