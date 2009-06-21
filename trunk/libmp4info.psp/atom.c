@@ -550,11 +550,11 @@ static void parse_minf_atom(mp4info_t* info, const uint64_t total_size) {
 		if (size == 0)
 			break;
 		if (atom_type == ATOM_TYPE('v','m','h','d')) {
-			info->tracks[info->total_tracks-1]->type = TRACK_VIDEO;
+			info->tracks[info->total_tracks-1]->type = MP4_TRACK_VIDEO;
 	 		parse_unused_atom(info, size - header_size);
 	 	}
 	 	else if (atom_type == ATOM_TYPE('s','m','h','d')) {
-	 		info->tracks[info->total_tracks-1]->type = TRACK_AUDIO;
+	 		info->tracks[info->total_tracks-1]->type = MP4_TRACK_AUDIO;
 	 		parse_unused_atom(info, size - header_size);
 	 	}
 	 	else if (atom_type == ATOM_TYPE('s','t','b','l')) {

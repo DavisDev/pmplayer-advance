@@ -23,17 +23,26 @@
 #define __MP4_FILE_H__
 
 #include <stdio.h>
+#include <string.h>
 #include "mp4info.h"
+#include "common/mem64.h"
+
+struct mp4_sample_struct {
+	unsigned int sample_index;
+	unsigned int sample_size;
+};
+
+struct mp4_index_struct {
+	unsigned int timestamp;
+	unsigned int sample_index;
+	unsigned int offset;
+};
 
 struct mp4_file_struct {
 	mp4info_t *info;
 	int video_track_id;
 	int audio_tracks;
 	int audio_track_ids[6];
-	unsigned int maximum_video_trunk_size;
-	unsigned int maximum_video_sample_size;
-	unsigned int maximum_audio_trunk_size;
-	unsigned int maximum_audio_sample_size;
 	
 	unsigned int video_type;
 	unsigned int video_width;
@@ -41,6 +50,18 @@ struct mp4_file_struct {
 	unsigned int number_of_video_frames;
 	unsigned int video_rate;
 	unsigned int video_scale;
+	
+	unsigned int maximum_video_sample_size;
+	
+	unsigned int avc_profile;
+	unsigned int avc_sps_size;
+	unsigned char* avc_sps;
+	unsigned int avc_pps_size;
+	unsigned char* avc_pps;
+	unsigned int avc_nal_prefix_size;
+	
+	unsigned int mp4v_decinfo_size;
+	unsigned char* mp4v_decinfo;
 	
 	unsigned int audio_type;
 	unsigned int audio_actual_rate;
@@ -50,6 +71,14 @@ struct mp4_file_struct {
 	unsigned int audio_stereo;
 	
 	int audio_double_sample;
+	
+	int seek_duration;
+	
+	unsigned int sample_count;
+	struct mp4_sample_struct* samples;
+	unsigned int index_count;
+	struct mp4_index_struct* indexes;
+	
 };
 
 void mp4_file_safe_constructor(struct mp4_file_struct *p);

@@ -548,6 +548,7 @@ int mkv_handle_block(struct mkv_read_struct *p, uint8_t *block_buffer, uint64_t 
 			else
 				tmp = in_mkv_read_queue(p->audio_queue, &p->audio_queue_size, &p->audio_queue_rear, MKV_AUDIO_QUEUE_MAX, &packet);
 			if ( tmp == 0 )  {
+				free_64(packet.data);
 				return -1;
 			}
 			block_buffer+=packet.size;

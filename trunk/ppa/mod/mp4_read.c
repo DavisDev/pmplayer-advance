@@ -1,18 +1,93 @@
+/* 
+ *	Copyright (C) 2009 cooleyes
+ *	eyes.cooleyes@gmail.com 
+ *
+ *  This Program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2, or (at your option)
+ *  any later version.
+ *   
+ *  This Program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ *  GNU General Public License for more details.
+ *   
+ *  You should have received a copy of the GNU General Public License
+ *  along with GNU Make; see the file COPYING.  If not, write to
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  http://www.gnu.org/copyleft/gpl.html
+ *
+ */
+
 #include "mp4_read.h"
 
+
+static void zero_set_mp4_read_output_struct(struct mp4_read_output_struct *p) {
+	p->size = 0;
+	p->data = 0;
+	p->timestamp = 0;
+}
+
+static void copy_mp4_read_output_struct(struct mp4_read_output_struct *dest, struct mp4_read_output_struct *src) {
+	dest->size = src->size;
+	dest->data = src->data;
+	dest->timestamp = src->timestamp;
+}
+
+static int in_mp4_read_queue(struct mp4_read_output_struct* queue, unsigned int* queue_size, unsigned int* queue_rear, unsigned int queue_max, struct mp4_read_output_struct* item) {
+	if ( *queue_size+1 > queue_max )
+		return 0;
+	copy_mp4_read_output_struct(&queue[*queue_rear], item);
+	*queue_rear = (*queue_rear+1)%queue_max;
+	*queue_size += 1;
+	return 1;
+}
+
+static int out_mp4_read_queue(struct mp4_read_output_struct* queue, unsigned int* queue_size, unsigned int* queue_front, unsigned int queue_max, struct mp4_read_output_struct* item) {
+	if ( *queue_size == 0 )
+		return 0;
+	copy_mp4_read_output_struct(item, &queue[*queue_front]);
+	zero_set_mp4_read_output_struct(&queue[*queue_front]);
+	*queue_front = (*queue_front+1)%queue_max;
+	*queue_size -= 1;
+	return 1;
+}
+
+static void clear_mp4_read_queue(struct mp4_read_output_struct* queue, unsigned int* queue_size, unsigned int* queue_front, unsigned int* queue_rear, unsigned int queue_max) {
+	unsigned int i;
+	for(i=0; i<queue_max; i++) {
+		if ( queue[i].data )
+			free_64(queue[i].data);
+		zero_set_mp4_read_output_struct(&queue[i]);
+	}
+	*queue_size = 0;
+	*queue_front = 0;
+	*queue_rear = 0;
+}
 
 void mp4_read_safe_constructor(struct mp4_read_struct *p) {
 	mp4_file_safe_constructor(&p->file);
 
-	p->video_handle = -1;
-	p->audio_handle = -1;
+	p->reader = 0;
 	
 	p->current_audio_track = 0;
 	
-	p->video_buffer_0 = 0;
-	p->video_buffer_1 = 0;
-	p->audio_buffer_0 = 0;
-	p->audio_buffer_1 = 0;
+	p->current_sample = 0;
+	
+	int i;
+	for(i=0; i<MP4_VIDEO_QUEUE_MAX; i++)
+		zero_set_mp4_read_output_struct(&(p->video_queue[i]));
+		
+	p->video_queue_front = 0;
+	p->video_queue_rear = 0;
+	p->video_queue_size = 0;
+		
+	for(i=0; i<MP4_AUDIO_QUEUE_MAX; i++)
+		zero_set_mp4_read_output_struct(&(p->audio_queue[i]));
+	
+	p->audio_queue_front = 0;
+	p->audio_queue_rear = 0;
+	p->audio_queue_size = 0;
 
 }
 
@@ -21,208 +96,22 @@ void mp4_read_close(struct mp4_read_struct *p) {
 	
 	mp4_file_close(&p->file);
 
-	if (!(p->video_handle < 0))
-		sceIoClose(p->video_handle);
-	if (!(p->audio_handle < 0))
-		sceIoClose(p->audio_handle);
+	if (!(p->reader))
+		buffered_reader_close(p->reader);
 	
-	if (p->video_buffer_0 != 0)
-		free_64(p->video_buffer_0);
-	if (p->video_buffer_1 != 0)
-		free_64(p->video_buffer_1);
-	if (p->audio_buffer_0 != 0)
-		free_64(p->audio_buffer_0);
-	if (p->audio_buffer_1 != 0)
-		free_64(p->audio_buffer_1);
+	int i;
+	for(i=0; i<MP4_VIDEO_QUEUE_MAX; i++) {
+		if ( p->video_queue[i].data )
+			free_64(p->video_queue[i].data);
+	}
+		
+	for(i=0; i<MP4_AUDIO_QUEUE_MAX; i++) {
+		if ( p->audio_queue[i].data )
+			free_64(p->audio_queue[i].data);
+	}
+	
 	
 	mp4_read_safe_constructor(p);
-}
-
-
-static char *fill_asynchronous_buffer(struct mp4_read_struct *reader, struct mp4_asynchronous_buffer *p, SceUID handle, int track_id, unsigned int trunk_index) {
-	 
-	mp4info_track_t* track = reader->file.info->tracks[track_id];
-	
-	int i, j;
-	for( i = 0; i < track->stsc_entry_count-1; i++ ) {
-		if ( (trunk_index+1) >= track->stsc_first_chunk[i] && (trunk_index+1) < track->stsc_first_chunk[i+1] )
-			break;
-	}
-	p->first_sample = 0;
-	for( j = 0; j < i; j++ ) {
-		p->first_sample += ( ( track->stsc_first_chunk[j+1] - track->stsc_first_chunk[j] ) * track->stsc_samples_per_chunk[j] );
-	}
-	p->first_sample += ( ( (trunk_index+1) - track->stsc_first_chunk[i] ) * track->stsc_samples_per_chunk[i] );
-	p->last_sample = p->first_sample + track->stsc_samples_per_chunk[i] - 1;
-	
-	p->trunk_size = 0;
-	
-	for(i = p->first_sample; i <= p->last_sample; i++) { 
-		p->sample_buffer[i-p->first_sample] = p->buffer + p->trunk_size;
-		p->trunk_size += ( track->stsz_sample_size ? track->stsz_sample_size : track->stsz_sample_size_table[i]);
-	}
-	p->trunk_position = track->stco_chunk_offset[trunk_index];
-	p->trunk_index = trunk_index;
-	p->next_trunk_index = trunk_index+1;
-	
-	if ( (p->next_trunk_index < track->stco_entry_count) && 
-		(track->stco_chunk_offset[p->next_trunk_index] == (p->trunk_position+p->trunk_size)) ) {
-			
-			unsigned int first_sample, last_sample, trunk_size;
-			for( i = 0; i < track->stsc_entry_count-1; i++ ) {
-				if ( (p->next_trunk_index+1) >= track->stsc_first_chunk[i] && (p->next_trunk_index+1) < track->stsc_first_chunk[i+1] )
-					break;
-			}
-			first_sample = 0;
-			for( j = 0; j < i; j++ ) {
-				first_sample += ( ( track->stsc_first_chunk[j+1] - track->stsc_first_chunk[j] ) * track->stsc_samples_per_chunk[j] );
-			}
-			first_sample += ( ( (p->next_trunk_index+1) - track->stsc_first_chunk[i] ) * track->stsc_samples_per_chunk[i] );
-			last_sample = first_sample + track->stsc_samples_per_chunk[i] - 1;
-			
-			p->last_sample = last_sample;
-			
-			trunk_size = 0;
-			
-			for(i = first_sample; i <= last_sample; i++) { 
-				p->sample_buffer[i-p->first_sample] = p->buffer + p->trunk_size + trunk_size;
-				trunk_size += ( track->stsz_sample_size ? track->stsz_sample_size : track->stsz_sample_size_table[i]);
-			}
-			p->trunk_size += trunk_size;
-			p->next_trunk_index++;
-	}
-
-	if (sceIoLseek32(handle, p->trunk_position, PSP_SEEK_SET) != p->trunk_position) {
-		return("fill_asynchronous_buffer: seek failed");
-	}
-
-
-	if (sceIoReadAsync(handle, p->sample_buffer[0], p->trunk_size) < 0) {
-		return("fill_asynchronous_buffer: read failed");
-	}
-
-	return(0);
-}
-
-
-static char *wait_asynchronous_buffer(struct mp4_read_struct *reader, struct mp4_asynchronous_buffer *p, SceUID handle) {
-	long long result;
-
-	if (sceIoWaitAsync(handle, &result) < 0) {
-		return("wait_asynchronous_buffer: wait failed");
-	}
-
-
-	if (p->trunk_size != result) {
-		return("wait_asynchronous_buffer: read failed");
-	}
-
-
-	return(0);
-}
-
-
-static char *fill_and_wait_asynchronous_buffer(struct mp4_read_struct *reader, struct mp4_asynchronous_buffer *p, SceUID handle, int track_id, unsigned int trunk_index) {
-	char *result = fill_asynchronous_buffer(reader, p, handle, track_id, trunk_index);
-	if (result != 0) {
-		return(result);
-	}
-
-	result = wait_asynchronous_buffer(reader, p, handle);
-	if (result != 0) {
-		return(result);
-	}
-
-	return(0);
-}
-
-
-static char *video_fill_next_asynchronous_buffer(struct mp4_read_struct *reader) {
-	
-	unsigned int trunk_index = reader->video_current_asynchronous_buffer->next_trunk_index;
-	if (trunk_index == reader->file.info->tracks[reader->file.video_track_id]->stco_entry_count) {
-		trunk_index = 0;
-	}
-
-	char *result = fill_asynchronous_buffer(
-		reader, reader->video_next_asynchronous_buffer, 
-		reader->video_handle, 
-		reader->file.video_track_id, 
-		trunk_index);
-	if (result != 0) {
-		return(result);
-	}
-
-	return(0);
-}
-
-
-static char *video_fill_current_and_next_asynchronous_buffer(struct mp4_read_struct *reader, unsigned int trunk_index) {
-	char *result = fill_and_wait_asynchronous_buffer(reader, 
-		reader->video_current_asynchronous_buffer, 
-		reader->video_handle, 
-		reader->file.video_track_id, 
-		trunk_index);
-	if (result != 0) {
-		return(result);
-	}
-
-	result = video_fill_next_asynchronous_buffer(reader);
-	if (result != 0) {
-		return(result);
-	}
-
-	return(0);
-}
-
-static void video_swap_asynchronous_buffers(struct mp4_read_struct *reader) {
-	struct mp4_asynchronous_buffer *swap    = reader->video_current_asynchronous_buffer;
-	reader->video_current_asynchronous_buffer = reader->video_next_asynchronous_buffer;
-	reader->video_next_asynchronous_buffer    = swap;
-}
-
-static char *audio_fill_next_asynchronous_buffer(struct mp4_read_struct *reader) {
-	
-	unsigned int trunk_index = reader->audio_current_asynchronous_buffer->next_trunk_index;
-	if (trunk_index == reader->file.info->tracks[reader->file.audio_track_ids[reader->current_audio_track]]->stco_entry_count) {
-		trunk_index = 0;
-	}
-
-	char *result = fill_asynchronous_buffer(
-		reader, reader->audio_next_asynchronous_buffer, 
-		reader->audio_handle, 
-		reader->file.audio_track_ids[reader->current_audio_track], 
-		trunk_index);
-	if (result != 0) {
-		return(result);
-	}
-
-	return(0);
-}
-
-
-static char *audio_fill_current_and_next_asynchronous_buffer(struct mp4_read_struct *reader, unsigned int trunk_index) {
-	char *result = fill_and_wait_asynchronous_buffer(reader, 
-		reader->audio_current_asynchronous_buffer, 
-		reader->audio_handle, 
-		reader->file.audio_track_ids[reader->current_audio_track], 
-		trunk_index);
-	if (result != 0) {
-		return(result);
-	}
-
-	result = audio_fill_next_asynchronous_buffer(reader);
-	if (result != 0) {
-		return(result);
-	}
-
-	return(0);
-}
-
-static void audio_swap_asynchronous_buffers(struct mp4_read_struct *reader) {
-	struct asynchronous_buffer *swap    = reader->audio_current_asynchronous_buffer;
-	reader->audio_current_asynchronous_buffer = reader->audio_next_asynchronous_buffer;
-	reader->audio_next_asynchronous_buffer    = swap;
 }
 
 char *mp4_read_open(struct mp4_read_struct *p, char *s) {
@@ -236,222 +125,150 @@ char *mp4_read_open(struct mp4_read_struct *p, char *s) {
 	}
 
 
-	p->video_handle = sceIoOpen(s, PSP_O_RDONLY, 0777);
-	if (p->video_handle < 0) {
+	//p->reader = buffered_reader_open(s, 32768, 0);
+	p->reader = buffered_reader_open(s, 96*1024, 0, 0x30);
+	if (!p->reader) {
 		mp4_read_close(p);
 		return("mp4_read_open: can't open file");
 	}
-
-	if (sceIoChangeAsyncPriority(p->video_handle, 0x20) < 0) {
-		mp4_read_close(p);
-		return("mp4_read_open: sceIoChangeAsyncPriority failed");
-	}
 	
-	p->audio_handle = sceIoOpen(s, PSP_O_RDONLY, 0777);
-	if (p->audio_handle < 0) {
-		mp4_read_close(p);
-		return("mp4_read_open: can't open file");
-	}
-
-	if (sceIoChangeAsyncPriority(p->audio_handle, 0x20) < 0) {
-		mp4_read_close(p);
-		return("mp4_read_open: sceIoChangeAsyncPriority failed");
-	}
-
-
-	p->video_buffer_0 = malloc_64(p->file.maximum_video_trunk_size*2);
-	if (p->video_buffer_0 == 0) {
-		mp4_read_close(p);
-		return("mp4_read_open: malloc_64 failed on buffer_0");
-	}
-	memset(p->video_buffer_0, 0, p->file.maximum_video_trunk_size*2);
-
-	p->video_buffer_1 = malloc_64(p->file.maximum_video_trunk_size*2);
-	if (p->video_buffer_1 == 0) {
-		mp4_read_close(p);
-		return("mp4_read_open: malloc_64 failed on buffer_1");
-	}
-	memset(p->video_buffer_1, 0, p->file.maximum_video_trunk_size*2);
-	
-	p->audio_buffer_0 = malloc_64(p->file.maximum_audio_trunk_size*2);
-	if (p->audio_buffer_0== 0) {
-		mp4_read_close(p);
-		return("mp4_read_open: malloc_64 failed on buffer_0");
-	}
-	memset(p->audio_buffer_0, 0, p->file.maximum_audio_trunk_size*2);
-	
-	p->audio_buffer_1 = malloc_64(p->file.maximum_audio_trunk_size*2);
-	if (p->audio_buffer_1== 0) {
-		mp4_read_close(p);
-		return("mp4_read_open: malloc_64 failed on buffer_0");
-	}
-	memset(p->audio_buffer_1, 0, p->file.maximum_audio_trunk_size*2);
-	
-
-	p->video_asynchronous_buffer_0.buffer = p->video_buffer_0;
-	p->video_asynchronous_buffer_1.buffer = p->video_buffer_1;
-
-	p->video_current_asynchronous_buffer  = &p->video_asynchronous_buffer_0;
-	p->video_next_asynchronous_buffer     = &p->video_asynchronous_buffer_1;
-	
-	p->audio_asynchronous_buffer_0.buffer = p->audio_buffer_0;
-	p->audio_asynchronous_buffer_1.buffer = p->audio_buffer_1;
-
-	p->audio_current_asynchronous_buffer  = &p->audio_asynchronous_buffer_0;
-	p->audio_next_asynchronous_buffer     = &p->audio_asynchronous_buffer_1;
-	
-
-	result = video_fill_current_and_next_asynchronous_buffer(p, 0);
-	if (result != 0) {
-		mp4_read_close(p);
-		return(result);
-	}
-	result = audio_fill_current_and_next_asynchronous_buffer(p, 0);
-	if (result != 0) {
-		mp4_read_close(p);
-		return(result);
-	}
+	buffered_reader_seek(p->reader, p->file.indexes[0].offset);
 
 	return(0);
 }
 
-static unsigned int find_trunk_index_by_sample(struct mp4_read_struct *reader, int track_id, unsigned int sample) {
-	mp4info_track_t* track = reader->file.info->tracks[track_id];
-	int k;
-	for( k = 0; k < track->stco_entry_count; k++ ) {
-		
-		int i, j;
-		unsigned int first_sample, last_sample;
-		for( i = 0; i < track->stsc_entry_count-1; i++ ) {
-			if ( (k+1) >= track->stsc_first_chunk[i] && (k+1) < track->stsc_first_chunk[i+1] )
-				break;
-		}
-		first_sample = 0;
-		for( j = 0; j < i; j++ ) {
-			first_sample += ( ( track->stsc_first_chunk[j+1] - track->stsc_first_chunk[j] ) * track->stsc_samples_per_chunk[j] );
-		}
-		first_sample += ( ( (k+1) - track->stsc_first_chunk[i] ) * track->stsc_samples_per_chunk[i] );
-		last_sample = first_sample + track->stsc_samples_per_chunk[i] - 1;
-		
-		if ( sample >= first_sample && sample <= last_sample )
-			return k;
-	}
-	return 0;
-}
-
-
-static char *get_video_sample(struct mp4_read_struct *reader, unsigned int sample, void **buffer) {
+char *mp4_read_fill_buffer(struct mp4_read_struct *p, int track_id) {
 	
-	if (sample >= reader->video_current_asynchronous_buffer->first_sample && sample <= reader->video_current_asynchronous_buffer->last_sample) {
-		*buffer = reader->video_current_asynchronous_buffer->sample_buffer[sample - reader->video_current_asynchronous_buffer->first_sample];
-	}
-	else {
-		char *result = wait_asynchronous_buffer(reader, reader->video_next_asynchronous_buffer, reader->video_handle);
-		if (result != 0) {
-			return(result);
-		}
-
-		if (sample >= reader->video_next_asynchronous_buffer->first_sample && sample <= reader->video_next_asynchronous_buffer->last_sample) {
-			video_swap_asynchronous_buffers(reader);
-
-			result = video_fill_next_asynchronous_buffer(reader);
-			if (result != 0) {
-				return(result);
+	int video_track = p->file.video_track_id;
+	int audio_track = p->file.audio_track_ids[p->current_audio_track];
+	int current_track = track_id;
+	int track;
+	int tmp;
+	unsigned int track_sample; 
+	uint64_t timestamp;
+	while(1) {
+		if ( p->current_sample >= p->file.sample_count )
+			return "mp4_read_fill_buffer: eof";
+		track = (int)(( p->file.samples[p->current_sample].sample_index & 0xFF000000 ) >> 24);
+		if(track == video_track || track == audio_track){
+			struct mp4_read_output_struct packet;
+			packet.size = p->file.samples[p->current_sample].sample_size;
+			packet.data = malloc_64(packet.size);
+			if (packet.data == 0) {
+				return "mp4_read_fill_buffer: can not malloc_64 data buffer";
 			}
-
-			*buffer = reader->video_current_asynchronous_buffer->sample_buffer[sample - reader->video_current_asynchronous_buffer->first_sample];
+			if (buffered_reader_read(p->reader, packet.data, packet.size) != (uint32_t)(packet.size)) {
+				free_64(packet.data);
+				packet.data = 0;
+				return("mp4_read_fill_buffer: can not read data");
+			}
+			
+			track_sample = p->file.samples[p->current_sample].sample_index & 0x00FFFFFF;
+			if ( track  == video_track ) {
+				timestamp = 1000LL;
+				timestamp *= track_sample;
+				timestamp *= p->file.video_scale;
+				timestamp /= p->file.video_rate;
+				packet.timestamp = (int)timestamp;
+				tmp = in_mp4_read_queue(p->video_queue, &p->video_queue_size, &p->video_queue_rear, MP4_VIDEO_QUEUE_MAX, &packet);
+			}
+			else {
+				timestamp = 1000LL;
+				timestamp *= track_sample;
+				timestamp *= p->file.audio_resample_scale;
+				timestamp /= p->file.audio_rate;
+				packet.timestamp = (int)timestamp;
+				tmp = in_mp4_read_queue(p->audio_queue, &p->audio_queue_size, &p->audio_queue_rear, MP4_AUDIO_QUEUE_MAX, &packet);
+			}
+			if ( tmp == 0 )  {
+				free_64(packet.data);
+				return("mp4_read_fill_buffer: queue is full");
+			}
+			p->current_sample++;
+			if ( track == current_track )
+				return(0);
 		}
 		else {
-			unsigned int trunk_index;
-			trunk_index = find_trunk_index_by_sample(reader, reader->file.video_track_id, sample);
-			result = video_fill_current_and_next_asynchronous_buffer(reader, trunk_index);
-			if (result != 0){
-				return(result);
-			}
-			*buffer = reader->video_current_asynchronous_buffer->sample_buffer[sample - reader->video_current_asynchronous_buffer->first_sample];
+			buffered_reader_seek(p->reader,
+				buffered_reader_position(p->reader) + p->file.samples[p->current_sample].sample_size);
+			p->current_sample++;
 		}
 	}
-
+	
 	return(0);
 }
 
-static char *get_audio_sample(struct mp4_read_struct *reader, unsigned int track_index, unsigned int sample, void **buffer) {
-	char *result = 0;
-	if ( track_index != reader->current_audio_track ) {
-		result = wait_asynchronous_buffer(reader, reader->audio_next_asynchronous_buffer, reader->audio_handle);
-		if (result != 0) {
-			return(result);
+char *mp4_read_seek(struct mp4_read_struct *p, int timestamp, int last_timestamp) {
+	unsigned int i;
+	struct mp4_index_struct* index = 0;
+	if (timestamp < 0)
+		timestamp = 0;
+	if (last_timestamp < 0)
+		last_timestamp = 0;
+	for(i=0; i < p->file.index_count-1; i++) {
+		unsigned int timecode = p->file.indexes[i].timestamp;
+		unsigned int next_timecode = p->file.indexes[i+1].timestamp;
+		if (timestamp >= (int)timecode && timestamp < (int)next_timecode) {
+			break;
 		}
-		reader->current_audio_track = track_index;
-		unsigned int trunk_index ;
-		trunk_index = find_trunk_index_by_sample(reader, reader->file.audio_track_ids[reader->current_audio_track], sample);
-		result = audio_fill_current_and_next_asynchronous_buffer(reader, trunk_index);
-		if (result != 0){
-			return(result);
-		}
-		*buffer = reader->audio_current_asynchronous_buffer->sample_buffer[sample - reader->audio_current_asynchronous_buffer->first_sample];
-	}	
-	else if (sample >= reader->audio_current_asynchronous_buffer->first_sample && sample <= reader->audio_current_asynchronous_buffer->last_sample) {
-		*buffer = reader->audio_current_asynchronous_buffer->sample_buffer[sample - reader->audio_current_asynchronous_buffer->first_sample];
 	}
+	if ( timestamp > last_timestamp ) { 
+		if ( last_timestamp >= p->file.indexes[i].timestamp ) {
+			i = i+1;
+			if ( i > p->file.index_count-1 )
+				i = p->file.index_count-1;
+		}
+	}
+	else if ( timestamp < last_timestamp ) {
+		if ( i+1 < p->file.index_count && last_timestamp < p->file.indexes[i+1].timestamp ) {
+			i = i-1;
+			if ( i < 0 )
+				i = 0;
+		}
+	}
+	index = p->file.indexes + i;
+	buffered_reader_seek(p->reader, index->offset);
+	p->current_sample = index->sample_index;
+	
+	clear_mp4_read_queue(p->audio_queue, &p->audio_queue_size, &p->audio_queue_front, &p->audio_queue_rear, MP4_VIDEO_QUEUE_MAX);
+	clear_mp4_read_queue(p->video_queue, &p->video_queue_size, &p->video_queue_front, &p->video_queue_rear, MP4_AUDIO_QUEUE_MAX);
+	char* result = 0;
+	while(1) {
+		result = mp4_read_fill_buffer(p, p->file.video_track_id);
+		if (result) {
+			return (result);
+		}
+		if ( p->video_queue_size > 0 )
+			break; 
+	}
+	return(0);
+}
+
+char *mp4_read_get_video(struct mp4_read_struct *p, struct mp4_read_output_struct *output) {
+	if ( p->video_queue_size > 0 )
+		out_mp4_read_queue(p->video_queue, &p->video_queue_size, &p->video_queue_front, MP4_VIDEO_QUEUE_MAX, output);
 	else {
-		result = wait_asynchronous_buffer(reader, reader->audio_next_asynchronous_buffer, reader->audio_handle);
-		if (result != 0) {
-			return(result);
-		}
-
-		if (sample >= reader->audio_next_asynchronous_buffer->first_sample && sample <= reader->audio_next_asynchronous_buffer->last_sample) {
-			audio_swap_asynchronous_buffers(reader);
-
-			result = audio_fill_next_asynchronous_buffer(reader);
-			if (result != 0) {
-				return(result);
-			}
-
-			*buffer = reader->audio_current_asynchronous_buffer->sample_buffer[sample - reader->audio_current_asynchronous_buffer->first_sample];
-		}
-		else {
-			unsigned int trunk_index;
-			trunk_index = find_trunk_index_by_sample(reader, reader->file.audio_track_ids[reader->current_audio_track], sample);
-			result = audio_fill_current_and_next_asynchronous_buffer(reader, trunk_index);
-			if (result != 0){
-				return(result);
-			}
-			*buffer = reader->audio_current_asynchronous_buffer->sample_buffer[sample - reader->audio_current_asynchronous_buffer->first_sample];
-		}
+		char* res = mp4_read_fill_buffer(p, p->file.video_track_id);
+		if (res)
+			return res;
+		if ( !(p->video_queue_size>0) )
+			return "mp4_read_get_video: video queue is empty";
+		out_mp4_read_queue(p->video_queue, &p->video_queue_size, &p->video_queue_front, MP4_VIDEO_QUEUE_MAX, output);
 	}
-
 	return(0);
 }
 
-char *mp4_read_get_video(struct mp4_read_struct *p, unsigned int packet, struct mp4_read_output_struct *output) {
-	
-	void *video_buffer;
-
-	char *result = get_video_sample(p, packet, &video_buffer);
-	if (result != 0) {
-		return(result);
+char *mp4_read_get_audio(struct mp4_read_struct *p, unsigned int audio_stream, struct mp4_read_output_struct *output){
+	p->current_audio_track = audio_stream;
+	if ( p->audio_queue_size > 0 )
+		out_mp4_read_queue(p->audio_queue, &p->audio_queue_size, &p->audio_queue_front, MP4_AUDIO_QUEUE_MAX, output);
+	else {
+		char* res = mp4_read_fill_buffer(p, p->file.audio_track_ids[audio_stream]);
+		if (res)
+			return res;
+		if ( !(p->audio_queue_size>0) )
+			return "mp4_read_get_audio: audio queue is empty";
+		out_mp4_read_queue(p->audio_queue, &p->audio_queue_size, &p->audio_queue_front, MP4_AUDIO_QUEUE_MAX, output);
 	}
-	mp4info_track_t* track;
-	track = p->file.info->tracks[p->file.video_track_id];
-	output->size = track->stsz_sample_size ? track->stsz_sample_size : track->stsz_sample_size_table[packet];
-	output->data = video_buffer;
-	
-	return(0);
-}
-
-char *mp4_read_get_audio(struct mp4_read_struct *p, unsigned int packet, unsigned int audio_stream, struct mp4_read_output_struct *output){
-	
-	void *audio_buffer;
-	
-	char *result = get_audio_sample(p, audio_stream, packet, &audio_buffer);
-	if (result != 0) {
-		return(result);
-	}
-	mp4info_track_t* track;
-	track = p->file.info->tracks[p->file.audio_track_ids[audio_stream]];
-	output->size = track->stsz_sample_size ? track->stsz_sample_size : track->stsz_sample_size_table[packet];
-	output->data = audio_buffer;
-
 	return(0);
 }

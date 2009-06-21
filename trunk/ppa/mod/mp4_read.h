@@ -1,3 +1,24 @@
+/* 
+ *	Copyright (C) 2009 cooleyes
+ *	eyes.cooleyes@gmail.com 
+ *
+ *  This Program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2, or (at your option)
+ *  any later version.
+ *   
+ *  This Program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ *  GNU General Public License for more details.
+ *   
+ *  You should have received a copy of the GNU General Public License
+ *  along with GNU Make; see the file COPYING.  If not, write to
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  http://www.gnu.org/copyleft/gpl.html
+ *
+ */
+
 #ifndef __MP4_READ_H__
 #define __MP4_READ_H__
 
@@ -6,59 +27,38 @@
 #include <pspiofilemgr.h>
 #include "mp4_file.h"
 #include "common/mem64.h"
+#include "common/buffered_reader.h"
 
-#define MAXIMUM_SAMPLES_PER_TRUNK 128
+#define MP4_VIDEO_QUEUE_MAX 64
+#define MP4_AUDIO_QUEUE_MAX 64
 
-struct mp4_asynchronous_buffer {
-	unsigned int  first_sample;
-	unsigned int  last_sample;
-	unsigned int  trunk_size;
-	unsigned int  trunk_position;
-	unsigned int  trunk_index;
-	unsigned int  next_trunk_index;
-	void         *buffer;
-	void         *sample_buffer[MAXIMUM_SAMPLES_PER_TRUNK];
+struct mp4_read_output_struct {
+	unsigned int  size;
+	void* data;
+	int timestamp;
 };
-
 
 struct mp4_read_struct {
 	struct mp4_file_struct file;
 	
-	SceUID video_handle;
-	SceUID audio_handle;
+	buffered_reader_t* reader;
 	
 	int current_audio_track;
 	
-	void         *video_buffer_0;
-	void         *video_buffer_1;
-	void         *audio_buffer_0;
-	void         *audio_buffer_1;
+	unsigned int current_sample;
 	
-	
-	struct mp4_asynchronous_buffer video_asynchronous_buffer_0;
-	struct mp4_asynchronous_buffer video_asynchronous_buffer_1;
-	struct mp4_asynchronous_buffer audio_asynchronous_buffer_0;
-	struct mp4_asynchronous_buffer audio_asynchronous_buffer_1;
-
-	struct mp4_asynchronous_buffer *video_current_asynchronous_buffer;
-	struct mp4_asynchronous_buffer *video_next_asynchronous_buffer;
-	struct mp4_asynchronous_buffer *audio_current_asynchronous_buffer;
-	struct mp4_asynchronous_buffer *audio_next_asynchronous_buffer;
-};
-
-
-struct mp4_read_output_struct {
-	
-	unsigned int  size;
-	void* data;
-	
+	struct mp4_read_output_struct video_queue[MP4_VIDEO_QUEUE_MAX];
+	struct mp4_read_output_struct audio_queue[MP4_AUDIO_QUEUE_MAX];
+	unsigned int video_queue_front, video_queue_rear, video_queue_size;
+	unsigned int audio_queue_front, audio_queue_rear, audio_queue_size;
 };
 
 
 void mp4_read_safe_constructor(struct mp4_read_struct *p);
 void mp4_read_close(struct mp4_read_struct *p);
 char *mp4_read_open(struct mp4_read_struct *p, char *s);
-char *mp4_read_get_video(struct mp4_read_struct *p, unsigned int packet, struct mp4_read_output_struct *output);
-char *mp4_read_get_audio(struct mp4_read_struct *p, unsigned int packet, unsigned int audio_stream, struct mp4_read_output_struct *output);
+char *mp4_read_seek(struct mp4_read_struct *p, int timestamp, int last_timestamp);
+char *mp4_read_get_video(struct mp4_read_struct *p, struct mp4_read_output_struct *output);
+char *mp4_read_get_audio(struct mp4_read_struct *p, unsigned int audio_stream, struct mp4_read_output_struct *output);
 
 #endif
