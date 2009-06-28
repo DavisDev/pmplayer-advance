@@ -93,7 +93,7 @@ char *mkv_decode_open(struct mkv_decode_struct *p, char *s, int pspType, int tvA
 void  mkv_decode_close(struct mkv_decode_struct *p, int pspType);
 int   mkv_decode_is_eof(struct mkv_decode_struct *p);
 void  mkv_decode_reset(struct mkv_decode_struct *p);
-char *mkv_decode_seek(struct mkv_decode_struct *p, int timestamp);
+char *mkv_decode_seek(struct mkv_decode_struct *p, int timestamp, int last_timestamp);
 char *mkv_decode_get_video(struct mkv_decode_struct *p, unsigned int audio_stream, unsigned int volume_boost, unsigned int aspect_ratio, unsigned int zoom, unsigned int luminosity_boost, unsigned int show_interface, unsigned int show_subtitle, unsigned int subtitle_format, unsigned int loop, int* pic_num );
 char *mkv_decode_get_cached_video(struct mkv_decode_struct *p, unsigned int pic_num, unsigned int audio_stream, unsigned int volume_boost, unsigned int aspect_ratio, unsigned int zoom, unsigned int luminosity_boost, unsigned int show_interface, unsigned int show_subtitle, unsigned int subtitle_format, unsigned int loop);
 char *mkv_decode_get_audio(struct mkv_decode_struct *p, unsigned int audio_stream, int audio_channel, int decode_audio, unsigned int volume_boost);

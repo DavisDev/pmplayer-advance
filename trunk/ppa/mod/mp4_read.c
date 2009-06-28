@@ -199,7 +199,7 @@ char *mp4_read_fill_buffer(struct mp4_read_struct *p, int track_id) {
 }
 
 char *mp4_read_seek(struct mp4_read_struct *p, int timestamp, int last_timestamp) {
-	unsigned int i;
+	int i;
 	struct mp4_index_struct* index = 0;
 	if (timestamp < 0)
 		timestamp = 0;
@@ -227,6 +227,60 @@ char *mp4_read_seek(struct mp4_read_struct *p, int timestamp, int last_timestamp
 		}
 	}
 	index = p->file.indexes + i;
+	buffered_reader_seek(p->reader, index->offset);
+	p->current_sample = index->sample_index;
+	
+	clear_mp4_read_queue(p->audio_queue, &p->audio_queue_size, &p->audio_queue_front, &p->audio_queue_rear, MP4_VIDEO_QUEUE_MAX);
+	clear_mp4_read_queue(p->video_queue, &p->video_queue_size, &p->video_queue_front, &p->video_queue_rear, MP4_AUDIO_QUEUE_MAX);
+	char* result = 0;
+	while(1) {
+		result = mp4_read_fill_buffer(p, p->file.video_track_id);
+		if (result) {
+			return (result);
+		}
+		if ( p->video_queue_size > 0 )
+			break; 
+	}
+	return(0);
+}
+
+char *mp4_read_keyframe_forward(struct mp4_read_struct *p, int keyframes) {
+	int i;
+	struct mp4_index_struct* index = 0;
+	for(i=0; i < p->file.index_count; i++) {
+		index = p->file.indexes + i;
+		if ( index->sample_index > p->current_sample )
+			keyframes--;
+		if(keyframes == 0)
+			break;
+	}
+	buffered_reader_seek(p->reader, index->offset);
+	p->current_sample = index->sample_index;
+	
+	clear_mp4_read_queue(p->audio_queue, &p->audio_queue_size, &p->audio_queue_front, &p->audio_queue_rear, MP4_VIDEO_QUEUE_MAX);
+	clear_mp4_read_queue(p->video_queue, &p->video_queue_size, &p->video_queue_front, &p->video_queue_rear, MP4_AUDIO_QUEUE_MAX);
+	char* result = 0;
+	while(1) {
+		result = mp4_read_fill_buffer(p, p->file.video_track_id);
+		if (result) {
+			return (result);
+		}
+		if ( p->video_queue_size > 0 )
+			break; 
+	}
+	return(0);
+}
+
+char *mp4_read_keyframe_backward(struct mp4_read_struct *p, int keyframes) {
+	int i;
+	struct mp4_index_struct* index = 0;
+	for(i=p->file.index_count-1; i >= 0; i--) {
+		index = p->file.indexes + i;
+		if ( index->sample_index < p->current_sample )
+			keyframes--;
+		if(keyframes == 0)
+			break;
+	}
 	buffered_reader_seek(p->reader, index->offset);
 	p->current_sample = index->sample_index;
 	

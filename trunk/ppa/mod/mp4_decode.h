@@ -97,5 +97,7 @@ char *mp4_decode_seek(struct mp4_decode_struct *p, int timestamp, int last_times
 char *mp4_decode_get_video(struct mp4_decode_struct *p, unsigned int audio_stream, unsigned int volume_boost, unsigned int aspect_ratio, unsigned int zoom, unsigned int luminosity_boost, unsigned int show_interface, unsigned int show_subtitle, unsigned int subtitle_format, unsigned int loop, int* pic_num );
 char *mp4_decode_get_cached_video(struct mp4_decode_struct *p, unsigned int pic_num, unsigned int audio_stream, unsigned int volume_boost, unsigned int aspect_ratio, unsigned int zoom, unsigned int luminosity_boost, unsigned int show_interface, unsigned int show_subtitle, unsigned int subtitle_format, unsigned int loop);
 char *mp4_decode_get_audio(struct mp4_decode_struct *p, unsigned int audio_stream, int audio_channel, int decode_audio, unsigned int volume_boost);
+char *mp4_decode_keyframe_forward(struct mp4_decode_struct *p, int keyframes);
+char *mp4_decode_keyframe_backward(struct mp4_decode_struct *p, int keyframes);
 
 #endif

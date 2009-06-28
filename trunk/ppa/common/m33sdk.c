@@ -22,10 +22,12 @@
 #include <pspsdk.h>
 #include <kubridge.h>
 
+#define PSP_MODEL_3K   2
+
 int m33KernelGetModel() {
 	return kuKernelGetModel();
 };
 
 int m33IsTVOutSupported(int type){
-	return ( (type==PSP_MODEL_SLIM_AND_LITE) && (!(sceKernelDevkitVersion()<0x03070110)) );
+	return ( (type==PSP_MODEL_SLIM_AND_LITE || type==PSP_MODEL_3K) && (!(sceKernelDevkitVersion()<0x03070110)) );
 };

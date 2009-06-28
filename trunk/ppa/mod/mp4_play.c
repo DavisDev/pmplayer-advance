@@ -120,7 +120,9 @@ static int mp4_show_thread(SceSize input_length, void *input) {
 			avsync_status = mp4_avsync_status( p->decoder.output_audio_frame_buffers[p->current_audio_buffer_number].timestamp,
 				p->decoder.output_video_frame_buffers[p->current_video_buffer_number].timestamp,
 				p->decoder.video_frame_duration);
-
+			
+			if (p->seek != 0)
+				avsync_status = 1;
 			if(avsync_status > 0) {
 				if(avsync_status == 1) {
 					sceDisplayWaitVblankStart();
@@ -268,10 +270,14 @@ static void mp4_input(volatile struct mp4_play_struct *p, SceCtrlData *previous_
 					p->seek   = 0;
 				}
 				else if (controller.Buttons & PSP_CTRL_RIGHT) {
-					p->seek = 1;
+					if (p->seek != 2) {
+						p->seek ++;
+					}
 				}
 				else if (controller.Buttons & PSP_CTRL_LEFT) {
-					p->seek = -1;
+					if (p->seek != -2) {
+						p->seek --;
+					}
 				}
 				else if ((controller.Buttons & PSP_CTRL_SELECT) && ((previous_controller->Buttons & PSP_CTRL_SELECT) == 0)) {
 					if (p->audio_stream + 1 == p->decoder.reader.file.audio_tracks) {
@@ -320,7 +326,7 @@ static void mp4_input(volatile struct mp4_play_struct *p, SceCtrlData *previous_
 					}
 				}
 				else {
-					p->seek = 0;
+					//p->seek = 0;
 				}
 			}
 		}
@@ -392,37 +398,31 @@ void mp4_play_do_seek(volatile struct mp4_play_struct *p) {
 		return;
 	}
 	
-	int seek_timestamp, last_timestamp;
+	int keyframes = 0;
 	if (p->seek > 0) {
-		last_timestamp = p->current_timestamp;
-		seek_timestamp = last_timestamp + p->decoder.reader.file.seek_duration;
-
+		keyframes++;
+		
 		if (p->seek == 2) {
-			seek_timestamp += p->decoder.reader.file.seek_duration;
+			keyframes++;
 		}
 		
-		mp4_decode_seek((struct mp4_decode_struct *) &p->decoder, seek_timestamp, last_timestamp);
+		mp4_decode_keyframe_forward((struct mp4_decode_struct *) &p->decoder, keyframes);
 
 		return;
 	}
-
-
+	
 	if (p->seek < 0) {
-		last_timestamp = p->current_timestamp;
-		seek_timestamp = last_timestamp - p->decoder.reader.file.seek_duration;
+		keyframes++;
 
 		if (p->seek == -2) {
-			seek_timestamp -= p->decoder.reader.file.seek_duration;
+			keyframes++;
 		}
 		
-		if ( seek_timestamp < 0 )
-			seek_timestamp = 0;
-
 		int i;
 		for(i = 0; i < p->decoder.number_of_frame_buffers; i++)
 			p->decoder.output_video_frame_buffers[i].timestamp = -p->decoder.video_frame_duration;
 		
-		mp4_decode_seek((struct mp4_decode_struct *) &p->decoder, seek_timestamp, last_timestamp);
+		mp4_decode_keyframe_backward((struct mp4_decode_struct *) &p->decoder, keyframes);
 		
 		return;
 	}

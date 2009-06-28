@@ -132,6 +132,7 @@ struct mp4_avc_struct {
 extern "C" {
 #endif
 
+int mp4_avc_init_ddrtop();
 void mp4_avc_safe_constructor(struct mp4_avc_struct *p);
 void mp4_avc_close(struct mp4_avc_struct *p);
 char *mp4_avc_open(struct mp4_avc_struct *p, int avc_profile, int mpeg_mode, void* sps_buffer, int sps_size, void* pps_buffer, int pps_size, int nal_prefix_size);

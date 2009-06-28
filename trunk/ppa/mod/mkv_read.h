@@ -62,7 +62,7 @@ struct mkv_read_struct {
 void mkv_read_safe_constructor(struct mkv_read_struct *p);
 void mkv_read_close(struct mkv_read_struct *p);
 char *mkv_read_open(struct mkv_read_struct *p, char *s);
-char *mkv_read_seek(struct mkv_read_struct *p, int timestamp);
+char *mkv_read_seek(struct mkv_read_struct *p, int timestamp, int last_timestamp);
 char *mkv_read_get_video(struct mkv_read_struct *p, struct mkv_read_output_struct *output);
 char *mkv_read_get_audio(struct mkv_read_struct *p, unsigned int audio_stream, struct mkv_read_output_struct *output);
 
