@@ -465,7 +465,7 @@ void mkv_handle_text_subtitle_block(struct mkv_read_struct *p, uint8_t *block_bu
 }
 
 int mkv_handle_block(struct mkv_read_struct *p, uint8_t *block_buffer, uint64_t block_size, uint64_t block_duration, 
-	int64_t block_bref, int64_t block_fref, uint8_t simpleblock, int track_id, int skip_to_keyframe) {
+	int64_t block_bref, int64_t block_fref, uint8_t simpleblock, int track_id, int skip_to_keyframe, int seek_timestamp) {
 	int32_t tracknum;
 	int32_t current_tracknum, video_tracknum, audio_tracknum;
 	int32_t tmp = 0;
@@ -522,6 +522,10 @@ int mkv_handle_block(struct mkv_read_struct *p, uint8_t *block_buffer, uint64_t 
             	use_this_block = 0;
             	res = 0;
             }
+            else if ( seek_timestamp > 0 && timecode < seek_timestamp ) {
+            	use_this_block = 0;
+            	res = 0;
+            }
 		}
 	}
 	else {
@@ -562,7 +566,7 @@ int mkv_handle_block(struct mkv_read_struct *p, uint8_t *block_buffer, uint64_t 
 	return(res);
 }
 
-char *mkv_read_fill_buffer(struct mkv_read_struct *p, int track_id, int skip_to_keyframe) {
+char *mkv_read_fill_buffer(struct mkv_read_struct *p, int track_id, int skip_to_keyframe, int seek_timestamp) {
 	
 	int32_t il, tmp;
 	uint64_t l;
@@ -637,7 +641,7 @@ char *mkv_read_fill_buffer(struct mkv_read_struct *p, int track_id, int skip_to_
 				p->cluster_size -= l + il;
 			}
 			if (p->block_buffer) {
-				res = mkv_handle_block(p, (uint8_t *)(p->block_buffer), p->block_size, block_duration, block_bref, block_fref, 0, track_id, skip_to_keyframe);
+				res = mkv_handle_block(p, (uint8_t *)(p->block_buffer), p->block_size, block_duration, block_bref, block_fref, 0, track_id, skip_to_keyframe, seek_timestamp);
 				free_64(p->block_buffer);
 				p->block_buffer = 0;
 				if (res < 0) {
@@ -684,7 +688,7 @@ char *mkv_read_fill_buffer(struct mkv_read_struct *p, int track_id, int skip_to_
 							return("mkv_read_fill_buffer: can not read block");
 						}
 						l = tmp + p->block_size;
-						res = mkv_handle_block (p, (uint8_t *)(p->block_buffer), p->block_size, block_duration, block_bref, block_fref, 1, track_id, skip_to_keyframe);
+						res = mkv_handle_block (p, (uint8_t *)(p->block_buffer), p->block_size, block_duration, block_bref, block_fref, 1, track_id, skip_to_keyframe, seek_timestamp);
 						free_64(p->block_buffer);
 						p->block_buffer = 0;
 						p->cluster_size -= l + il;
@@ -718,7 +722,7 @@ char *mkv_read_fill_buffer(struct mkv_read_struct *p, int track_id, int skip_to_
 	return(0);
 }
 
-char *mkv_read_seek(struct mkv_read_struct *p, int timestamp) {
+char *mkv_read_seek(struct mkv_read_struct *p, int timestamp, int last_timestamp) {
 	int32_t video_tracknum = p->file.info->tracks[p->file.video_track_id]->tracknum;
 	int32_t i;
 	mkvinfo_index_t* index = 0;
@@ -737,6 +741,7 @@ char *mkv_read_seek(struct mkv_read_struct *p, int timestamp) {
 	if ( index == 0 ) {
 		index = p->file.info->indexes + (p->file.info->total_indexes-1);
 	}
+	int seek_timestamp = (timestamp > last_timestamp) ? timestamp : 0;
 	buffered_reader_seek(p->reader, index->filepos);
 	p->cluster_size = p->blockgroup_size = 0;
 	
@@ -744,7 +749,7 @@ char *mkv_read_seek(struct mkv_read_struct *p, int timestamp) {
 	clear_mkv_read_queue(p->video_queue, &p->video_queue_size, &p->video_queue_front, &p->video_queue_rear, MKV_AUDIO_QUEUE_MAX);
 	char* result = 0;
 	while(1) {
-		result = mkv_read_fill_buffer(p, p->file.video_track_id, 1);
+		result = mkv_read_fill_buffer(p, p->file.video_track_id, 1, seek_timestamp);
 		if (result) {
 			return (result);
 		}
@@ -758,7 +763,7 @@ char *mkv_read_get_video(struct mkv_read_struct *p, struct mkv_read_output_struc
 	if ( p->video_queue_size > 0 )
 		out_mkv_read_queue(p->video_queue, &p->video_queue_size, &p->video_queue_front, MKV_VIDEO_QUEUE_MAX, output);
 	else {
-		char* res = mkv_read_fill_buffer(p, p->file.video_track_id, 0);
+		char* res = mkv_read_fill_buffer(p, p->file.video_track_id, 0, 0);
 		if (res)
 			return res;
 		if ( !(p->video_queue_size>0) )
@@ -773,7 +778,7 @@ char *mkv_read_get_audio(struct mkv_read_struct *p, unsigned int audio_stream, s
 	if ( p->audio_queue_size > 0 )
 		out_mkv_read_queue(p->audio_queue, &p->audio_queue_size, &p->audio_queue_front, MKV_AUDIO_QUEUE_MAX, output);
 	else {
-		char* res = mkv_read_fill_buffer(p, p->file.audio_track_ids[audio_stream], 0);
+		char* res = mkv_read_fill_buffer(p, p->file.audio_track_ids[audio_stream], 0, 0);
 		if (res)
 			return res;
 		if ( !(p->audio_queue_size>0) )

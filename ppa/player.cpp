@@ -54,6 +54,8 @@
 
 #include "mod/subtitle_charset.h"
 #include "mod/cpu_clock.h"
+#include "mod/mp4avcdecoder.h"
+
 #include "mod/pmp.h"
 
 #include "mod/mp4.h"
@@ -341,7 +343,13 @@ int PmpAvcPlayer::init(char* ppaPath) {
 #ifdef ENABLE_NETHOST	
 	NetHost::setPrxBasePath(applicationPath);	
 #endif
-	
+
+#ifdef DEBUG
+	pspDebugScreenPrintf("malloc avc ddrtop ...\n");
+	if( mp4_avc_init_ddrtop() != 1 )
+		return 0;
+#endif
+
 	memset(tempPath, 0, 1024);
 	sprintf(tempPath, "%s%s", applicationPath, "moviestat.dat");
 	init_movie_stat(tempPath);
@@ -1082,7 +1090,10 @@ void PmpAvcPlayer::getCurrentMp4FilmInformation() {
 			initFilmInformation();
 			return;
 		}
-		filmTotalFrames = info->tracks[video_track_id]->stts_sample_count[0];
+		filmTotalFrames = 0;
+		for( i = 0; i < info->tracks[video_track_id]->stts_entry_count; i++)
+			filmTotalFrames += info->tracks[video_track_id]->stts_sample_count[i];
+		
 		filmWidth = info->tracks[video_track_id]->width;
 		filmHeight = info->tracks[video_track_id]->height;
 		filmScale = info->tracks[video_track_id]->stts_sample_duration[0];
@@ -1264,6 +1275,7 @@ void PmpAvcPlayer::paintFilmInformation() {
 
 void PmpAvcPlayer::paintLoading() {
 	char tempPath[1024];
+	memset(tempPath, 0, 1024);
 	sprintf(tempPath, "%s%s", skinPath, Skin::getInstance()->getStringValue("skin/extra/loading_image", "loading.png") );
 	Image* img = loadPNGImage(tempPath);
 	if ( img ) {
@@ -1279,6 +1291,7 @@ void PmpAvcPlayer::paintLoading() {
 
 void PmpAvcPlayer::showPadHelp() {
 	char tempPath[1024];
+	memset(tempPath, 0, 1024);
 	sprintf(tempPath, "%s%s", skinPath, Skin::getInstance()->getStringValue("skin/extra/pad_help_image", "pad.png") );
 	Image* img = loadPNGImage(tempPath);
 	if ( img ) {
@@ -1419,11 +1432,14 @@ void PmpAvcPlayer::playMovie(bool resume) {
 	sceKernelDcacheWritebackInvalidateAll();
 	sceKernelDelayThread(1000000);
 	if ( result ) {
-#ifdef DEBUG
-		FILE* log = fopen("ms0:/playlog.txt","w+");
+
+		char tempPath[1024];
+		memset(tempPath, 0, 1024);
+		sprintf(tempPath, "%s%s", applicationPath, "playlog.txt");
+		FILE* log = fopen(tempPath,"w+");
 		fprintf(log, "%s\n", result);
 		fclose(log);
-#endif
+
 #ifdef ENABLE_SUSPEND	
 		scePowerUnlock(0);
 #endif

@@ -282,6 +282,14 @@ char *mp4_decode_seek(struct mp4_decode_struct *p, int timestamp, int last_times
 	return mp4_read_seek(&p->reader, timestamp, last_timestamp);
 }
 
+char *mp4_decode_keyframe_forward(struct mp4_decode_struct *p, int keyframes) {
+	return mp4_read_keyframe_forward(&p->reader, keyframes);
+}
+
+char *mp4_decode_keyframe_backward(struct mp4_decode_struct *p, int keyframes) {
+	return mp4_read_keyframe_backward(&p->reader, keyframes);
+}
+
 char *mp4_decode_get_audio(struct mp4_decode_struct *p, unsigned int audio_stream, int audio_channel, int decode_audio, unsigned int volume_boost) {
 	char *result;
 	struct mp4_read_output_struct a_packet;

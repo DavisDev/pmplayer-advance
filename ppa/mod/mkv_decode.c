@@ -276,12 +276,12 @@ int   mkv_decode_is_eof(struct mkv_decode_struct *p) {
 }
 
 void  mkv_decode_reset(struct mkv_decode_struct *p) {
-	mkv_read_seek(&p->reader, 0);
+	mkv_read_seek(&p->reader, 0, 0);
 	p->is_eof = 0;
 }
 
-char *mkv_decode_seek(struct mkv_decode_struct *p, int timestamp) {
-	return mkv_read_seek(&p->reader, timestamp);
+char *mkv_decode_seek(struct mkv_decode_struct *p, int timestamp, int last_timestamp) {
+	return mkv_read_seek(&p->reader, timestamp, last_timestamp);
 }
 
 char *mkv_decode_get_audio(struct mkv_decode_struct *p, unsigned int audio_stream, int audio_channel, int decode_audio, unsigned int volume_boost) {

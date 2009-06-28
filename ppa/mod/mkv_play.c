@@ -30,7 +30,8 @@ void mkv_play_safe_constructor(struct mkv_play_struct *p) {
 	p->semaphore_can_put_audio   = -1;
 
 	p->output_thread = -1;
-	p->show_thread   = -1;	
+	p->show_thread   = -1;
+	p->demux_thread  = -1;	
 	
 	mkv_decode_safe_constructor(&p->decoder);
 }
@@ -51,6 +52,7 @@ void mkv_play_close(struct mkv_play_struct *p, int usePos, int pspType) {
 	
 	if (!(p->output_thread < 0)) sceKernelDeleteThread(p->output_thread);
 	if (!(p->show_thread   < 0)) sceKernelDeleteThread(p->show_thread);
+	if (!(p->demux_thread   < 0)) sceKernelDeleteThread(p->demux_thread);
 
 	mkv_decode_close(&p->decoder, pspType);
 
@@ -118,7 +120,8 @@ static int mkv_show_thread(SceSize input_length, void *input) {
 			avsync_status = mkv_avsync_status( p->decoder.output_audio_frame_buffers[p->current_audio_buffer_number].timestamp,
 				p->decoder.output_video_frame_buffers[p->current_video_buffer_number].timestamp,
 				p->decoder.video_frame_duration);
-
+			if(p->seek != 0)
+				avsync_status = 1;
 			if(avsync_status > 0) {
 				if(avsync_status == 1) {
 					sceDisplayWaitVblankStart();
@@ -266,10 +269,12 @@ static void mkv_input(volatile struct mkv_play_struct *p, SceCtrlData *previous_
 					p->seek   = 0;
 				}
 				else if (controller.Buttons & PSP_CTRL_RIGHT) {
-					p->seek = 1;
+					if(p->seek != 2)
+						p->seek += 1;
 				}
 				else if (controller.Buttons & PSP_CTRL_LEFT) {
-					p->seek = -1;
+					if(p->seek != -2)
+						p->seek += -1;
 				}
 				else if ((controller.Buttons & PSP_CTRL_SELECT) && ((previous_controller->Buttons & PSP_CTRL_SELECT) == 0)) {
 					if (p->audio_stream + 1 == p->decoder.reader.file.audio_tracks) {
@@ -318,7 +323,7 @@ static void mkv_input(volatile struct mkv_play_struct *p, SceCtrlData *previous_
 					}
 				}
 				else {
-					p->seek = 0;
+					//p->seek = 0;
 				}
 			}
 		}
@@ -351,7 +356,8 @@ static int mkv_output_thread(SceSize input_length, void *input) {
 					volume = PSP_AUDIO_VOLUME_MAX;
 			}
 			p->current_timestamp = current_buffer->timestamp;
-			sceAudioOutputBlocking(0, volume, current_buffer->data);
+			if ( p->seek == 0 )
+				sceAudioOutputBlocking(0, volume, current_buffer->data);
 			p->current_audio_buffer_number = (p->current_audio_buffer_number + 1) % p->decoder.number_of_frame_buffers;
 			if (first == 1) {
 				first = 0;
@@ -385,27 +391,30 @@ void mkv_play_do_seek(volatile struct mkv_play_struct *p) {
 	if (p->resume_pos>0) {
 		int pos = p->resume_pos;
 		p->resume_pos = 0;
-		mkv_decode_seek((struct mkv_decode_struct *) &p->decoder, pos);
+		mkv_decode_seek((struct mkv_decode_struct *) &p->decoder, pos, pos);
 		return;
 	}
 	
+	int seek_timestamp, last_timestamp;
 	if (p->seek > 0) {
-        	int seek_timestamp = p->current_timestamp + p->decoder.reader.file.seek_duration;
+        last_timestamp = p->current_timestamp;
+		seek_timestamp = last_timestamp + p->decoder.reader.file.seek_duration;
 
-        	if (p->seek == 2) {
+        if (p->seek == 2) {
 			seek_timestamp += p->decoder.reader.file.seek_duration;
 		}
 		
-		mkv_decode_seek((struct mkv_decode_struct *) &p->decoder, seek_timestamp);
+		mkv_decode_seek((struct mkv_decode_struct *) &p->decoder, seek_timestamp, last_timestamp);
 
 		return;
 	}
 
 
 	if (p->seek < 0) {
-        	int seek_timestamp = p->current_timestamp - p->decoder.reader.file.seek_duration;
+        last_timestamp = p->current_timestamp;
+		seek_timestamp = last_timestamp - p->decoder.reader.file.seek_duration;
 
-        	if (p->seek == -2) {
+        if (p->seek == -2) {
 			seek_timestamp -= p->decoder.reader.file.seek_duration;
 		}
 		
@@ -416,7 +425,7 @@ void mkv_play_do_seek(volatile struct mkv_play_struct *p) {
 		for(i = 0; i < p->decoder.number_of_frame_buffers; i++)
 			p->decoder.output_video_frame_buffers[i].timestamp = -p->decoder.video_frame_duration;
 		
-		mkv_decode_seek((struct mkv_decode_struct *) &p->decoder, seek_timestamp);
+		mkv_decode_seek((struct mkv_decode_struct *) &p->decoder, seek_timestamp, last_timestamp);
 		
 		return;
 	}
@@ -432,23 +441,11 @@ void mkv_play_reset(volatile struct mkv_play_struct *p) {
 	mkv_decode_reset((struct mkv_decode_struct *) &p->decoder);
 }
 
-char *mkv_play_start(volatile struct mkv_play_struct *p) {
-	sceKernelStartThread(p->output_thread, 4, &p);
-	sceKernelStartThread(p->show_thread,   4, &p);
-
-	int cached_video_frame = 0;
+static int mkv_demux_thread(SceSize input_length, void *input) {
+	volatile struct mkv_play_struct *p = *((void **) input);
 	
-	sceCtrlSetSamplingCycle(0);
-	sceCtrlSetSamplingMode(PSP_CTRL_MODE_ANALOG);
-	SceCtrlData previous_controller;
-	sceCtrlPeekBufferPositive(&previous_controller, 1);
-
-
-	while (p->return_request == 0 && !mkv_decode_is_eof((struct mkv_decode_struct *) &p->decoder)) {
-		
-		
-		mkv_input(p, &previous_controller);
-		
+	int cached_video_frame = 0;
+	while(p->return_request == 0 && !mkv_decode_is_eof((struct mkv_decode_struct *) &p->decoder)) {
 		int wait;
 		char* result;
 		
@@ -540,11 +537,37 @@ char *mkv_play_start(volatile struct mkv_play_struct *p) {
 		mkv_play_do_seek(p);
 
 
-		if ((p->loop == 1) && (mkv_decode_is_eof((struct mkv_decode_struct *) &p->decoder))) {
-			cached_video_frame = 0;
-			mkv_play_reset(p);
+		if ( mkv_decode_is_eof((struct mkv_decode_struct *) &p->decoder) ) {
+
+			if (p->loop == 1) {	
+				cached_video_frame = 0;
+				mkv_play_reset(p);
+			}
+			else {
+				p->return_request = 1;
+				break;
+			}
 		}
 		sceKernelDelayThread(10);
+	}
+}
+
+char *mkv_play_start(volatile struct mkv_play_struct *p) {
+	sceKernelStartThread(p->output_thread, 4, &p);
+	sceKernelStartThread(p->show_thread,   4, &p);
+	sceKernelStartThread(p->demux_thread,   4, &p);
+	
+	sceCtrlSetSamplingCycle(0);
+	sceCtrlSetSamplingMode(PSP_CTRL_MODE_ANALOG);
+	SceCtrlData previous_controller;
+	sceCtrlPeekBufferPositive(&previous_controller, 1);
+
+
+	while (p->return_request == 0 && !mkv_decode_is_eof((struct mkv_decode_struct *) &p->decoder)) {
+		
+		
+		mkv_input(p, &previous_controller);
+		
 	}
 
 	if (mkv_decode_is_eof((struct mkv_decode_struct *) &p->decoder)) {
@@ -559,7 +582,7 @@ char *mkv_play_start(volatile struct mkv_play_struct *p) {
 
 	sceKernelWaitThreadEnd(p->output_thread, 0);
 	sceKernelWaitThreadEnd(p->show_thread,   0);
-
+	sceKernelWaitThreadEnd(p->demux_thread,   0);
 
 	return(p->return_result);
 }
@@ -652,6 +675,12 @@ char *mkv_play_open(struct mkv_play_struct *p, struct movie_file_struct *movie, 
 	if (p->show_thread < 0) {
 		mkv_play_close(p, 0, pspType);
 		return("mkv_play_open: sceKernelCreateThread failed on show_thread");
+	}
+	
+	p->demux_thread = sceKernelCreateThread("demux", mkv_demux_thread, 0x30, 0x10000, PSP_THREAD_ATTR_USER, 0);
+	if (p->demux_thread < 0) {
+		mkv_play_close(p, 0, pspType);
+		return("mkv_play_open: sceKernelCreateThread failed on demux_thread");
 	}
 
 	p->return_request = 0;

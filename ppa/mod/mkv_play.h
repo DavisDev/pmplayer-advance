@@ -49,6 +49,7 @@ struct mkv_play_struct {
 
 	SceUID output_thread;
 	SceUID show_thread;
+	SceUID demux_thread;
 
 	int   return_request;
 	char *return_result;

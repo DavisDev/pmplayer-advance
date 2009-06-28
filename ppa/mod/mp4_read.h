@@ -29,8 +29,8 @@
 #include "common/mem64.h"
 #include "common/buffered_reader.h"
 
-#define MP4_VIDEO_QUEUE_MAX 64
-#define MP4_AUDIO_QUEUE_MAX 64
+#define MP4_VIDEO_QUEUE_MAX 256
+#define MP4_AUDIO_QUEUE_MAX 256
 
 struct mp4_read_output_struct {
 	unsigned int  size;
@@ -60,5 +60,6 @@ char *mp4_read_open(struct mp4_read_struct *p, char *s);
 char *mp4_read_seek(struct mp4_read_struct *p, int timestamp, int last_timestamp);
 char *mp4_read_get_video(struct mp4_read_struct *p, struct mp4_read_output_struct *output);
 char *mp4_read_get_audio(struct mp4_read_struct *p, unsigned int audio_stream, struct mp4_read_output_struct *output);
-
+char *mp4_read_keyframe_forward(struct mp4_read_struct *p, int keyframes);
+char *mp4_read_keyframe_backward(struct mp4_read_struct *p, int keyframes); 
 #endif

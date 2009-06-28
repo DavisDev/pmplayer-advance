@@ -26,6 +26,16 @@
 
 static ScePVoid DDRTOP = 0;
 
+int mp4_avc_init_ddrtop() {
+	if ( DDRTOP == 0 ) {
+		DDRTOP = memalign(0x400000, 0x200000);
+	}
+	if ( DDRTOP )
+		return 1;
+	else
+		return 0;
+}
+
 void mp4_avc_safe_constructor(struct mp4_avc_struct *p) {
 	p->mpeg_init = -1;
 	p->mpeg_create = -1;
