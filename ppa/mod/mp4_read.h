@@ -47,6 +47,11 @@ struct mp4_read_struct {
 	
 	unsigned int current_sample;
 	
+	buffered_reader_t* v_reader;
+	buffered_reader_t* a_reader;
+	unsigned int current_video_sample;
+	unsigned int current_audio_sample;
+	
 	struct mp4_read_output_struct video_queue[MP4_VIDEO_QUEUE_MAX];
 	struct mp4_read_output_struct audio_queue[MP4_AUDIO_QUEUE_MAX];
 	unsigned int video_queue_front, video_queue_rear, video_queue_size;
