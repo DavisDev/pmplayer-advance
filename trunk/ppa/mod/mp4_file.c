@@ -39,6 +39,12 @@ void mp4_file_safe_constructor(struct mp4_file_struct *p) {
 	p->index_count = 0;
 	p->indexes = 0;
 	
+	p->is_not_interlace = 0;
+	p->first_video_offset = 0xFFFFFFFF;
+	p->first_video_sample = 0;
+	p->first_audio_offset = 0xFFFFFFFF;
+	p->first_audio_sample = 0;
+	
 	p->seek_duration = 5000;
 	
 }
@@ -96,6 +102,22 @@ char *mp4_file_build_index(struct mp4_file_struct *p) {
 	unsigned int current_sample = 0;
 	unsigned int current_index = 0;
 	
+	
+	mp4info_track_t* v_track = p->info->tracks[p->video_track_id];
+	mp4info_track_t* a_track = p->info->tracks[p->audio_track_ids[0]];
+	
+	if ( (v_track->stco_chunk_offset[v_track->stco_entry_count-1] < a_track->stco_chunk_offset[0]) 
+		|| (v_track->stco_chunk_offset[0] > a_track->stco_chunk_offset[a_track->stco_entry_count-1]) ) {
+		
+		if ( p->info->total_tracks > 2 ) {
+			mp4_file_close(p);
+			return("mp4_file_open: can't support this file");
+		}
+		else
+			p->is_not_interlace = 1;
+	}
+	
+	
 	for(i=0; i<p->info->total_tracks; i++) {
 		p->sample_count += mp4_get_sample_count(p->info->tracks[i]);
 	}
@@ -150,6 +172,10 @@ char *mp4_file_build_index(struct mp4_file_struct *p) {
 			p->samples[current_sample].sample_size = mp4_get_sample_size(track, ui);
 			
 			if ( current_track == p->video_track_id ) {
+				if ( 0xFFFFFFFF == p->first_video_offset) {
+					p->first_video_offset = min_offset;
+					p->first_video_sample = current_sample;
+				}
 			 	if ( p->samples[current_sample].sample_size > p->maximum_video_sample_size) {
 					p->maximum_video_sample_size = p->samples[current_sample].sample_size;
 				}
@@ -163,6 +189,12 @@ char *mp4_file_build_index(struct mp4_file_struct *p) {
 					p->indexes[current_index].sample_index = current_sample;
 					p->indexes[current_index].offset = min_offset;
 					current_index++;
+				}
+			}
+			else if ( current_track == p->audio_track_ids[0] ) {
+				if ( 0xFFFFFFFF == p->first_audio_offset) {
+					p->first_audio_offset = min_offset;
+					p->first_audio_sample = current_sample;
 				}
 			}
 			

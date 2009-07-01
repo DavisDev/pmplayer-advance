@@ -79,6 +79,12 @@ struct mp4_file_struct {
 	unsigned int index_count;
 	struct mp4_index_struct* indexes;
 	
+	int is_not_interlace;
+	unsigned int first_video_offset;
+	unsigned int first_video_sample;
+	unsigned int first_audio_offset;
+	unsigned int first_audio_sample;
+	
 };
 
 void mp4_file_safe_constructor(struct mp4_file_struct *p);
