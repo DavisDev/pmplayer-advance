@@ -50,8 +50,16 @@ int VideoMode::pspType = 0;
 bool VideoMode::init(int type, const char* prx) {
 	VideoMode::pspType = type;
 	if ( m33IsTVOutSupported(type) ) {
-		if (pspSdkLoadStartModule(prx, PSP_MEMORY_PARTITION_KERNEL) < 0)
+		SceUID modid;
+		int status;
+		modid = m33KernelLoadModule(prx, 0, NULL);
+		if (modid < 0){
 			return false;
+		}
+		modid = sceKernelStartModule(modid, 0, 0, &status, NULL);
+		if (modid < 0){
+			return false;
+		}
 		else
 			return true;
 	}

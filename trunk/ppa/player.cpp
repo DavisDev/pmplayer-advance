@@ -50,6 +50,7 @@
 #include "common/ctrl.h"
 #include "common/imagefile.h"
 #include "common/base64.h"
+#include "common/m33sdk.h"
 
 
 #include "mod/subtitle_charset.h"
@@ -293,6 +294,8 @@ void PmpAvcPlayer::initSkinData() {
 int PmpAvcPlayer::init(char* ppaPath) {
 	
 	char tempPath[1024];
+	SceUID modid;
+	int status;
 
 	pspType = m33KernelGetModel();
 	
@@ -309,18 +312,30 @@ int PmpAvcPlayer::init(char* ppaPath) {
 #ifdef DEBUG	
 	pspDebugScreenPrintf("load cooleyesBridge.prx...\n");
 #endif
-	SceUID mod = pspSdkLoadStartModule("cooleyesBridge.prx", PSP_MEMORY_PARTITION_KERNEL);
-	if (mod < 0){
-        	return 0;
-        }
+	memset(tempPath, 0, 1024);
+	sprintf(tempPath, "%s%s", applicationPath, "cooleyesBridge.prx");
+	modid = m33KernelLoadModule(tempPath, 0, NULL);
+	if (modid < 0){
+		return 0;
+	}
+	modid = sceKernelStartModule(modid, 0, 0, &status, NULL);
+	if (modid < 0){
+		return 0;
+	}
 
 #ifdef DEBUG	
 	pspDebugScreenPrintf("load miniconv.prx...\n");
 #endif
-        mod = pspSdkLoadStartModule("miniconv.prx", PSP_MEMORY_PARTITION_USER);
-	if (mod < 0){
-        	return 0;
-        }
+    memset(tempPath, 0, 1024);
+	sprintf(tempPath, "%s%s", applicationPath, "miniconv.prx");
+	modid = m33KernelLoadModule(tempPath, 0, NULL);
+	if (modid < 0){
+		return 0;
+	}
+	modid = sceKernelStartModule(modid, 0, 0, &status, NULL);
+	if (modid < 0){
+		return 0;
+	}
 
 	memset(tempPath, 0, 1024);
 	sprintf(tempPath, "%s%s", applicationPath, "dvemgr.prx");

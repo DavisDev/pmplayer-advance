@@ -100,6 +100,15 @@ int main(int argc, char **argv){
 	player = new PmpAvcPlayer();
 	if (player->init(0))
 		player->run();
+	else {
+		pspDebugScreenPrintf("init fail, press X to exit...\n");
+		SceCtrlData input;
+		sceCtrlReadBufferPositive(&input, 1);
+		while(!(input.Buttons & PSP_CTRL_CROSS)) {
+			sceKernelDelayThread(10000);	// wait 10 milliseconds
+			sceCtrlReadBufferPositive(&input, 1);
+		}
+	}
 	delete player;
 	player = NULL;
 #ifdef DEBUG	

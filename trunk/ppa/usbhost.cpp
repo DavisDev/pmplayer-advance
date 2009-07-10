@@ -24,6 +24,7 @@
 #include <pspsdk.h>
 #include <pspusb.h>
 #include <string.h>
+#include "common/m33sdk.h"
 #include "usbhost.h"
 
 #define HOSTFSDRIVER_NAME "USBHostFSDriver"
@@ -50,7 +51,7 @@ static int load_start_module(const char *name, int argc, char **argv) {
 	char args[1024];
 	int len;
 
-	modid = sceKernelLoadModule(name, 0, NULL);
+	modid = m33KernelLoadModule(name, 0, NULL);
 	if(modid >= 0) {
 		len = build_args(args, name, argc, argv);
 		modid = sceKernelStartModule(modid, len, (void *) args, &status, NULL);

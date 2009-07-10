@@ -21,12 +21,19 @@
 #ifndef __M33SDK_H__
 #define __M33SDK_H__
 
+#include <pspsdk.h>
+#include <pspkernel.h>
+#include <pspsysmem_kernel.h>
+#include <pspctrl.h>
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 int m33KernelGetModel();
 int m33IsTVOutSupported(int type);
+SceUID m33KernelLoadModule(const char *path, int flags, SceKernelLMOption *option);
 
 #ifdef __cplusplus
 }
