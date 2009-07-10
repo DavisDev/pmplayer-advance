@@ -104,13 +104,13 @@ void mp4_read_close(struct mp4_read_struct *p) {
 	
 	mp4_file_close(&p->file);
 
-	if (!(p->reader))
+	if (p->reader)
 		buffered_reader_close(p->reader);
 		
-	if (!(p->v_reader))
+	if (p->v_reader)
 		buffered_reader_close(p->v_reader);
 		
-	if (!(p->a_reader))
+	if (p->a_reader)
 		buffered_reader_close(p->a_reader);
 	
 	int i;

@@ -20,6 +20,7 @@
  */
  
 #include "codec_prx.h"
+#include "common/m33sdk.h"
  
 char *load_codec_prx(const char* ppa_path, int devkitVersion)
 	{
@@ -40,7 +41,7 @@ char *load_codec_prx(const char* ppa_path, int devkitVersion)
 	else
 		sprintf(prx_path, "%s%s", ppa_path, "mpeg_vsh370.prx");
 	int status;
-	result = sceKernelLoadModule(prx_path, 0, NULL);
+	result = m33KernelLoadModule(prx_path, 0, NULL);
 	if(result >= 0) {
 		result = sceKernelStartModule(result, 0, 0, &status, NULL);
 	}

@@ -31,3 +31,7 @@ int m33KernelGetModel() {
 int m33IsTVOutSupported(int type){
 	return ( (type==PSP_MODEL_SLIM_AND_LITE || type==PSP_MODEL_3K) && (!(sceKernelDevkitVersion()<0x03070110)) );
 };
+
+SceUID m33KernelLoadModule(const char *path, int flags, SceKernelLMOption *option){
+	return kuKernelLoadModule(path, flags, option);
+};

@@ -279,7 +279,7 @@ void mkv_read_close(struct mkv_read_struct *p) {
 	
 	mkv_file_close(&p->file);
 
-	if (!(p->reader))
+	if (p->reader)
 		buffered_reader_close(p->reader);
 		
 	if (p->block_buffer != 0)
