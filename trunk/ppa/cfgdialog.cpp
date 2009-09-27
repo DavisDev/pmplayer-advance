@@ -31,6 +31,7 @@
 #include "common/libminiconv.h"
 #include "common/directory.h"
 #include "common/graphics.h"
+#include "common/libi18n.h"
 
 #include "mod/cpu_clock.h"
 #include "mod/subtitle_charset.h"
@@ -94,7 +95,7 @@ public:
 };
 
 CpuSpeedConfigItem::CpuSpeedConfigItem(ConfigDialog* dialog, Image* drawImage) : ConfigItem(dialog, drawImage) {
-	label = "CPU Speed: ";
+	label = i18nGetText(I18N_MSG_CFG_CPU_SPEED);
 	values[0] = 66;
 	values[1] = 120;
 	values[2] = 133;
@@ -183,7 +184,7 @@ public:
 };
 
 SubCharsetConfigItem::SubCharsetConfigItem(ConfigDialog* dialog, Image* drawImage) : ConfigItem(dialog, drawImage) {
-	label = "Subtitles Charset: ";
+	label = i18nGetText(I18N_MSG_CFG_SUBTITLES_CHARSET);
 
 	count = miniConvGetConvCount();
 
@@ -260,7 +261,7 @@ public:
 };
 
 SubFontSizeConfigItem::SubFontSizeConfigItem(ConfigDialog* dialog, Image* drawImage) : ConfigItem(dialog, drawImage) {
-	label = "Subtitles FontSize: ";
+	label = i18nGetText(I18N_MSG_CFG_SUBTITLES_FONTSIZE);
 
 	Config* config = Config::getInstance();
 	currentValue = config->getIntegerValue("config/subtitles/font/size", 16);
@@ -333,7 +334,7 @@ public:
 };
 
 SubEmboldenConfigItem::SubEmboldenConfigItem(ConfigDialog* dialog, Image* drawImage) : ConfigItem(dialog, drawImage) {
-	label = "Subtitles Embolden: ";
+	label = i18nGetText(I18N_MSG_CFG_SUBTITLES_EMBOLDEN);
 
 	Config* config = Config::getInstance();
 	currentValue = config->getBooleanValue("config/subtitles/font/embolden", false);
@@ -354,16 +355,16 @@ void SubEmboldenConfigItem::paint(int x, int y, int w, int h) {
 	memset(valueString, 0, 64);
 	if ( editing ) {
 		if ( newValue )
-			sprintf(valueString, "TRUE");
+			sprintf(valueString, i18nGetText(I18N_MSG_YES));
 		else
-			sprintf(valueString, "FALSE");
+			sprintf(valueString, i18nGetText(I18N_MSG_NO));
 		mainFont->printStringToImage(drawImage, x1, y+fontSize-1, w-2-x1+x, h-2, valueEdColor, valueString);
 	}
 	else {
 		if ( currentValue )
-			sprintf(valueString, "TRUE");
+			sprintf(valueString, i18nGetText(I18N_MSG_YES));
 		else
-			sprintf(valueString, "FALSE");
+			sprintf(valueString, i18nGetText(I18N_MSG_NO));
 		mainFont->printStringToImage(drawImage, x1, y+fontSize-1, w-2-x1+x, h-2, valueColor, valueString);
 	}
 };
@@ -415,19 +416,15 @@ public:
 };
 
 SubAlignConfigItem::SubAlignConfigItem(ConfigDialog* dialog, Image* drawImage) : ConfigItem(dialog, drawImage) {
-	label = "Subtitles Position Align: ";
-	values[0] = "TOP";
-	values[1] = "BOTTOM";
+	label = i18nGetText(I18N_MSG_CFG_SUBTITLES_POSITION_ALIGN);
+	values[0] = i18nGetText(I18N_MSG_CFG_SUBTITLES_POSITION_ALIGN_TOP);
+	values[1] = i18nGetText(I18N_MSG_CFG_SUBTITLES_POSITION_ALIGN_BOTTOM);
 	
 	Config* config = Config::getInstance();
 	const char* configValue = config->getStringValue("config/subtitles/position/align", "bottom");
-	int i;
-	for( i = 0; i< 2; i++)
-		if ( stricmp(values[i], configValue) == 0 ) {
-			currentValue = i;
-			break;
-		}
-	if (i == 2)
+	if ( stricmp("top", configValue) == 0 )
+		currentValue = 0;
+	else
 		currentValue = 1;
 	newValue = currentValue;
 };
@@ -461,7 +458,7 @@ void SubAlignConfigItem::enterEditStatus() {
 		}
 		else if ( key & PSP_CTRL_CIRCLE ) {
 			Config* config = Config::getInstance();
-			config->setStringValue("config/subtitles/position/align", values[newValue]);
+			config->setStringValue("config/subtitles/position/align", ((newValue==0)?"TOP":"BOTTOM"));
 			gu_font_align_set( newValue );
 			currentValue = newValue;
 			break;
@@ -492,7 +489,7 @@ public:
 };
 
 SubDistanceConfigItem::SubDistanceConfigItem(ConfigDialog* dialog, Image* drawImage) : ConfigItem(dialog, drawImage) {
-	label = "Subtitles Position Distance: ";
+	label = i18nGetText(I18N_MSG_CFG_SUBTITLES_POSITION_DISTANCE);
 
 	Config* config = Config::getInstance();
 	currentValue = config->getIntegerValue("config/subtitles/position/distance", 16);
@@ -567,7 +564,7 @@ public:
 };
 
 FilesystemCharsetConfigItem::FilesystemCharsetConfigItem(ConfigDialog* dialog, Image* drawImage) : ConfigItem(dialog, drawImage) {
-	label = "FileSystem Charset: ";
+	label = i18nGetText(I18N_MSG_CFG_FILESYSTEM_CHARSET);
 	count = miniConvGetConvCount();
 	
 	Config* config = Config::getInstance();
@@ -642,7 +639,7 @@ public:
 };
 
 UsbHostConfigItem::UsbHostConfigItem(ConfigDialog* dialog, Image* drawImage) : ConfigItem(dialog, drawImage) {
-	label = "USB Host: ";
+	label = i18nGetText(I18N_MSG_CFG_USB_HOST);
 
 	currentValue = UsbHost::getUsbHostState();
 	newValue = currentValue;
@@ -662,16 +659,16 @@ void UsbHostConfigItem::paint(int x, int y, int w, int h) {
 	memset(valueString, 0, 64);
 	if ( editing ) {
 		if ( newValue )
-			sprintf(valueString, "ON");
+			sprintf(valueString, i18nGetText(I18N_MSG_ON));
 		else
-			sprintf(valueString, "OFF");
+			sprintf(valueString, i18nGetText(I18N_MSG_OFF));
 		mainFont->printStringToImage(drawImage, x1, y+fontSize-1, w-2-x1+x, h-2, valueEdColor, valueString);
 	}
 	else {
 		if ( currentValue )
-			sprintf(valueString, "ON");
+			sprintf(valueString, i18nGetText(I18N_MSG_ON));
 		else
-			sprintf(valueString, "OFF");
+			sprintf(valueString, i18nGetText(I18N_MSG_OFF));
 		mainFont->printStringToImage(drawImage, x1, y+fontSize-1, w-2-x1+x, h-2, valueColor, valueString);
 	}
 };
@@ -723,7 +720,7 @@ public:
 };
 
 NetEntryConfigItem::NetEntryConfigItem(ConfigDialog* dialog, Image* drawImage) : ConfigItem(dialog, drawImage) {
-	label = "Net Entry: ";
+	label = i18nGetText(I18N_MSG_CFG_NET_ENTRY);
 
 	Config* config = Config::getInstance();
 	currentValue = config->getIntegerValue("config/filesystem/net_filesystem/entry", 1);
@@ -749,7 +746,7 @@ void NetEntryConfigItem::paint(int x, int y, int w, int h) {
 		sceUtilityGetNetParam(newValue, 0, (netData*)valueString);
 #endif
 		if ( strlen(valueString) == 0 ) 
-			sprintf(valueString, "<Not used>");
+			sprintf(valueString, i18nGetText(I18N_MSG_NOT_USED));
 		mainFont->printStringToImage(drawImage, x1, y+fontSize-1, w-2-x1+x, h-2, valueEdColor, valueString);
 	}
 	else {
@@ -757,7 +754,7 @@ void NetEntryConfigItem::paint(int x, int y, int w, int h) {
 		sceUtilityGetNetParam(currentValue, 0, (netData*)valueString);
 #endif
 		if ( strlen(valueString) == 0 ) 
-			sprintf(valueString, "<Not used>");
+			sprintf(valueString, i18nGetText(I18N_MSG_NOT_USED));
 		mainFont->printStringToImage(drawImage, x1, y+fontSize-1, w-2-x1+x, h-2, valueColor, valueString);
 	}
 };
@@ -806,7 +803,7 @@ public:
 };
 
 NetAddressConfigItem::NetAddressConfigItem(ConfigDialog* dialog, Image* drawImage) : ConfigItem(dialog, drawImage) {
-	label = "Net Address: ";
+	label = i18nGetText(I18N_MSG_CFG_NET_ADDRESS);
 
 	Config* config = Config::getInstance();
 	memset( currentValue, 0, 16+1 );
@@ -938,7 +935,7 @@ public:
 };
 
 NetAdhocAddressConfigItem::NetAdhocAddressConfigItem(ConfigDialog* dialog, Image* drawImage) : ConfigItem(dialog, drawImage) {
-	label = "Net Adhoc Address: ";
+	label = i18nGetText(I18N_MSG_CFG_NET_ADHOC_ADDRESS);
 
 	Config* config = Config::getInstance();
 	memset( currentValue, 0, 16+1 );
@@ -1068,7 +1065,7 @@ public:
 };
 
 NetPortConfigItem::NetPortConfigItem(ConfigDialog* dialog, Image* drawImage) : ConfigItem(dialog, drawImage) {
-	label = "Net Port: ";
+	label = i18nGetText(I18N_MSG_CFG_NET_PORT);
 
 	Config* config = Config::getInstance();
 	currentValue = config->getIntegerValue("config/filesystem/net_filesystem/port", 7513);
@@ -1140,7 +1137,7 @@ public:
 };
 
 NetHostConfigItem::NetHostConfigItem(ConfigDialog* dialog, Image* drawImage) : ConfigItem(dialog, drawImage) {
-	label = "Net Host: ";
+	label = i18nGetText(I18N_MSG_CFG_NET_HOST);
 
 	currentValue = NetHost::getNetHostState();
 	newValue = currentValue;
@@ -1160,16 +1157,16 @@ void NetHostConfigItem::paint(int x, int y, int w, int h) {
 	memset(valueString, 0, 64);
 	if ( editing ) {
 		if ( newValue )
-			sprintf(valueString, "ON");
+			sprintf(valueString, i18nGetText(I18N_MSG_ON));
 		else
-			sprintf(valueString, "OFF");
+			sprintf(valueString, i18nGetText(I18N_MSG_OFF));
 		mainFont->printStringToImage(drawImage, x1, y+fontSize-1, w-2-x1+x, h-2, valueEdColor, valueString);
 	}
 	else {
 		if ( currentValue )
-			sprintf(valueString, "ON");
+			sprintf(valueString, i18nGetText(I18N_MSG_ON));
 		else
-			sprintf(valueString, "OFF");
+			sprintf(valueString, i18nGetText(I18N_MSG_OFF));
 		mainFont->printStringToImage(drawImage, x1, y+fontSize-1, w-2-x1+x, h-2, valueColor, valueString);
 	}
 };
@@ -1233,20 +1230,18 @@ public:
 };
 
 PlayModeConfigItem::PlayModeConfigItem(ConfigDialog* dialog, Image* drawImage) : ConfigItem(dialog, drawImage) {
-	label = "Play Mode: ";
-	values[0] = "SINGLE";
-	values[1] = "GROUP";
-	values[2] = "ALL";
+	label = i18nGetText(I18N_MSG_CFG_PLAY_MODE);
+	values[0] = i18nGetText(I18N_MSG_CFG_PLAY_MODE_SINGLE);
+	values[1] = i18nGetText(I18N_MSG_CFG_PLAY_MODE_GROUP);
+	values[2] = i18nGetText(I18N_MSG_CFG_PLAY_MODE_ALL);
 	
 	Config* config = Config::getInstance();
 	const char* configValue = config->getStringValue("config/player/play_mode", "group");
-	int i;
-	for( i = 0; i< 3; i++)
-		if ( stricmp(values[i], configValue) == 0 ) {
-			currentValue = i;
-			break;
-		}
-	if (i == 3)
+	if ( stricmp("SINGLE", configValue) == 0 ) 
+		currentValue = 0;
+	else if ( stricmp("ALL", configValue) == 0 ) 
+		currentValue = 2;
+	else
 		currentValue = 1;
 	newValue = currentValue;
 };
@@ -1280,7 +1275,12 @@ void PlayModeConfigItem::enterEditStatus() {
 		}
 		else if ( key & PSP_CTRL_CIRCLE ) {
 			Config* config = Config::getInstance();
-			config->setStringValue("config/player/play_mode", values[newValue]);
+			if ( newValue == 0 )
+				config->setStringValue("config/player/play_mode", "SINGLE");
+			else if( newValue == 1 )
+				config->setStringValue("config/player/play_mode", "GROUP");
+			else
+				config->setStringValue("config/player/play_mode", "ALL");
 			currentValue = newValue;
 			break;
 		}
@@ -1311,7 +1311,7 @@ public:
 };
 
 TVAspectRatioConfigItem::TVAspectRatioConfigItem(ConfigDialog* dialog, Image* drawImage) : ConfigItem(dialog, drawImage) {
-	label = "TV AspectRatio: ";
+	label = i18nGetText(I18N_MSG_CFG_TV_AR);
 	values[0] = "16:9";
 	values[1] = "4:3";
 		
@@ -1394,7 +1394,7 @@ public:
 };
 
 TVOverScanConfigItem::TVOverScanConfigItem(ConfigDialog* dialog, Image* drawImage) : ConfigItem(dialog, drawImage) {
-	label = "TV OverScan(L.T.R.B): ";
+	label = i18nGetText(I18N_MSG_CFG_TV_OVERSCAN);
 
 	Config* config = Config::getInstance();
 	memset( currentValue, 0, 16+1 );
@@ -1528,11 +1528,11 @@ public:
 };
 
 VideoModeConfigItem::VideoModeConfigItem(ConfigDialog* dialog, Image* drawImage) : ConfigItem(dialog, drawImage) {
-	label = "Video Mode: ";
-	values[0] = "PSP LCD";
-	values[1] = "Composite";
-	values[2] = "Component Interlace";
-	values[3] = "Component Progressive";
+	label = i18nGetText(I18N_MSG_CFG_VIDEO_MODE);
+	values[0] = i18nGetText(I18N_MSG_CFG_VIDEO_MODE_LCD);
+	values[1] = i18nGetText(I18N_MSG_CFG_VIDEO_MODE_COMPOSITE);
+	values[2] = i18nGetText(I18N_MSG_CFG_VIDEO_MODE_COMPONENT_INTERLACE);
+	values[3] = i18nGetText(I18N_MSG_CFG_VIDEO_MODE_COMPONENT_PROGRESSIVE);
 	currentValue = 0;
 	currentValue = VideoMode::getVideoMode();
 	newValue = currentValue;
@@ -1669,7 +1669,7 @@ bool ConfigDialog::init() {
 	bgColor = skin->getColorValue("skin/config_dialog/dialog/background_color", PPA_CONFIGDLG_BG_COLOR);
 	labelColor = skin->getColorValue("skin/config_dialog/dialog/label_color", PPA_CONFIGDLG_LABEL_COLOR);
 	
-	title = "Configuration";
+	title = i18nGetText(I18N_MSG_CFG_TITLE);
 	help = "";
 	return true;
 };

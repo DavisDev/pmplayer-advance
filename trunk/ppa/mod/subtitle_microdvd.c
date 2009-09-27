@@ -23,7 +23,8 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 microdvd subtitle format parser
 */
 
-
+#include<psptypes.h>
+#include<string.h>
 #include "subtitle_microdvd.h"
 #include "common/mem64.h"
 
@@ -70,7 +71,7 @@ struct subtitle_frame_struct* subtitle_parse_microdvd( FILE *f, char* charset, u
 			strncpy(p->p_string, temp_str, max_subtitle_string-1);
 		}
 	}
-	else if ( miniConvHaveDefaultSubtitleConv() ){
+	else if ( stricmp(charset, "DEFAULT") == 0 && miniConvHaveDefaultSubtitleConv() ){
 		char* temp_str = miniConvDefaultSubtitleConv(p->p_string);
 		if( temp_str != NULL ) {
 			strncpy(p->p_string, temp_str, max_subtitle_string-1);

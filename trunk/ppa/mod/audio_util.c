@@ -4212,13 +4212,15 @@ void pcm_select_channel(short *pcm_buffer, unsigned int number_of_samples, int c
 	}
 }
 
-void pcm_double_sample(short *dest_pcm_buffer, short *src_pcm_buffer, unsigned int number_of_samples) {
-	int i;
+void pcm_up_sample(short *dest_pcm_buffer, short *src_pcm_buffer, int up_sample, unsigned int number_of_samples) {
+	int i, j, k, count;
+	count = 2*(up_sample+1);
+	k = 0;
 	for(i = 0; i < number_of_samples; i++) {
-		dest_pcm_buffer[i*4] = src_pcm_buffer[i*2];
-		dest_pcm_buffer[i*4+1] = src_pcm_buffer[i*2+1];
-		dest_pcm_buffer[i*4+2] = src_pcm_buffer[i*2];
-		dest_pcm_buffer[i*4+3] = src_pcm_buffer[i*2+1];
+		for(j=0; j< count; j++) {
+			dest_pcm_buffer[k] = (k%2==0) ? src_pcm_buffer[i<<1] : src_pcm_buffer[(i<<1)+1];
+			k++;
+		}
 	}
 }
 

@@ -25,7 +25,7 @@ void mkv_file_safe_constructor(struct mkv_file_struct *p) {
 	p->info = 0;
 	p->video_track_id = -1;
 	p->audio_tracks = 0;
-	p->audio_double_sample = 0;
+	p->audio_up_sample = 0;
 }
 
 
@@ -108,7 +108,7 @@ char *mkv_file_open(struct mkv_file_struct *p, char *s) {
 			p->audio_track_ids[p->audio_tracks-1] = i;
 			p->audio_type = track->audio_type;
 			if ( track->samplerate == 22050 || track->samplerate == 24000 )
-				p->audio_double_sample = 1;
+				p->audio_up_sample = 1;
 		}
 		else {
 			mkvinfo_track_t* old_track = p->info->tracks[p->audio_track_ids[p->audio_tracks-1]];
@@ -160,11 +160,11 @@ char *mkv_file_open(struct mkv_file_struct *p, char *s) {
 	p->number_of_video_frames = (unsigned int)tmp;
 	
 	p->audio_actual_rate = p->info->tracks[p->audio_track_ids[0]]->samplerate;
-	p->audio_rate = p->audio_actual_rate * (p->audio_double_sample?2:1) ;
+	p->audio_rate = p->audio_actual_rate * (p->audio_up_sample+1) ;
 	p->audio_scale = (p->audio_type == 0x6D703461 ? 1024 : 1024);
-	p->audio_resample_scale = p->audio_scale * (p->audio_double_sample?2:1);
-	//p->audio_scale = p->info->tracks[p->audio_track_ids[0]]->stts_sample_duration[0] / (p->audio_double_sample?2:1);
-	p->audio_stereo = 1;//(p->info->tracks[p->audio_track_ids[0]]->channels == 2 ? 1 : 0);
+	p->audio_resample_scale = p->audio_scale * (p->audio_up_sample+1);
+	
+	p->audio_stereo = 1;
 	
 	return(0);
 }

@@ -513,7 +513,7 @@ static int mkv_demux_thread(SceSize input_length, void *input) {
 			}
 			
 		}	
-		if ( p->decoder.reader.file.audio_double_sample == 0 ) {
+		if ( p->decoder.reader.file.audio_up_sample == 0 ) {
 			wait = mkv_wait(p, p->semaphore_can_put_audio, "mkv_play_start: sceKernelWaitSema failed on semaphore_can_put_audio");
 			if ( wait == -1) {
 				break;

@@ -27,6 +27,7 @@
 #include <pspkernel.h>
 #include <pspdisplay.h>
 #include "common/ctrl.h"
+#include "common/libi18n.h"
 
 #include "msgdialog.h"
 #include "config.h"
@@ -106,14 +107,14 @@ bool MessageDialog::init(const char* title, u32 type) {
 		keys[0] = 0xFFFFFFFF;
 	}
 	else if ( messageType == MESSAGE_TYPE_OK_CANCEL ) {
-		sprintf(keyTips, "%s %s    %s %s", circleChar, "OK", crossChar, "Cancel");
+		sprintf(keyTips, "%s %s    %s %s", circleChar, i18nGetText(I18N_MSG_OK), crossChar, i18nGetText(I18N_MSG_CANCEL));
 		keys[0] = PSP_CTRL_CIRCLE;
 		keys[1] = PSP_CTRL_CROSS;
 		results[0] = MESSAGE_RESULT_OK;
 		results[1] = MESSAGE_RESULT_CANCEL;
 	}
 	else if ( messageType == MESSAGE_TYPE_YES_NO ) {
-		sprintf(keyTips, "%s %s    %s %s", circleChar, "Yes", crossChar, "No");
+		sprintf(keyTips, "%s %s    %s %s", circleChar, i18nGetText(I18N_MSG_YES), crossChar, i18nGetText(I18N_MSG_NO));
 		keys[0] = PSP_CTRL_CIRCLE;
 		keys[1] = PSP_CTRL_CROSS;
 		results[0] = MESSAGE_RESULT_YES;

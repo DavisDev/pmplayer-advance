@@ -21,6 +21,9 @@
  
 #include "codec_prx.h"
 #include "common/m33sdk.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
  
 char *load_codec_prx(const char* ppa_path, int devkitVersion)
 	{

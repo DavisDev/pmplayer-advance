@@ -1,0 +1,46 @@
+# Just set OC_BASE to the opencore root, or set AMR_BASE directly to
+# a detached gsm_amr directory
+
+PSPSDK=$(shell psp-config --pspsdk-path)
+PSPDIR=$(shell psp-config --psp-prefix)
+TARGET_LIB = ../../libopencore-amrwb.a
+
+OC_BASE = ../opencore
+AMR_BASE = $(OC_BASE)/codecs_v2/audio/gsm_amr
+
+
+ifeq (, $(PREFIX))
+    PREFIX = /usr/local/pspdev
+endif
+
+DEC_DIR = $(AMR_BASE)/amr_wb/dec
+DEC_SRC_DIR = $(DEC_DIR)/src
+OSCL = ../oscl
+
+INCDIR = $(OSCL) $(DEC_SRC_DIR) $(DEC_DIR)/include $(AMR_BASE)/common/dec/include
+
+# Find all the source files
+# Exclude only decoder_amr_wb.cpp, not dtx_decoder_amr_wb.cpp
+DEC_SRC := $(shell cd $(DEC_SRC_DIR) && echo *.cpp | sed 's/ decoder_amr_wb.cpp//')
+
+DEC_OBJS := $(DEC_SRC:.cpp=.o)
+DEC_OBJS := $(patsubst %,$(DEC_SRC_DIR)/%, $(DEC_OBJS))
+
+OBJS = wrapper.o $(DEC_OBJS)
+
+#Versioning
+MAJOR = 0
+MINOR = 1
+REVISION = 1
+
+CFLAGS = -O2 -G0 -fomit-frame-pointer -fPIC
+CXXFLAGS = $(CFLAGS)
+ASFLAGS = $(CFLAGS)
+
+include $(PSPSDK)/lib/build.mak
+
+# To compile as C instead of C++, define BUILD_AS_C
+ifneq (, $(BUILD_AS_C))
+    CXX = $(CC)
+    CXXFLAGS += -x c -std=c99
+endif

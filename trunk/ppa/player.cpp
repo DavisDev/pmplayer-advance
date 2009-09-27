@@ -45,6 +45,7 @@
 #include "videomode.h"
 
 #include "common/libminiconv.h"
+#include "common/libi18n.h"
 #include "common/fat.h"
 #include "common/directory.h"
 #include "common/ctrl.h"
@@ -56,6 +57,7 @@
 #include "mod/subtitle_charset.h"
 #include "mod/cpu_clock.h"
 #include "mod/mp4avcdecoder.h"
+#include "mod/psp1k_frame_buffer.h"
 
 #include "mod/pmp.h"
 
@@ -76,6 +78,8 @@ struct movie_file_struct currentMovie;
 struct subtitle_ext_charset_struct subtitleExt[] = {
 	{".srt", 4, "DEFAULT"},
 	{".sub", 4, "DEFAULT"},
+	{".ass", 4, "DEFAULT"},
+	{".ssa", 4, "DEFAULT"},
 	{".eng.srt", 8, "UTF-8"},
 	{".gb.srt", 7, "GBK"},
 	{".chs.srt", 8, "GBK"},
@@ -83,12 +87,27 @@ struct subtitle_ext_charset_struct subtitleExt[] = {
 	{".big5.srt", 9, "BIG5"},
 	{".cht.srt", 8, "BIG5"},
 	{".tc.srt", 7, "BIG5"},
+	{".eng.ass", 8, "UTF-8"},
+	{".gb.ass", 7, "GBK"},
+	{".chs.ass", 8, "GBK"},
+	{".sc.ass", 7, "GBK"},
+	{".big5.ass", 9, "BIG5"},
+	{".cht.ass", 8, "BIG5"},
+	{".tc.ass", 7, "BIG5"},
+	{".eng.ssa", 8, "UTF-8"},
+	{".gb.ssa", 7, "GBK"},
+	{".chs.ssa", 8, "GBK"},
+	{".sc.ssa", 7, "GBK"},
+	{".big5.ssa", 9, "BIG5"},
+	{".cht.ssa", 8, "BIG5"},
+	{".tc.ssa", 7, "BIG5"},
 	{NULL, 0, NULL}	
 };
 
 file_type_ext_struct movieFileFilter[] = {
 	{"pmp", FS_PMP_FILE},
 	{"mp4", FS_MP4_FILE},
+	{"3gp", FS_MP4_FILE},
 	{"mkv", FS_MKV_FILE},
 	{NULL, FS_UNKNOWN_FILE}
 };
@@ -96,12 +115,16 @@ file_type_ext_struct movieFileFilter[] = {
 file_type_ext_struct movieSubtitleFilter[] = {
 	{"sub", FS_SUB_FILE},
 	{"srt", FS_SRT_FILE},
+	{"ass", FS_ASS_FILE},
+	{"ssa", FS_SSA_FILE},
 	{NULL, FS_UNKNOWN_FILE}
 };
 
 file_type_ext_struct movieAttachmentFilter[] = {
 	{"sub", FS_SUB_FILE},
 	{"srt", FS_SRT_FILE},
+	{"ass", FS_ASS_FILE},
+	{"ssa", FS_SSA_FILE},
 	{"png", FS_PNG_FILE},
 	{NULL, FS_UNKNOWN_FILE}
 };
@@ -337,6 +360,20 @@ int PmpAvcPlayer::init(char* ppaPath) {
 		return 0;
 	}
 
+#ifdef DEBUG	
+	pspDebugScreenPrintf("load i18n.prx...\n");
+#endif
+    memset(tempPath, 0, 1024);
+	sprintf(tempPath, "%s%s", applicationPath, "i18n.prx");
+	modid = m33KernelLoadModule(tempPath, 0, NULL);
+	if (modid < 0){
+		return 0;
+	}
+	modid = sceKernelStartModule(modid, 0, 0, &status, NULL);
+	if (modid < 0){
+		return 0;
+	}
+
 	memset(tempPath, 0, 1024);
 	sprintf(tempPath, "%s%s", applicationPath, "dvemgr.prx");
 #ifdef DEBUG	
@@ -361,9 +398,17 @@ int PmpAvcPlayer::init(char* ppaPath) {
 
 #ifdef DEBUG
 	pspDebugScreenPrintf("malloc avc ddrtop ...\n");
+#endif
 	if( mp4_avc_init_ddrtop() != 1 )
 		return 0;
+
+#ifdef DEBUG
+	pspDebugScreenPrintf("malloc psp 1k frame buffer ...\n");
 #endif
+	if (!m33IsTVOutSupported(pspType))
+		if( psp1k_init_frame_buffer() != 1 )
+			return 0;
+
 
 	memset(tempPath, 0, 1024);
 	sprintf(tempPath, "%s%s", applicationPath, "moviestat.dat");
@@ -471,14 +516,6 @@ int PmpAvcPlayer::init(char* ppaPath) {
 #endif
 		return 0;
 	}
-	
-	//av_register_all();
-#ifdef DEBUG	
-	pspDebugScreenPrintf("init pmpavc_kernel(GU_VRAM)...\n");
-#endif
-	// Static VRAM allocations needed in pmp_gu.c
-	valloc(4 *  512 * 272);	// Drawbuffer
-	valloc(4 *  512 * 272); // AVCbuffer
 	
 #ifdef DEBUG	
 	pspDebugScreenPrintf("init pmpavc_kernel(GU_FONT)...\n");
@@ -634,7 +671,7 @@ void PmpAvcPlayer::run() {
 		else if ( (key & PSP_CTRL_LTRIGGER) && (key & PSP_CTRL_START) ) {
 			MessageDialog* dialog = new MessageDialog(Skin::getInstance()->getBackground(skinPath), drawImage);
 			if ( dialog ) {
-				if ( dialog->init("Do you want to quit the PPA ?", MESSAGE_TYPE_YES_NO) ) {
+				if ( dialog->init(i18nGetText(I18N_MSG_DLG_QUIT_TITLE), MESSAGE_TYPE_YES_NO) ) {
 					u32 res = dialog->execute();
 					if ( res == MESSAGE_RESULT_YES ) {
 						break;
@@ -666,7 +703,7 @@ void PmpAvcPlayer::run() {
 			if ( fileItems[fileItemCurrent].filetype != FS_DIRECTORY ) {
 				MessageDialog* dialog = new MessageDialog(Skin::getInstance()->getBackground(skinPath), drawImage);
 				if ( dialog ) {
-					if ( dialog->init("Are you sure you want to delete this ?", MESSAGE_TYPE_YES_NO) ) {
+					if ( dialog->init(i18nGetText(I18N_MSG_DLG_DELETE_TITLE), MESSAGE_TYPE_YES_NO) ) {
 						u32 res = dialog->execute();
 						if ( res == MESSAGE_RESULT_YES ) {
 							deleteSelectMovie();
@@ -1074,11 +1111,11 @@ void PmpAvcPlayer::getCurrentMp4FilmInformation() {
 			if (track->type != MP4_TRACK_AUDIO)
 				continue;
 			if ( audio_tracks == 0 ) {
-				if ( track->audio_type != 0x6D703461 /*mp4a*/)
+				if ( track->audio_type != 0x6D703461 && track->audio_type != 0x73616D72 )
 					continue;
 //				if ( track->channels != 2 )
 //					continue;
-				if ( track->samplerate != 22050 && track->samplerate != 24000 && track->samplerate != 44100 && track->samplerate != 48000 )
+				if ( track->samplerate != 8000 && track->samplerate != 22050 && track->samplerate != 24000 && track->samplerate != 44100 && track->samplerate != 48000 )
 					continue;
 				if ( track->samplebits != 16 )
 					continue;
@@ -1486,8 +1523,15 @@ void PmpAvcPlayer::playMovie(bool resume) {
 					
 				sceKernelDcacheWritebackInvalidateAll();
 				sceKernelDelayThread(1000000);
-				if ( result )
+				if ( result ) {
+					char tempPath[1024];
+					memset(tempPath, 0, 1024);
+					sprintf(tempPath, "%s%s", applicationPath, "playlog.txt");
+					FILE* log = fopen(tempPath,"w+");
+					fprintf(log, "%s\n", result);
+					fclose(log);
 					break;
+				}
 			}
 			else
 				break;
@@ -1509,8 +1553,15 @@ void PmpAvcPlayer::playMovie(bool resume) {
 				result = "unsupported movie";
 			sceKernelDcacheWritebackInvalidateAll();
 			sceKernelDelayThread(1000000); 
-			if ( result )
+			if ( result ) {
+				char tempPath[1024];
+				memset(tempPath, 0, 1024);
+				sprintf(tempPath, "%s%s", applicationPath, "playlog.txt");
+				FILE* log = fopen(tempPath,"w+");
+				fprintf(log, "%s\n", result);
+				fclose(log);
 				break;
+			}
 		} 
 	} 
 	scePowerUnlock(0);
