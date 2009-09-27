@@ -28,6 +28,12 @@
 extern "C" {
 #endif
 
+#define PSP_CODEC_AUDIO_ATRAC3	0x1001
+#define PSP_CODEC_AUDIO_MP3	0x1002
+#define PSP_CODEC_AUDIO_AAC	0x1003
+#define PSP_CODEC_AUDIO_AMRNB	0x2000
+#define PSP_CODEC_AUDIO_AMRWB	0x2001
+
 int audio_decoder_open(int type, int samplerate, int samplecount, int blockalign);
 int audio_decoder_close();
 int audio_decoder_decode(void *data, int *data_size, uint8_t *buf, int buf_size);

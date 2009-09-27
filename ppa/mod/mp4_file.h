@@ -70,7 +70,9 @@ struct mp4_file_struct {
 	unsigned int audio_scale;
 	unsigned int audio_stereo;
 	
-	int audio_double_sample;
+	int audio_up_sample;
+	
+	int video_audio_interval;
 	
 	int seek_duration;
 	

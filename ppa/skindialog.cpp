@@ -27,6 +27,7 @@
 #include <pspkernel.h>
 #include <pspdisplay.h>
 #include "common/ctrl.h"
+#include "common/libi18n.h"
 
 #include "skindialog.h"
 #include "config.h"
@@ -108,8 +109,8 @@ bool SkinDialog::init(const char* skinPath, char* skinName) {
 	bgColor = skin->getColorValue("skin/config_dialog/dialog/background_color", PPA_SKINDLG_BG_COLOR);
 	labelColor = skin->getColorValue("skin/config_dialog/dialog/label_color", PPA_SKINDLG_LABEL_COLOR);
 	
-	title = "Skins";
-	sprintf(help, "%s %s    %s %s", circleChar, "OK", crossChar, "Cancel");
+	title = i18nGetText(I18N_MSG_SKIN_TITLE);
+	sprintf(help, "%s %s    %s %s", circleChar, i18nGetText(I18N_MSG_OK), crossChar, i18nGetText(I18N_MSG_CANCEL));
 	return true;
 };
 

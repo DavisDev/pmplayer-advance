@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <malloc.h>
 #include "miniconv.h"
 
 
@@ -96,7 +97,7 @@ int miniConvGetConvCount() {
 	return count;
 }
 
-char* miniConvGetConvCharset(int index) {
+const char* miniConvGetConvCharset(int index) {
 	return convertors[index].charset;
 }
 

@@ -28,6 +28,7 @@ av decoding in a ring buffer
 #include "pmp_decode.h"
 #include "me_boot_start.h"
 #include "audio_util.h"
+#include "psp1k_frame_buffer.h"
 
 
 void pmp_decode_safe_constructor(struct pmp_decode_struct *p)
@@ -61,22 +62,11 @@ void pmp_decode_close(struct pmp_decode_struct *p, int pspType)
 	clear_reset_framebuffer();
 	
 	int i = 0;
-	if (m33IsTVOutSupported(pspType)) 
+	for (; i < pmp_maximum_frame_buffers; i++)
 		{
-		for (; i < pmp_maximum_frame_buffers; i++)
-			{
-			if (p->audio_frame_buffers[i] != 0) free_64(p->audio_frame_buffers[i]);
-			}
+		if (p->audio_frame_buffers[i] != 0) free_64(p->audio_frame_buffers[i]);
 		}
-	else
-		{
-		for (; i < pmp_maximum_frame_buffers; i++)
-			{
-			if (p->video_frame_buffers[i] != 0) free_64(p->video_frame_buffers[i]);
-			if (p->audio_frame_buffers[i] != 0) free_64(p->audio_frame_buffers[i]);
-			}
-		}
-
+	
 	pmp_decode_safe_constructor(p);
 	}
 
@@ -121,16 +111,16 @@ char *pmp_decode_open(struct pmp_decode_struct *p, char *s, int pspType, int tvA
 	
 	//*/
 	if ( p->reader.file.header.audio.format == 0 )
-		p->audio_decoder = audio_decoder_open(0x1002, p->reader.file.header.audio.rate, p->reader.file.header.audio.scale, 0);
+		p->audio_decoder = audio_decoder_open(PSP_CODEC_AUDIO_MP3, p->reader.file.header.audio.rate, p->reader.file.header.audio.scale, 0);
 	else if ( p->reader.file.header.audio.format == 1 )
-		p->audio_decoder = audio_decoder_open(0x1003, p->reader.file.header.audio.rate, p->reader.file.header.audio.scale, 0);
+		p->audio_decoder = audio_decoder_open(PSP_CODEC_AUDIO_AAC, p->reader.file.header.audio.rate, p->reader.file.header.audio.scale, 0);
 	else if ( p->reader.file.header.audio.format == 2 || p->reader.file.header.audio.format == 21 || p->reader.file.header.audio.format == 22 ) {
 		if ( p->reader.file.header.audio.format == 2 )
-			p->audio_decoder = audio_decoder_open(0x1001, p->reader.file.header.audio.rate, p->reader.file.header.audio.scale, 384);
+			p->audio_decoder = audio_decoder_open(PSP_CODEC_AUDIO_ATRAC3, p->reader.file.header.audio.rate, p->reader.file.header.audio.scale, 384);
 		else if (p->reader.file.header.audio.format == 21)
-			p->audio_decoder = audio_decoder_open(0x1001, p->reader.file.header.audio.rate, p->reader.file.header.audio.scale, 304);
+			p->audio_decoder = audio_decoder_open(PSP_CODEC_AUDIO_ATRAC3, p->reader.file.header.audio.rate, p->reader.file.header.audio.scale, 304);
 		else if (p->reader.file.header.audio.format == 22)
-			p->audio_decoder = audio_decoder_open(0x1001, p->reader.file.header.audio.rate, p->reader.file.header.audio.scale, 192);
+			p->audio_decoder = audio_decoder_open(PSP_CODEC_AUDIO_ATRAC3, p->reader.file.header.audio.rate, p->reader.file.header.audio.scale, 192);
 	}
 	else
 		p->audio_decoder = -1;
@@ -160,40 +150,15 @@ char *pmp_decode_open(struct pmp_decode_struct *p, char *s, int pspType, int tvA
 	else 
 		{
 		p->output_texture_width = 512;
-		p->number_of_frame_buffers = 0;
-	
+		p->number_of_frame_buffers = 4;
+		
 		i = 0;
-		for (; i < pmp_maximum_frame_buffers; i++)
+		for (; i < p->number_of_frame_buffers; i++) 
 			{
-			p->video_frame_buffers[i] = malloc_64(557056);
-	
-			if (p->video_frame_buffers[i] == 0)
-				{
-				break;
-				}
-	
+			p->video_frame_buffers[i] = psp1k_get_frame_buffer(i);
 			memset(p->video_frame_buffers[i], 0, 557056);
-	
-			p->number_of_frame_buffers ++;
 			}
 	
-	
-		if (p->number_of_frame_buffers < (pmp_number_of_free_video_frame_buffers + 4))
-			{
-			pmp_decode_close(p, pspType);
-			return("pmp_decode_open: number_of_frame_buffers < 4");
-			}
-	
-	
-		p->number_of_frame_buffers -= pmp_number_of_free_video_frame_buffers;
-	
-		i = 0;
-		for (; i < pmp_number_of_free_video_frame_buffers; i++)
-			{
-			free_64(p->video_frame_buffers[p->number_of_frame_buffers + i]);
-	
-			p->video_frame_buffers[p->number_of_frame_buffers + i] = 0;
-			}
 		}
 	i = 0;
 	for (; i <= p->number_of_frame_buffers; i++)

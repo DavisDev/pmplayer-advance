@@ -30,6 +30,8 @@ subtitle parsing layer
 #include "subtitle_parse.h"
 #include "subtitle_subrip.h"
 #include "subtitle_microdvd.h"
+#include "subtitle_subass.h"
+#include "subtitle_subssa.h"
 #include "common/mem64.h"
 
 
@@ -133,6 +135,27 @@ char *subtitle_parse_open(struct subtitle_parse_struct *p, char *s, char* charse
 			return("subtitle_parse_open: can't open file");
 			}
 	
+		unsigned char pre_code[3];
+		memset(pre_code, 0, 3);
+		fread(pre_code, 1, 3, p->p_in); 
+		if ( pre_code[0] == 0xEF && pre_code[1] == 0xBB && pre_code[2] == 0xBF )
+			{
+				strcpy(charset, "UTF-8");
+			}
+		else if (pre_code[0] == 0xFF && pre_code[1] == 0xFE )
+			{
+			strcpy(charset, "UTF-16LE");
+			fseek(p->p_in, 2, SEEK_SET);
+			}
+		else if (pre_code[0] == 0xFE && pre_code[1] == 0xFF )
+			{
+			strcpy(charset, "UTF-16BE");
+			fseek(p->p_in, 2, SEEK_SET);
+			}
+		else
+			{
+			fseek(p->p_in, 0, SEEK_SET);
+			}
 		strncpy(p->filename, s, 1024);
 		p->filename[1023]='\0';
 		
@@ -154,12 +177,16 @@ char *subtitle_parse_open(struct subtitle_parse_struct *p, char *s, char* charse
 			subtitle_parse_line = &subtitle_parse_microdvd;
 		else if (strncmp(strupr(ext),"SRT",3)==0)
 			subtitle_parse_line = &subtitle_parse_subrip;
+		else if (strncmp(strupr(ext),"ASS",3)==0)
+			subtitle_parse_line = &subtitle_parse_subass;
+		else if (strncmp(strupr(ext),"SSA",3)==0)
+			subtitle_parse_line = &subtitle_parse_subssa;
 		else
 			{
 			subtitle_parse_close(p);
 			return("subtitle_parse_open: unknown subtitle format");
 			}
-
+		
 		while ((new_frame=subtitle_parse_line( p->p_in, charset, rate, scale ))!=0)
 			{
 			cur_frame = subtitle_parse_add_frame(p, cur_frame, new_frame);

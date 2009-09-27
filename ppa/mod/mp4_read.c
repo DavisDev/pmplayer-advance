@@ -164,7 +164,7 @@ char *mp4_read_fill_buffer_not_interlace(struct mp4_read_struct *p, int track_id
 		tmp = in_mp4_read_queue(p->video_queue, &p->video_queue_size, &p->video_queue_rear, MP4_VIDEO_QUEUE_MAX, &packet);
 		if ( tmp == 0 )  {
 			free_64(packet.data);
-			return("mp4_read_fill_buffer: queue is full");
+			return("mp4_read_fill_buffer: video queue is full");
 		}
 		p->current_video_sample++;
 	}
@@ -196,7 +196,7 @@ char *mp4_read_fill_buffer_not_interlace(struct mp4_read_struct *p, int track_id
 		tmp = in_mp4_read_queue(p->audio_queue, &p->audio_queue_size, &p->audio_queue_rear, MP4_AUDIO_QUEUE_MAX, &packet);
 		if ( tmp == 0 )  {
 			free_64(packet.data);
-			return("mp4_read_fill_buffer: queue is full");
+			return("mp4_read_fill_buffer: audio queue is full");
 		}
 		p->current_audio_sample++;
 	}
@@ -248,7 +248,10 @@ char *mp4_read_fill_buffer_interlace(struct mp4_read_struct *p, int track_id) {
 			}
 			if ( tmp == 0 )  {
 				free_64(packet.data);
-				return("mp4_read_fill_buffer: queue is full");
+				if ( track  == video_track ) 
+					return("mp4_read_fill_buffer: video queue is full");
+				else
+					return("mp4_read_fill_buffer: audio queue is full");
 			}
 			p->current_sample++;
 			if ( track == current_track )

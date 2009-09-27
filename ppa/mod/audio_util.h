@@ -31,7 +31,7 @@ extern "C" {
 void pcm_set_normalize_ratio(unsigned int ratio_type);
 void pcm_normalize(short *pcm_buffer, unsigned int number_of_samples);
 void pcm_select_channel(short *pcm_buffer, unsigned int number_of_samples, int channel);
-void pcm_double_sample(short *dest_pcm_buffer, short *src_pcm_buffer, unsigned int number_of_samples);
+void pcm_up_sample(short *dest_pcm_buffer, short *src_pcm_buffer, int up_sample, unsigned int number_of_samples);
 
 #ifdef __cplusplus
 }

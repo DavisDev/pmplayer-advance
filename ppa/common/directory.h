@@ -29,6 +29,8 @@ typedef enum {
 	FS_MKV_FILE,
 	FS_SUB_FILE,
 	FS_SRT_FILE,
+	FS_ASS_FILE,
+	FS_SSA_FILE,
 	FS_PNG_FILE,
 	FS_UNKNOWN_FILE
 //*/

@@ -29,7 +29,7 @@ extern "C" {
 char* miniConvUTF16LEConv(const unsigned short* utf16le);
 char* miniConvUTF16BEConv(const unsigned short* utf16be);
 int miniConvGetConvCount();
-char* miniConvGetConvCharset(int index);
+const char* miniConvGetConvCharset(int index);
 void miniConvSetFileSystemConv(const char* charset);
 int miniConvHaveFileSystemConv();
 char* miniConvFileSystemConv(const unsigned char* s);

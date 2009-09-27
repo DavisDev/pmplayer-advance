@@ -512,26 +512,82 @@ static int mp4_demux_thread(SceSize input_length, void *input) {
 			}
 			
 		}	
-		if ( p->decoder.reader.file.audio_double_sample == 0 ) {
-			wait = mp4_wait(p, p->semaphore_can_put_audio, "mp4_play_start: sceKernelWaitSema failed on semaphore_can_put_audio");
-			if ( wait == -1) {
-				p->return_request = 1;
-				break;
+		if ( p->decoder.reader.file.video_audio_interval < 0 ) {
+			int read_count = (-p->decoder.reader.file.video_audio_interval) - 1;
+			int i;
+			for(i=0; i<read_count; i++) {
+				wait = mp4_wait(p, p->semaphore_can_put_audio, "mp4_play_start: sceKernelWaitSema failed on semaphore_can_put_audio");
+				if ( wait == -1) {
+					p->return_request = 1;
+					break;
+				}
+				else if ( wait == 1) {
+					result = mp4_decode_get_audio((struct mp4_decode_struct *) &p->decoder, p->audio_stream, p->audio_channel, 1, p->volume_boost);
+					if (result != 0) {
+						p->return_result  = result;
+						p->return_request = 1;
+						break;
+					}
+		
+					if (sceKernelSignalSema(p->semaphore_can_get_audio, 1) < 0) {
+						p->return_result  = "mp4_play_start: sceKernelSignalSema failed on semaphore_can_get_audio";
+						p->return_request = 1;
+						break;
+					}
+				}	
+			}	
+		}
+		else {
+			int read_count = p->decoder.reader.file.video_audio_interval - 1;
+			int i;
+			for(i=0; i<read_count; i++) {
+				wait = mp4_wait(p, p->semaphore_can_put_video, "mp4_play_start: sceKernelWaitSema failed on semaphore_can_put_video");
+				if ( wait == -1) {
+					p->return_request = 1;
+					break;
+				}
+				else if ( wait == 1) {
+					if ( cached_video_frame > 0 ) {
+						result = mp4_decode_get_cached_video((struct mp4_decode_struct *) &p->decoder, cached_video_frame, p->audio_stream, p->volume_boost, p->aspect_ratio, p->zoom, p->luminosity_boost, p->show_interface, p->subtitle, p->subtitle_format, p->loop);
+						if (result != 0) {
+							p->return_result  = result;
+							p->return_request = 1;
+							break;
+						}
+						cached_video_frame--;
+						
+						if (sceKernelSignalSema(p->semaphore_can_get_video, 1) < 0) {
+							p->return_result  = "mp4_play_start: sceKernelSignalSema failed on semaphore_can_get_video";
+							p->return_request = 1;
+							break;
+						}
+					}
+					else {
+						result = mp4_decode_get_video((struct mp4_decode_struct *) &p->decoder, p->audio_stream, p->volume_boost, p->aspect_ratio, p->zoom, p->luminosity_boost, p->show_interface, p->subtitle, p->subtitle_format, p->loop, &cached_video_frame);
+						if (result != 0) {
+							p->return_result  = result;
+							p->return_request = 1;
+							break;
+						}
+						if ( cached_video_frame >= 0 ) {
+						
+							if (sceKernelSignalSema(p->semaphore_can_get_video, 1) < 0) {
+								p->return_result  = "mp4_play_start: sceKernelSignalSema failed on semaphore_can_get_video";
+								p->return_request = 1;
+								break;
+							}
+						}
+						else {
+							if (sceKernelSignalSema(p->semaphore_can_put_video, 1) < 0) {
+								p->return_result  = "mp4_play_start: sceKernelSignalSema failed on semaphore_can_put_video1";
+								p->return_request = 1;
+								break;
+							}
+						}
+					}
+					
+				}	
 			}
-			else if ( wait == 1) {
-				result = mp4_decode_get_audio((struct mp4_decode_struct *) &p->decoder, p->audio_stream, p->audio_channel, 1, p->volume_boost);
-				if (result != 0) {
-					p->return_result  = result;
-					p->return_request = 1;
-					break;
-				}
-	
-				if (sceKernelSignalSema(p->semaphore_can_get_audio, 1) < 0) {
-					p->return_result  = "mp4_play_start: sceKernelSignalSema failed on semaphore_can_get_audio";
-					p->return_request = 1;
-					break;
-				}
-			}		
 		}
 		
 		mp4_play_do_seek(p);
