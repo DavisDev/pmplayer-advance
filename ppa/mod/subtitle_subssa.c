@@ -93,7 +93,7 @@ struct subtitle_frame_struct* subtitle_parse_subssa( FILE *f, char* charset, uns
 	int linelen = strlen(line);
 	if ( linelen > 0 ) {
 		p->p_num_lines++;
-		while( i < linelen) {
+		while( i < linelen && j<max_subtitle_string-1) {
 			c = line[i++];
 			if ( c == '{' ) {
 				while(i < linelen && line[i] != '}') i++;
@@ -112,10 +112,7 @@ struct subtitle_frame_struct* subtitle_parse_subssa( FILE *f, char* charset, uns
 				p->p_string[j++]=c;
 		}
 	}
-	if ( j > 0 )
-		p->p_string[j-1] = '\0';
-	else
-		p->p_string[0] = '\0';
+	p->p_string[j] = '\0';
 	
 	if ( miniConvHaveSubtitleConv(charset) ) {
 		char* temp_str = miniConvSubtitleConv(p->p_string, charset);

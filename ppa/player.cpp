@@ -1242,7 +1242,8 @@ void PmpAvcPlayer::getCurrentMkvFilmInformation() {
 			mkvinfo_track_t* track = info->tracks[i];
 			if (track->type != MATROSKA_TRACK_SUBTITLE)
 				continue;
-			if ( (track->video_type == 0x74787475) || (track->video_type == 0x7478746C) /*txtu & txtl*/)
+			if ( (track->video_type == 0x74787475) || (track->video_type == 0x7478746C) 
+				|| (track->video_type == 0x73736175) || (track->video_type == 0x61737375) /*txtu & txtl & ssau & assu*/)
 				filmSubtitles++;
 		}
 		

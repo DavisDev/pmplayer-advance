@@ -409,7 +409,7 @@ void mkv_handle_text_subtitle_block(struct mkv_read_struct *p, uint8_t *block_bu
 	memset(trackname, 0, 32);
 	sprintf(trackname, "mkv subtitle track(%d)", tracknum);
 	struct subtitle_parse_struct *cur_parser = 0;
-	int i;
+	int i,j;
 	for(i=0; i < MAX_SUBTITLES; i++) {
 		if (strcmp(trackname, subtitle_parser[i].filename) == 0 ) {
 			cur_parser = &subtitle_parser[i];
@@ -433,11 +433,66 @@ void mkv_handle_text_subtitle_block(struct mkv_read_struct *p, uint8_t *block_bu
 		tmp /= p->file.video_scale;
 		tmp /= 1000.0f;
 		frame->p_end_frame = (unsigned int)tmp;
-		frame->p_num_lines = 1;
+		frame->p_num_lines = 0;
 		
 		memset(frame->p_string, 0, max_subtitle_string);
 		strncpy(frame->p_string, block_buffer, ((max_subtitle_string - 1 > block_size) ? block_size : (max_subtitle_string - 1)) );
 		
+		if ( type == 0x73736175 || type == 0x61737375 ) {
+			int ii = 0;
+			char* pline = frame->p_string;
+			for(ii=0; ii<8; ii++) {
+				pline = strchr(pline, ',');
+				if ( pline )
+					pline++;
+				else
+					break;
+			}
+			if ( pline ) {
+				int plinelen = strlen(pline);
+				if ( plinelen > 0 ) {
+					memmove(frame->p_string, pline, plinelen);
+				}
+				frame->p_string[plinelen] = '\0';
+			}
+		}
+		
+		i = 0;
+		j = 0;
+		char c = 0;
+		int linelen = strlen(frame->p_string);
+		if ( linelen > 0 ) {
+			frame->p_num_lines++;
+			while( i < linelen && j<max_subtitle_string-1) {
+				c = frame->p_string[i++];
+				if ( c == '{' ) {
+					while(i < linelen && frame->p_string[i] != '}') i++;
+					i++;
+				}
+				else if ( c == '<' ) {
+					while(i < linelen && frame->p_string[i] != '>') i++;
+					i++;
+				}
+				else if ( c == '\\' ) {
+					if ( i < linelen ) {
+						c = frame->p_string[i++];
+						if (c == 'N') {
+							frame->p_num_lines++;
+							frame->p_string[j++]='\n';
+						}
+					}
+				}
+				else if ( c == '\n' || c == '\r' ) {
+					frame->p_string[j++]='\n';
+					frame->p_num_lines++;
+					while(i < linelen && (frame->p_string[i] == '\n' || frame->p_string[i] == '\r') ) i++;
+				}
+				else
+					frame->p_string[j++]=c;
+			}
+		}
+		frame->p_string[j] = '\0';
+		/*/
 		int j = 0;
 		while(j < max_subtitle_string ) {
 			if ( frame->p_string[j] == 0 )
@@ -451,6 +506,7 @@ void mkv_handle_text_subtitle_block(struct mkv_read_struct *p, uint8_t *block_bu
 			else
 				j++; 
 		}
+		//*/
 		if ( type == 0x7478746C ) {
 			if ( miniConvHaveDefaultSubtitleConv() ){
 				char* temp_str = miniConvDefaultSubtitleConv(frame->p_string);
