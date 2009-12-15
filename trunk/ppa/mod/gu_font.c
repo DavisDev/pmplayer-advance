@@ -192,13 +192,13 @@ void draw_cachedbitmap(void *buffer, Cache_Bitmap* sbt, FT_Int x, FT_Int y, int 
 				
 				if ( grey ) {
 					{
-						//a = (grey * A(color)) / 255;
-						r = (grey * R(color)) / 255;
-						g = (grey * G(color)) / 255;
-						b = (grey * B(color)) / 255;
+						a = (grey * A(color)) / 255;
+						r = R(color);//(grey * R(color)) / 255;
+						g = G(color);//(grey * G(color)) / 255;
+						b = B(color);//(grey * B(color)) / 255;
 					}
 						
-	  				pixel = (0xff000000) | (b << 16) | (g << 8) | r;
+	  				pixel = (a << 24) | (b << 16) | (g << 8) | r;
 	  			}
 				else
 					pixel = 0;
@@ -237,12 +237,12 @@ void draw_bitmap(void *buffer, FT_Bitmap *bitmap, FT_Int x, FT_Int y, int width,
 				
 				if ( grey ) {
 					{
-						//a = (grey * A(color)) / 255;
-						r = (grey * R(color)) / 255;
-						g = (grey * G(color)) / 255;
-						b = (grey * B(color)) / 255;
+						a = (grey * A(color)) / 255;
+						r = R(color);//(grey * R(color)) / 255;
+						g = G(color);//(grey * G(color)) / 255;
+						b = B(color);//(grey * B(color)) / 255;
 					}
-					pixel = (0xff000000) | (b << 16) | (g << 8) | r;
+					pixel = (a << 24) | (b << 16) | (g << 8) | r;
 	  			}
 				else
 					pixel = 0;

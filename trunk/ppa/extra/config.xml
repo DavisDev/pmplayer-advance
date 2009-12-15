@@ -3,13 +3,13 @@
 	<!-- cpu speed : 120, 166, 222, 266, 333 -->
 	<cpu speed="120" />
 	<windows>
-		<font face="wqy-bsong.ttf" anti_alias="false" embolden="false" size="12" />
+		<font face="wqy-microhei.ttc" anti_alias="true" embolden="false" size="12" />
 		<skin current="default" />
 	</windows>
 	<subtitles>
 		<!-- charset value : "UTF-8", "GBK", "BIG5", "SHIFT-JIS", "EUC-KR" -->
 		<charset value="GBK" /> 
-		<font face="msyh.ttf" anti_alias="true" embolden="false" size="16" asc_scale="2.0" multcode_scale="1.0" border="1.6" color="#FFFFFF" border_color="#000000" />
+		<font face="wqy-microhei.ttc" anti_alias="true" embolden="false" size="16" asc_scale="2.0" multcode_scale="1.0" border="1.6" color="#FFFFFF" border_color="#000000" />
 		<!-- position align : "top", "bottom" -->
 		<position align="bottom" distance="16" />
 	</subtitles>
