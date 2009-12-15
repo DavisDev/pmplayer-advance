@@ -67,7 +67,7 @@ ppa3xxen: eboot3xx
 	cp -f cooleyesBridge/cooleyesBridge.prx ppa/PPA3xx
 	cp -f ppa/miniconv/miniconv.eur.prx ppa/PPA3xx/miniconv.prx
 	cp -f ppa/i18n/i18n.eng.prx ppa/PPA3xx/i18n.prx
-	cp -f ppa/extra/fonts/wqy-bsong.ttf ppa/PPA3xx/fonts
+	cp -f ppa/extra/fonts/*.* ppa/PPA3xx/fonts
 	cp -f ppa/extra/skins/default/*.* ppa/PPA3xx/skins/default
 	cp -f ppa/extra/skins/normal-en/*.* ppa/PPA3xx/skins/normal-en
 	cp -f ppa/extra/skins/MHP/*.* ppa/PPA3xx/skins/MHP

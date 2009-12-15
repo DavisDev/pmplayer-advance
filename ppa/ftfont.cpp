@@ -319,10 +319,10 @@ void FtFontImpl::drawCachedBitmap(Image* image, Cache_Bitmap* sbt, FT_Int x, FT_
 				
 				if ( grey ) {
 					{
-						a = 0xff;//(grey * 0xFF) / 255;
-						r = (grey * R(color)) / 255;
-						g = (grey * G(color)) / 255;
-						b = (grey * B(color)) / 255;
+						a = (grey * 0xFF) / 255;
+						r = R(color);//(grey * R(color)) / 255;
+						g = G(color);//(grey * G(color)) / 255;
+						b = B(color);//(grey * B(color)) / 255;
 					}
 						
 	  				pixel = (a << 24) | (b << 16) | (g << 8) | r;

@@ -501,12 +501,12 @@ Image* createImage(int width, int height){
 	image->imageHeight = height;
 	image->textureWidth = getNextPower2(width);
 	image->textureHeight = getNextPower2(height);
-	image->data = (Color*) memalign(64, image->textureWidth * image->textureHeight * sizeof(Color));
+	image->data = (Color*) memalign(64, image->textureWidth * image->imageHeight * sizeof(Color));
 	if (!image->data) {
 		free(image);
 		return NULL;
 	}
-	memset(image->data, 0, image->textureWidth * image->textureHeight * sizeof(Color));
+	memset(image->data, 0, image->textureWidth * image->imageHeight * sizeof(Color));
 	return image;
 }
 
@@ -520,7 +520,7 @@ void freeImage(Image* image){
 
 void clearImage(Image* image, Color color){
 	int i;
-	int size = image->textureWidth * image->textureHeight;
+	int size = image->textureWidth * image->imageHeight;
 	Color* data = image->data;
 	for (i = 0; i < size; i++, data++) *data = color;
 }
