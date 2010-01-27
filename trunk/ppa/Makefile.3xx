@@ -10,27 +10,50 @@ OBJS = main.o player.o config.o skin.o ftfont.o cfgdialog.o versiondialog.o msgd
 	common/m33sdk.o common/framebuffer.o common/graphics.o common/imagefile.o common/fat.o common/directory.o common/MiniConv.o common/I18N.o common/ctrl.o common/base64.o common/mem64.o common/texture_subdivision.o \
 	common/buffered_reader.o common/fgets_mod.o \
 	mod/me_boot_start.o mod/audio_util.o \
-	mod/audiodecoder.o mod/aspect_ratio.o mod/codec_prx.o mod/mp4avcdecoder.o mod/avcdecoder.o mod/mp4vdecoder.o mod/cpu_clock.o mod/mpegbase.o  \
+	mod/audiodecoder.o mod/aspect_ratio.o \
+	mod/codec_prx.o mod/mp4avcdecoder.o mod/avcdecoder.o mod/mp4vdecoder.o \
+	mod/cpu_clock.o mod/mpegbase.o  \
 	mod/pmp.o mod/pmp_decode.o mod/pmp_file.o mod/pmp_play.o mod/pmp_read.o  \
 	mod/mkv.o mod/mkv_play.o mod/mkv_decode.o mod/mkv_read.o mod/mkv_file.o \
+	mod/flv1.o mod/flv1_play.o mod/flv1_decode.o mod/flv1_read.o mod/flv1_file.o \
 	mod/time_math.o mod/mp4.o mod/mp4_play.o mod/mp4_file.o mod/mp4_read.o mod/mp4_decode.o  \
 	mod/movie_stat.o mod/movie_interface.o mod/gu_draw.o mod/gu_font.o \
 	mod/psp1k_frame_buffer.o \
 	mod/subtitle_parse.o mod/subtitle_microdvd.o mod/subtitle_subrip.o mod/subtitle_subass.o mod/subtitle_subssa.o \
 	tinyxml/tinystr.o tinyxml/tinyxml.o tinyxml/tinyxmlerror.o tinyxml/tinyxmlparser.o \
-	../cooleyesBridge/cooleyesBridge.o
+	../cooleyesBridge/cooleyesBridge.o \
 	
-INCDIR = $(PSPM33SDKDIR)/include ../cooleyesBridge ../pspvideocodec ../libmpeg ../libmp4info.psp  ../libmkvinfo.psp ../opencore-amr.psp \
-	$(PSPLIBSDIR)/include $(PSPLIBSDIR)/include/freetype2 
-CFLAGS = -O3 -G0 -g -Wall -DHAVE_AV_CONFIG_H -DENABLE_USBHOST -DENABLE_NETHOST
+OBJS += mod/flv1decoder.o 
+	
+INCDIR = $(PSPM33SDKDIR)/include ../cooleyesBridge ../pspvideocodec ../libmpeg \
+	../libmp4info.psp  ../libmkvinfo.psp ../libflv1info.psp \
+	../opencore-amr.psp \
+
+INCDIR += ../ffmpeg-psp.0.5/include
+INCDIR += $(PSPLIBSDIR)/include $(PSPLIBSDIR)/include/freetype2 
+
+CFLAGS = -O3 -G0 -g -Wall -DENABLE_USBHOST -DENABLE_NETHOST 
+#CFLAGS = -O3 -G0 -g -Wall 
+
+CFLAGS += -DUSE_FFMPEG_FLV1_DECODER
+
 CXXFLAGS = $(CFLAGS) -fno-exceptions -fno-rtti
 ASFLAGS = $(CFLAGS)
 
 USE_PSPSDK_LIBC =
-LIBDIR = $(PSPM33SDKDIR)/lib .. $(PSPLIBSDIR)/lib
+
+LIBDIR = $(PSPM33SDKDIR)/lib .. $(PSPLIBSDIR)/lib \
+
+LIBDIR += ../ffmpeg-psp.0.5/lib
+
 LDFLAGS =
-LIBS = -lstdc++ -lpspkubridge -lfreetype -lpng -lz -lm -lpsppower -lpspaudiocodec -lpspaudio -lpspaudio_driver \
-	-lpspgu -lpspmpeg -lpspvideocodec -lpspusb -lpspusbstor -lpsphprm -lpsprtc -lmp4info -lmkvinfo -lbufferedio -lopencore-amrnb
+LIBS = -lstdc++ -lpspkubridge \
+
+LIBS += -lavcodec -lavutil
+LIBS += -lfreetype -lpng -lz -lm \
+	-lpsppower -lpspaudiocodec -lpspaudio -lpspaudio_driver \
+	-lpspgu -lpspmpeg -lpspjpeg -lpspvideocodec -lpspusb -lpspusbstor \
+	-lpsphprm -lpsprtc -lmp4info -lmkvinfo -lflv1info -lbufferedio -lopencore-amrnb 
 
 EXTRA_TARGETS = EBOOT.PBP
 PSP_EBOOT_TITLE = PMPlayer Advance

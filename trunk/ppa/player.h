@@ -87,6 +87,7 @@ private:
 	void getCurrentPmpFilmInformation();
 	void getCurrentMp4FilmInformation();
 	void getCurrentMkvFilmInformation();
+	void getCurrentFlv1FilmInformation();
 
 	bool listDirectory();
 	void paintFileListBox();

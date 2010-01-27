@@ -3,7 +3,7 @@
 	<!-- cpu speed : 120, 166, 222, 266, 333 -->
 	<cpu speed="120" />
 	<windows>
-		<font face="wqy-microhei.ttc" anti_alias="true" embolden="false" size="12" />
+		<font face="wqy-bsong.ttf" anti_alias="false" embolden="false" size="12" />
 		<skin current="default" />
 	</windows>
 	<subtitles>

@@ -16,6 +16,7 @@ eboot3xx:
 	make -C libbufferedio.psp
 	make -C libmp4info.psp
 	make -C libmkvinfo.psp
+	make -C libflv1info.psp
 	make -C opencore-amr.psp
 	make -C ppa/miniconv
 	make -C ppa/i18n
@@ -122,6 +123,7 @@ clean:
 	make -C libbufferedio.psp clean
 	make -C libmp4info.psp clean
 	make -C libmkvinfo.psp clean
+	make -C libflv1info.psp clean
 	make -C opencore-amr.psp clean
 	make -C ppa clean
 	rm -f *.bak

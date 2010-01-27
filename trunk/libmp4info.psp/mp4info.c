@@ -136,3 +136,36 @@ void mp4info_dump(mp4info_t* info, const char* dumpfile) {
 	}
 	fclose(fp);	
 }
+
+mp4meta_t* mp4meta_open(const char* filename) {
+	mp4meta_t* meta = (mp4meta_t*)malloc(sizeof(mp4meta_t));
+	if (!meta)
+		return 0;
+	memset(meta, 0, sizeof(mp4meta_t));
+	
+	buffered_io_t io;	
+	int32_t result = io_open(filename, (void*)(&io));
+	if ( result < 0 ) {
+		free(meta);
+		return 0;
+	}
+	meta->handle = &io;
+	parse_metas(meta);
+	io_close(&io);
+	meta->handle = 0;
+	
+	return meta;
+}
+
+void mp4meta_close(mp4meta_t* meta) {
+	
+	if (meta) {
+		if ( meta->title )
+			free(meta->title);
+		if ( meta->artist )
+			free(meta->artist);
+		if ( meta->album )
+			free(meta->album);
+		free(meta);
+	}
+}

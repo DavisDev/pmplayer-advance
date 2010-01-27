@@ -138,8 +138,15 @@ static void read_esds_atom(mp4info_t* info, const uint64_t total_size) {
 	}
 	temp = read_mp4_descr_length(info);
 	if ( info->tracks[info->total_tracks-1]->audio_type == ATOM_TYPE('m','p','4','a') ) {
-		uint32_t samplerate = ((io_read_8(info->handle) & 0x7) << 1) | (io_read_8(info->handle)>>7);
-		info->tracks[info->total_tracks-1]->samplerate = aac_samplerates[samplerate];
+		temp = io_read_be32(info->handle);
+		//5bit object type, 4bit base_sr_index, 4bit channels
+		uint32_t samplerate = (temp & 0x07800000) >> 23;
+		samplerate = aac_samplerates[samplerate];
+		info->tracks[info->total_tracks-1]->mp4a_sbr_samplerate = info->tracks[info->total_tracks-1]->samplerate;
+		if ( samplerate != info->tracks[info->total_tracks-1]->samplerate ) {
+			info->tracks[info->total_tracks-1]->samplerate = samplerate;
+			info->tracks[info->total_tracks-1]->mp4a_is_sbr = 1;
+		}
 	}
 	else if ( info->tracks[info->total_tracks-1]->video_type == ATOM_TYPE('m','p','4','v') ) {
 		info->tracks[info->total_tracks-1]->mp4v_decinfo_size = temp;
@@ -263,9 +270,14 @@ static void read_avc1_atom(mp4info_t* info, const uint64_t total_size) {
 	uint32_t header_size = 0;
 	uint64_t size = 0;
 	
-	size = atom_read_header(info->handle, &atom_type, &header_size);
-	if (atom_type == ATOM_TYPE('a','v','c','C')) {
-		read_avcC_atom(info, size - header_size);
+	while(1) {
+		size = atom_read_header(info->handle, &atom_type, &header_size);
+		if (atom_type == ATOM_TYPE('a','v','c','C')) {
+			read_avcC_atom(info, size - header_size);
+			break;
+		}
+		else
+			parse_unused_atom(info, size - header_size);
 	} 
 	
 	io_set_position(info->handle, dest_position);
@@ -746,3 +758,211 @@ void parse_atoms(mp4info_t* info) {
 	}
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+// META parse
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+static void parse_meta_unused_atom(mp4meta_t* meta, const uint64_t total_size) {
+	io_set_position(meta->handle, io_get_position(meta->handle) + total_size);
+}
+
+static void read_meta_nam_atom(mp4meta_t* meta, const uint64_t total_size) {
+	meta->title = malloc(total_size-7);
+	if ( meta->title ) {
+		memset(meta->title, 0, total_size-7);
+		io_read_be32(meta->handle);
+		io_read_be32(meta->handle);
+		io_read_data(meta->handle, meta->title, total_size-8);
+	}
+}
+
+static void read_meta_art_atom(mp4meta_t* meta, const uint64_t total_size) {
+	meta->artist = malloc(total_size-7);
+	if ( meta->artist ) {
+		memset(meta->artist, 0, total_size-7);
+		io_read_be32(meta->handle);
+		io_read_be32(meta->handle);
+		io_read_data(meta->handle, meta->artist, total_size-8);
+	}
+}
+
+static void read_meta_alb_atom(mp4meta_t* meta, const uint64_t total_size) {
+	meta->album = malloc(total_size-7);
+	if ( meta->album ) {
+		memset(meta->album, 0, total_size-7);
+		io_read_be32(meta->handle);
+		io_read_be32(meta->handle);
+		io_read_data(meta->handle, meta->album, total_size-8);
+	}
+}
+
+static void parse_meta_nam_atom(mp4meta_t* meta, const uint64_t total_size) {
+	uint64_t current_position = 0;
+	
+	uint32_t atom_type = 0;
+	uint32_t header_size = 0;
+	uint64_t size = 0;
+	
+	while( current_position < total_size ) {
+		size = atom_read_header(meta->handle, &atom_type, &header_size);
+		if (size == 0)
+			break;
+		if (atom_type == ATOM_TYPE('d','a','t','a')) {
+			read_meta_nam_atom(meta, size - header_size);
+		}
+		else {
+			parse_meta_unused_atom(meta, size - header_size);
+		}
+		current_position += size;
+	}
+}
+
+static void parse_meta_art_atom(mp4meta_t* meta, const uint64_t total_size) {
+	uint64_t current_position = 0;
+	
+	uint32_t atom_type = 0;
+	uint32_t header_size = 0;
+	uint64_t size = 0;
+	
+	while( current_position < total_size ) {
+		size = atom_read_header(meta->handle, &atom_type, &header_size);
+		if (size == 0)
+			break;
+		if (atom_type == ATOM_TYPE('d','a','t','a')) {
+			read_meta_art_atom(meta, size - header_size);
+		}
+		else {
+			parse_meta_unused_atom(meta, size - header_size);
+		}
+		current_position += size;
+	}
+}
+
+static void parse_meta_alb_atom(mp4meta_t* meta, const uint64_t total_size) {
+	uint64_t current_position = 0;
+	
+	uint32_t atom_type = 0;
+	uint32_t header_size = 0;
+	uint64_t size = 0;
+	
+	while( current_position < total_size ) {
+		size = atom_read_header(meta->handle, &atom_type, &header_size);
+		if (size == 0)
+			break;
+		if (atom_type == ATOM_TYPE('d','a','t','a')) {
+			read_meta_alb_atom(meta, size - header_size);
+		}
+		else {
+			parse_meta_unused_atom(meta, size - header_size);
+		}
+		current_position += size;
+	}
+}
+
+static void parse_meta_ilst_atom(mp4meta_t* meta, const uint64_t total_size) {
+	uint64_t current_position = 0;
+	
+	uint32_t atom_type = 0;
+	uint32_t header_size = 0;
+	uint64_t size = 0;
+	
+	while( current_position < total_size ) {
+		size = atom_read_header(meta->handle, &atom_type, &header_size);
+		if (size == 0)
+			break;
+		if (atom_type == ATOM_TYPE(0xA9, 'n', 'a', 'm')) {
+			parse_meta_nam_atom(meta, size - header_size);
+		}
+		else if (atom_type == ATOM_TYPE(0xA9, 'A', 'R', 'T')) {
+			parse_meta_art_atom(meta, size - header_size);
+		}
+		else if (atom_type == ATOM_TYPE(0xA9, 'a', 'l', 'b')) {
+			parse_meta_alb_atom(meta, size - header_size);
+		}
+		else {
+			parse_meta_unused_atom(meta, size - header_size);
+		}
+		current_position += size;
+	}
+}
+
+static void parse_meta_meta_atom(mp4meta_t* meta, const uint64_t total_size) {
+	
+	io_read_be32(meta->handle);
+	
+	uint64_t current_position = 4;
+	
+	uint32_t atom_type = 0;
+	uint32_t header_size = 0;
+	uint64_t size = 0;
+	
+	while( current_position < total_size ) {
+		size = atom_read_header(meta->handle, &atom_type, &header_size);
+		if (size == 0)
+			break;
+		if (atom_type == ATOM_TYPE('i','l','s','t')) {
+			parse_meta_ilst_atom(meta, size - header_size);
+		}
+		else {
+			parse_meta_unused_atom(meta, size - header_size);
+		}
+		current_position += size;
+	}
+}
+
+static void parse_meta_udta_atom(mp4meta_t* meta, const uint64_t total_size) {
+	uint64_t current_position = 0;
+	
+	uint32_t atom_type = 0;
+	uint32_t header_size = 0;
+	uint64_t size = 0;
+	
+	while( current_position < total_size ) {
+		size = atom_read_header(meta->handle, &atom_type, &header_size);
+		if (size == 0)
+			break;
+		if (atom_type == ATOM_TYPE('m','e','t','a')) {
+			parse_meta_meta_atom(meta, size - header_size);
+		}
+		else {
+			parse_meta_unused_atom(meta, size - header_size);
+		}
+		current_position += size;
+	}
+}
+
+static void parse_meta_moov_atom(mp4meta_t* meta, const uint64_t total_size) {
+	uint64_t current_position = 0;
+	
+	uint32_t atom_type = 0;
+	uint32_t header_size = 0;
+	uint64_t size = 0;
+	
+	while( current_position < total_size ) {
+		size = atom_read_header(meta->handle, &atom_type, &header_size);
+		if (size == 0)
+			break;
+		if (atom_type == ATOM_TYPE('u','d','t','a')) {
+			parse_meta_udta_atom(meta, size - header_size);
+		}
+		else {
+			parse_meta_unused_atom(meta, size - header_size);
+		}
+		current_position += size;
+	}
+}
+
+void parse_metas(mp4meta_t* meta) {
+	uint32_t atom_type = 0;
+	uint32_t header_size = 0;
+	uint64_t size = 0;
+	
+	while( (size = atom_read_header(meta->handle, &atom_type, &header_size)) != 0 ) {
+		if (atom_type == ATOM_TYPE('m','o','o','v') && size > header_size) {
+			parse_meta_moov_atom(meta, size - header_size);
+		}
+		else {
+			parse_meta_unused_atom(meta, size - header_size);
+		}
+	}
+}
