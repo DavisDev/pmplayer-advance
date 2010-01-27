@@ -60,7 +60,7 @@ void mp4_avc_close(struct mp4_avc_struct *p) {
 		free_64(p->mpeg_buffer);
 	
 	if (p->mpeg_au != 0) 
-		free_64(p->mpeg_buffer);
+		free_64(p->mpeg_au);
 	
 //	if (p->mpeg_ddrtop != 0) 
 //		free_64(p->mpeg_ddrtop);

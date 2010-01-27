@@ -29,6 +29,7 @@ extern "C" {
 #endif
 
 void parse_atoms(mp4info_t* info);
+void parse_metas(mp4meta_t* meta);
 
 #ifdef __cplusplus
 }

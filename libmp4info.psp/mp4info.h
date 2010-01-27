@@ -35,6 +35,9 @@ void mp4info_close(mp4info_t* info);
 
 void mp4info_dump(mp4info_t* info, const char* dumpfile);
 
+mp4meta_t* mp4meta_open(const char* filename);
+void mp4meta_close(mp4meta_t* meta);
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

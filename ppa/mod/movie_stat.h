@@ -25,6 +25,7 @@
 #include "pmp_play.h"
 #include "mp4_play.h"
 #include "mkv_play.h"
+#include "flv1_play.h"
 
 #define MAX_MOVIE_STAT 20
 
@@ -56,6 +57,9 @@ void mp4_stat_save( struct mp4_play_struct *p);
 
 void mkv_stat_load( struct mkv_play_struct *p);
 void mkv_stat_save( struct mkv_play_struct *p);
+
+void flv1_stat_load( struct flv1_play_struct *p);
+void flv1_stat_save( struct flv1_play_struct *p);
 
 #ifdef __cplusplus
 }

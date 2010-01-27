@@ -78,6 +78,9 @@ typedef struct {
 	uint32_t mp4v_decinfo_size;
 	uint8_t* mp4v_decinfo;
 	
+	uint32_t mp4a_is_sbr;
+	uint32_t mp4a_sbr_samplerate;
+	
 } mp4info_track_t;
 
 typedef struct {
@@ -90,5 +93,12 @@ typedef struct {
 	mp4info_track_t* tracks[MP4_MAX_TRACKS];
 	
 } mp4info_t;
+
+typedef struct {
+	void* handle;
+	char* title;
+	char* artist;
+	char* album;
+} mp4meta_t;
 
 #endif

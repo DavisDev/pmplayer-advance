@@ -65,6 +65,8 @@
 
 #include "mod/mkv.h"
 
+#include "mod/flv1.h"
+
 #include "mod/codec_prx.h"
 #include "mod/gu_font.h"
 #include "mod/movie_file.h"
@@ -115,6 +117,7 @@ file_type_ext_struct movieFileFilter[] = {
 	{"mp4", FS_MP4_FILE},
 	{"3gp", FS_MP4_FILE},
 	{"mkv", FS_MKV_FILE},
+	{"flv", FS_FLV1_FILE},
 	{NULL, FS_UNKNOWN_FILE}
 };
 
@@ -143,6 +146,12 @@ PmpAvcPlayer::PmpAvcPlayer() {
 	fileItems = NULL;
 	
 	attachmentItems = NULL;
+	
+	batteryPercent10 = NULL;
+	batteryPercent33 = NULL;
+	batteryPercent66 = NULL;
+	batteryPercent100 = NULL;
+	batteryCharging = NULL;
 
 };
 
@@ -1008,7 +1017,10 @@ void PmpAvcPlayer::paintFilmPreview(){
 			filmPreviewImage = NULL;
 		}
 		
-		if ( fileItems[fileItemCurrent].filetype == FS_PMP_FILE || fileItems[fileItemCurrent].filetype == FS_MP4_FILE || fileItems[fileItemCurrent].filetype == FS_MKV_FILE) {
+		if ( fileItems[fileItemCurrent].filetype == FS_PMP_FILE 
+			|| fileItems[fileItemCurrent].filetype == FS_MP4_FILE 
+			|| fileItems[fileItemCurrent].filetype == FS_MKV_FILE
+			|| fileItems[fileItemCurrent].filetype == FS_FLV1_FILE) {
 			char previewFileName[512];
 			memset(previewFileName, 0, 512);
 	
@@ -1265,6 +1277,42 @@ void PmpAvcPlayer::getCurrentMkvFilmInformation() {
 	}
 }
 
+void PmpAvcPlayer::getCurrentFlv1FilmInformation() {
+	initFilmInformation();
+	char previewFileName[512];
+	memset(previewFileName, 0, 512);
+	
+	sprintf(previewFileName,"%s%s", fileShortPath, fileItems[fileItemCurrent].shortname);
+	
+	flv1info_t* info = flv1info_open(previewFileName, 0);
+	if ( info == 0 ) {
+		initFilmInformation();
+	}
+	else {
+		if ( info->video_type != 0x666C7631 && info->video_type	!= 0x61766331 ) {
+			flv1info_close(info);
+			initFilmInformation();
+			return;
+		} 
+		
+		if ( info->audio_type != 0x6D703320 &&  info->audio_type != 0x6D703461) {
+			flv1info_close(info);
+			initFilmInformation();
+			return;
+		}
+		
+		filmTotalFrames = (u32)(1000LL*info->duration/info->video_frame_duration);
+		filmWidth = info->width;
+		filmHeight = info->height;
+		filmScale = info->video_frame_duration;
+		filmRate = info->video_scale;
+		filmAudioStreams = 1;
+		flv1info_close(info);
+		
+		filmSubtitles += getSelectMovieSubtitles();
+	}
+}
+
 void PmpAvcPlayer::paintFilmInformation() {
 	if ( !filmReloadEnable )
 		return;
@@ -1280,9 +1328,16 @@ void PmpAvcPlayer::paintFilmInformation() {
 		else if ( fileItems[fileItemCurrent].filetype == FS_MKV_FILE ) {
 			getCurrentMkvFilmInformation();
 		}
+		else if ( fileItems[fileItemCurrent].filetype == FS_FLV1_FILE ) {
+			getCurrentFlv1FilmInformation();
+		}
 		filmInformationReload = false;
 	}
-	if ( fileItems[fileItemCurrent].filetype == FS_PMP_FILE || fileItems[fileItemCurrent].filetype == FS_MP4_FILE || fileItems[fileItemCurrent].filetype == FS_MKV_FILE) {
+	if ( fileItems[fileItemCurrent].filetype == FS_PMP_FILE 
+		|| fileItems[fileItemCurrent].filetype == FS_MP4_FILE 
+		|| fileItems[fileItemCurrent].filetype == FS_MKV_FILE
+		|| fileItems[fileItemCurrent].filetype == FS_FLV1_FILE) {
+			
 		FtFont* mainFont = FtFontManager::getInstance()->getMainFont();
 		Color color = Skin::getInstance()->getColorValue("skin/font_color/color", 0xFFFFFF);
 		char stringBuffer[64];
@@ -1366,7 +1421,10 @@ void PmpAvcPlayer::showPadHelp() {
 };
 
 void PmpAvcPlayer::deleteSelectMovie() {
-	if ( fileItems[fileItemCurrent].filetype != FS_PMP_FILE && fileItems[fileItemCurrent].filetype != FS_MP4_FILE && fileItems[fileItemCurrent].filetype != FS_MKV_FILE)
+	if ( fileItems[fileItemCurrent].filetype != FS_PMP_FILE 
+		&& fileItems[fileItemCurrent].filetype != FS_MP4_FILE 
+		&& fileItems[fileItemCurrent].filetype != FS_MKV_FILE
+		&& fileItems[fileItemCurrent].filetype != FS_FLV1_FILE)
 		return;
 	int deleteFileCount = 1;
 	char deleteFiles[5120];
@@ -1485,6 +1543,8 @@ void PmpAvcPlayer::playMovie(bool resume) {
 		result = mp4_play(&currentMovie, usePos, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode() );
 	else if ( fileItems[fileItemCurrent].filetype == FS_MKV_FILE )
 		result = mkv_play(&currentMovie, usePos, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode() );
+	else if ( fileItems[fileItemCurrent].filetype == FS_FLV1_FILE )
+		result = flv1_play(&currentMovie, usePos, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode() );
 	else
 		result = "unsupported movie";
 	
@@ -1524,7 +1584,9 @@ void PmpAvcPlayer::playMovie(bool resume) {
 				else if ( fileItems[fileItemCurrent].filetype == FS_MP4_FILE )
 					result = mp4_play(&currentMovie, 0, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode());
 				else if ( fileItems[fileItemCurrent].filetype == FS_MKV_FILE )
-					result = mkv_play(&currentMovie, 0, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode());			
+					result = mkv_play(&currentMovie, 0, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode());
+				else if ( fileItems[fileItemCurrent].filetype == FS_FLV1_FILE )
+					result = flv1_play(&currentMovie, 0, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode());						
 				else
 					result = "unsupported movie";
 					
@@ -1556,6 +1618,8 @@ void PmpAvcPlayer::playMovie(bool resume) {
 				result = mp4_play(&currentMovie, 0, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode());
 			else if ( fileItems[fileItemCurrent].filetype == FS_MKV_FILE )
 				result = mkv_play(&currentMovie, 0, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode());
+			else if ( fileItems[fileItemCurrent].filetype == FS_FLV1_FILE )
+				result = flv1_play(&currentMovie, 0, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode());
 			else
 				result = "unsupported movie";
 			sceKernelDcacheWritebackInvalidateAll();

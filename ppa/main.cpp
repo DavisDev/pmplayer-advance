@@ -33,7 +33,7 @@
 #include "cooleyesBridge.h"
 
 PSP_MODULE_INFO("PMPLAYER_ADVANCE", 0, VERS, REVS);
-PSP_MAIN_THREAD_ATTR(0);
+PSP_MAIN_THREAD_ATTR(0|PSP_THREAD_ATTR_VFPU);
 PSP_HEAP_SIZE_KB(18*1024);
 
 #define printf	pspDebugScreenPrintf
