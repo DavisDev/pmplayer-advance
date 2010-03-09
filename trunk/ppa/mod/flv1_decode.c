@@ -66,6 +66,11 @@ void flv1_decode_safe_constructor(struct flv1_decode_struct *p) {
 	mp4_avc_safe_constructor(&p->avc);
 #ifdef USE_FFMPEG_FLV1_DECODER
 	flv1_safe_constructor(&p->flv1);
+#else
+#ifdef USE_FLV2MPEG4_CONV
+	mp4v_safe_constructor(&p->mp4v);
+	p->flv_mpeg4_conv_opened = 0;
+#endif
 #endif
 
 	int i = 0;
@@ -90,6 +95,14 @@ void flv1_decode_close(struct flv1_decode_struct *p, int pspType) {
 #ifdef USE_FFMPEG_FLV1_DECODER
 	else
 		flv1_close(&p->flv1);
+#else
+#ifdef USE_FLV2MPEG4_CONV
+	else
+		mp4v_close(&p->mp4v);
+	
+	if ( p->flv_mpeg4_conv_opened )
+		close_flv2mpeg4_convert();
+#endif
 #endif
 
 	if (p->audio_decoder == 0 )
@@ -157,13 +170,29 @@ char *flv1_decode_open(struct flv1_decode_struct *p, char *s, int pspType, int t
 			p->reader.file.video_width,
 			p->reader.file.video_height);
 #else
+#ifdef USE_FLV2MPEG4_CONV
+		result = mp4v_open(&p->mp4v);
+#else
 		result = "flv1_open: no supported:";
+#endif
 #endif
 	}
 	if (result != 0) {
 		flv1_decode_close(p, pspType);
 		return(result);
 	}
+
+#ifdef USE_FLV2MPEG4_CONV
+	if ( p->video_format != 0x61766331 ) { /*not avc*/
+		if ( open_flv2mpeg4_convert(p->reader.file.video_width, p->reader.file.video_height) != 0 ) {
+			flv1_decode_close(p, pspType);
+			return("flv1_decode_open: can't open flv2mpeg4_convert");
+		}
+		else 
+			p->flv_mpeg4_conv_opened = 1;
+	}
+#endif
+
 	unsigned int display_width = p->reader.file.video_width;
 	unsigned int display_height = p->reader.file.video_height;
 	if (display_width == 720 && display_height == 480 ) {
@@ -387,7 +416,16 @@ char *flv1_decode_get_video(struct flv1_decode_struct *p, unsigned int audio_str
 #ifdef USE_FFMPEG_FLV1_DECODER
 				result = flv1_get_rgb(&p->flv1, v_packet.data, v_packet.size, pmp_gu_rgb_buffer);
 #else
+#ifdef USE_FLV2MPEG4_CONV
+				int mpeg4_frame_size;
+				void* mpeg4_frame = convert_flv_frame_to_mpeg4_frame(v_packet.data, v_packet.size, &mpeg4_frame_size);
+				if ( mpeg4_frame )
+					result = mp4v_get_rgb(&p->mp4v, mpeg4_frame, mpeg4_frame_size, pmp_gu_rgb_buffer);
+				else
+					result = "flv1_get_rgb: flv2mpeg4_convert fail";
+#else
 				result = "flv1_get_rgb: decode error";
+#endif
 #endif
 				*pic_num = 1;
 			}

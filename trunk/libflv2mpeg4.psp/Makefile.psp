@@ -1,0 +1,12 @@
+PSPSDK=$(shell psp-config --pspsdk-path)
+PSPDIR=$(shell psp-config --psp-prefix)
+TARGET_LIB = ../libflv2mpeg4.a
+OBJS = 	dcprediction.o flvdecoder.o m4vencode.o flv2mpeg4.o
+INCDIR = 
+CFLAGS = -O3 -G0 -fomit-frame-pointer -fPIC
+CXXFLAGS = $(CFLAGS) -fno-rtti
+ASFLAGS = $(CFLAGS)
+
+include $(PSPSDK)/lib/build.mak
+
+

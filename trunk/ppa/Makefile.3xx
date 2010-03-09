@@ -23,19 +23,21 @@ OBJS = main.o player.o config.o skin.o ftfont.o cfgdialog.o versiondialog.o msgd
 	tinyxml/tinystr.o tinyxml/tinyxml.o tinyxml/tinyxmlerror.o tinyxml/tinyxmlparser.o \
 	../cooleyesBridge/cooleyesBridge.o \
 	
-OBJS += mod/flv1decoder.o 
+#OBJS += mod/flv1decoder.o 
 	
 INCDIR = $(PSPM33SDKDIR)/include ../cooleyesBridge ../pspvideocodec ../libmpeg \
 	../libmp4info.psp  ../libmkvinfo.psp ../libflv1info.psp \
 	../opencore-amr.psp \
 
-INCDIR += ../ffmpeg-psp.0.5/include
+#INCDIR += ../ffmpeg-psp.0.5/include
+INCDIR += ../libflv2mpeg4.psp
 INCDIR += $(PSPLIBSDIR)/include $(PSPLIBSDIR)/include/freetype2 
 
 CFLAGS = -O3 -G0 -g -Wall -DENABLE_USBHOST -DENABLE_NETHOST 
 #CFLAGS = -O3 -G0 -g -Wall 
 
-CFLAGS += -DUSE_FFMPEG_FLV1_DECODER
+#CFLAGS += -DUSE_FFMPEG_FLV1_DECODER
+CFLAGS += -DUSE_FLV2MPEG4_CONV
 
 CXXFLAGS = $(CFLAGS) -fno-exceptions -fno-rtti
 ASFLAGS = $(CFLAGS)
@@ -44,12 +46,13 @@ USE_PSPSDK_LIBC =
 
 LIBDIR = $(PSPM33SDKDIR)/lib .. $(PSPLIBSDIR)/lib \
 
-LIBDIR += ../ffmpeg-psp.0.5/lib
+#LIBDIR += ../ffmpeg-psp.0.5/lib
 
 LDFLAGS =
 LIBS = -lstdc++ -lpspkubridge \
 
-LIBS += -lavcodec -lavutil
+#LIBS += -lavcodec -lavutil
+LIBS += -lflv2mpeg4
 LIBS += -lfreetype -lpng -lz -lm \
 	-lpsppower -lpspaudiocodec -lpspaudio -lpspaudio_driver \
 	-lpspgu -lpspmpeg -lpspjpeg -lpspvideocodec -lpspusb -lpspusbstor \
