@@ -282,9 +282,9 @@ char *flv1_read_fill_buffer(struct flv1_read_struct *p, unsigned char track_type
 			if ( tmp == 0 )  {
 				free_64(packet.data);
 				if ( tag_type  == 0x09 ) 
-					return("mp4_read_fill_buffer: video queue is full");
+					return("flv1_read_fill_buffer: video queue is full");
 				else
-					return("mp4_read_fill_buffer: audio queue is full");
+					return("flv1_read_fill_buffer: audio queue is full");
 			}		
 			if ( tag_type == track_type )
 				return(0);

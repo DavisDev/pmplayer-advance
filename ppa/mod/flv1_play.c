@@ -710,7 +710,7 @@ char *flv1_play_open(struct flv1_play_struct *p, struct movie_file_struct *movie
 		return("flv1_play_open: sceKernelCreateThread failed on show_thread");
 	}
 	
-	p->demux_thread = sceKernelCreateThread("demux", flv1_demux_thread, 0x30, 0x10000, PSP_THREAD_ATTR_USER|PSP_THREAD_ATTR_VFPU, 0);
+	p->demux_thread = sceKernelCreateThread("demux", flv1_demux_thread, 0x8, 0x10000, PSP_THREAD_ATTR_USER|PSP_THREAD_ATTR_VFPU, 0);
 	if (p->demux_thread < 0) {
 		flv1_play_close(p, 0, pspType);
 		return("flv1_play_open: sceKernelCreateThread failed on demux_thread");

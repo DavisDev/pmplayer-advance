@@ -172,11 +172,22 @@ int audio_decoder_open(int type, int samplerate, int samplecount, int blockalign
 		decode_func = atrac3_decoder_decode;
 	}
 	else if ( type == PSP_CODEC_AUDIO_MP3 ) {
-		if ( sceAudiocodecCheckNeedMem(audio_codec_buffer, PSP_CODEC_AUDIO_MP3) < 0 ) 
+		if ( sceAudiocodecCheckNeedMem(audio_codec_buffer, PSP_CODEC_AUDIO_MP3) < 0 ) {
+//			FILE* fp = fopen("ms0:/sceAudiocodecCheckNeedMem.dat", "wb+");
+//			fwrite(audio_codec_buffer, 4, 65, fp);
+//			fclose(fp);
 			return -1;
-		if ( cooleyesAudiocodecGetEDRAM(audio_codec_buffer, PSP_CODEC_AUDIO_MP3) < 0 ) 
+		}
+		if ( cooleyesAudiocodecGetEDRAM(audio_codec_buffer, PSP_CODEC_AUDIO_MP3) < 0 ) {
+//			FILE* fp = fopen("ms0:/cooleyesAudiocodecGetEDRAM.dat", "wb+");
+//			fwrite(audio_codec_buffer, 4, 65, fp);
+//			fclose(fp);
 			return -1;
+		}
 		if ( sceAudiocodecInit(audio_codec_buffer, PSP_CODEC_AUDIO_MP3) < 0 ) {
+//			FILE* fp = fopen("ms0:/sceAudiocodecInit.dat", "wb+");
+//			fwrite(audio_codec_buffer, 4, 65, fp);
+//			fclose(fp);
 			cooleyesAudiocodecReleaseEDRAM(audio_codec_buffer);
 			return -1;
 		}

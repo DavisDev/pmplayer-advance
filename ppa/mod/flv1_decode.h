@@ -31,9 +31,15 @@
 #include "gu_draw.h"
 #include "movie_interface.h"
 #include "mp4avcdecoder.h"
+
 #ifdef USE_FFMPEG_FLV1_DECODER
 #include "flv1decoder.h"
 #endif
+#ifdef USE_FLV2MPEG4_CONV
+#include "mp4vdecoder.h"
+#include "flv2mpeg4.h"
+#endif
+
 #include "cpu_clock.h"
 
 #include "gu_font.h"
@@ -55,6 +61,11 @@ struct flv1_decode_struct {
 	struct mp4_avc_struct avc;
 #ifdef USE_FFMPEG_FLV1_DECODER
 	struct flv1_struct flv1;
+#else
+#ifdef USE_FLV2MPEG4_CONV
+	int flv_mpeg4_conv_opened;
+	struct mp4v_struct mp4v;
+#endif
 #endif
 	
 	unsigned int video_format;
