@@ -102,7 +102,7 @@ struct subtitle_frame_struct* subtitle_parse_subssa( FILE *f, char* charset, uns
 			else if ( c == '\\' ) {
 				if ( i < linelen ) {
 					c = line[i++];
-					if (c == 'N') {
+					if (c == 'N' || c == 'n') {
 						p->p_num_lines++;
 						p->p_string[j++]='\n';
 					}

@@ -20,6 +20,7 @@
  */
 
 #include "mp4_read.h"
+#include "subtitle_parse.h"
 
 typedef char* (*f_mp4_read_fill_buffer)(struct mp4_read_struct *, int );
 static f_mp4_read_fill_buffer p_mp4_read_fill_buffer;
@@ -128,6 +129,40 @@ void mp4_read_close(struct mp4_read_struct *p) {
 	mp4_read_safe_constructor(p);
 }
 
+int mp4_is_subtitle_track(struct mp4_read_struct *p, int track_id, int* index) {
+	int i;
+	for(i=0; i<p->file.subtitle_tracks; i++) {
+		if ( p->file.subtitle_track_ids[i] == track_id ) {
+			*index = i;
+			return 1;
+		}
+	}
+	return 0;
+}
+
+void mp4_get_subtitle_frame_time(struct mp4_read_struct *p, int subtitle_index, unsigned int track_sample,
+	uint64_t* timecode, uint64_t* duration) {
+	int i = 0;
+	unsigned int start = 0;
+	unsigned int end = p->file.subtitle_track_time[subtitle_index][2*i];
+	uint64_t temp_timecode = 0LL;
+	while(1) {
+		if ( track_sample < end ) {
+			*timecode = temp_timecode + (track_sample-start)*p->file.subtitle_track_time[subtitle_index][2*i+1];
+			*duration = p->file.subtitle_track_time[subtitle_index][2*i+1];
+			break;
+		}
+		i++;
+		if( i >= p->file.subtitle_track_time_count[subtitle_index] ) {
+			break;
+		}
+		start = end;
+		end += p->file.subtitle_track_time[subtitle_index][2*i];
+		temp_timecode += p->file.subtitle_track_time[subtitle_index][2*i-2] * p->file.subtitle_track_time[subtitle_index][2*i-1];
+	}
+	
+}
+
 char *mp4_read_fill_buffer_not_interlace(struct mp4_read_struct *p, int track_id) {
 	int video_track = p->file.video_track_id;
 	int audio_track = p->file.audio_track_ids[p->current_audio_track];
@@ -203,6 +238,77 @@ char *mp4_read_fill_buffer_not_interlace(struct mp4_read_struct *p, int track_id
 	return(0);
 }
 
+void mp4_handle_subtitle_frame(struct mp4_read_struct *p, int subtitle_index, unsigned int track_sample, unsigned int sample_size) {
+	
+	int32_t current_pos = buffered_reader_position(p->reader);
+	
+	if ( sample_size > 2 ) {
+		
+		char trackname[32];
+		memset(trackname, 0, 32);
+		sprintf(trackname, "mp4 subtitle track(%d)", p->file.subtitle_track_ids[subtitle_index]);
+		struct subtitle_parse_struct *cur_parser = 0;
+		int i,j;
+		for(i=0; i < MAX_SUBTITLES; i++) {
+			if (strcmp(trackname, subtitle_parser[i].filename) == 0 ) {
+				cur_parser = &subtitle_parser[i];
+				break;
+			}
+		}
+		if ( cur_parser ) {
+			struct subtitle_frame_struct* frame = (struct subtitle_frame_struct*)malloc_64( sizeof(struct subtitle_frame_struct) );
+			if (frame) {
+				subtitle_frame_safe_constructor(frame);
+				double tmp ;
+				uint64_t timecode, duration;
+				mp4_get_subtitle_frame_time(p, subtitle_index, track_sample, &timecode, &duration);
+				tmp = 1.0f*timecode;
+				tmp *= p->file.video_rate;
+				tmp /= p->file.video_scale;
+				tmp /= 1000.0f;
+				frame->p_start_frame = (unsigned int)tmp;
+				tmp = 1.0f*(timecode+duration);
+				tmp *= p->file.video_rate;
+				tmp /= p->file.video_scale;
+				tmp /= 1000.0f;
+				frame->p_end_frame = (unsigned int)tmp;
+				
+				frame->p_num_lines = 0;
+				
+				memset(frame->p_string, 0, max_subtitle_string);
+				
+				buffered_reader_seek(p->reader, current_pos + 2);
+				
+				buffered_reader_read(p->reader, frame->p_string, ((max_subtitle_string - 1 > (sample_size-2)) ? (sample_size-2) : (max_subtitle_string - 1)) );
+				
+				i = 0;
+				j = 0;
+				char c = 0;
+				int linelen = strlen(frame->p_string);
+				if ( linelen > 0 ) {
+					frame->p_num_lines++;
+					while( i < linelen && j<max_subtitle_string-1) {
+						c = frame->p_string[i++];
+						if ( c == '\n' || c == '\r' ) {
+							frame->p_string[j++]='\n';
+							frame->p_num_lines++;
+							while(i < linelen && (frame->p_string[i] == '\n' || frame->p_string[i] == '\r') ) i++;
+						}
+						else
+							frame->p_string[j++]=c;
+					}
+				}
+				frame->p_string[j] = '\0';
+				
+				subtitle_parse_add_frame( cur_parser, cur_parser->p_cur_sub_frame, frame);
+			}
+		}
+	}
+	
+	buffered_reader_seek(p->reader, current_pos + sample_size);
+	
+}
+
 char *mp4_read_fill_buffer_interlace(struct mp4_read_struct *p, int track_id) {
 	
 	int video_track = p->file.video_track_id;
@@ -212,11 +318,17 @@ char *mp4_read_fill_buffer_interlace(struct mp4_read_struct *p, int track_id) {
 	int tmp;
 	unsigned int track_sample; 
 	uint64_t timestamp;
+	int subtitle_index;
 	while(1) {
 		if ( p->current_sample >= p->file.sample_count )
 			return "mp4_read_fill_buffer: eof";
 		track = (int)(( p->file.samples[p->current_sample].sample_index & 0xFF000000 ) >> 24);
-		if(track == video_track || track == audio_track){
+		if(mp4_is_subtitle_track(p, track, &subtitle_index)) {
+			track_sample = p->file.samples[p->current_sample].sample_index & 0x00FFFFFF;
+			mp4_handle_subtitle_frame(p, subtitle_index, track_sample, p->file.samples[p->current_sample].sample_size);
+			p->current_sample++;
+		}
+		else if(track == video_track || track == audio_track){
 			struct mp4_read_output_struct packet;
 			packet.size = p->file.samples[p->current_sample].sample_size;
 			packet.data = malloc_64(packet.size);

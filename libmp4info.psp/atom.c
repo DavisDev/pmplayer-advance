@@ -611,6 +611,19 @@ static void parse_minf_atom(mp4info_t* info, const uint64_t total_size) {
 	}
 }
 
+static void read_hdlr_atom(mp4info_t* info, const uint64_t total_size) {
+	int32_t dest_position = io_get_position(info->handle) + total_size;
+	
+	io_read_8(info->handle); //version
+	io_read_be24(info->handle); //flags
+	io_read_be32(info->handle); //Component Type;
+	uint32_t sub_type = io_read_be32(info->handle); //Component Subtype
+	if ( sub_type == 0x7362746C || sub_type == 0x74657874 )
+		info->tracks[info->total_tracks-1]->type = MP4_TRACK_SUBTITLE;
+	io_set_position(info->handle, dest_position);
+	
+}
+
 static void read_mdhd_atom(mp4info_t* info, const uint64_t total_size) {
 	int32_t dest_position = io_get_position(info->handle) + total_size;
 	
@@ -641,7 +654,10 @@ static void parse_mdia_atom(mp4info_t* info, const uint64_t total_size) {
 		}
 		else if (atom_type == ATOM_TYPE('m','i','n','f')) {
 	 		parse_minf_atom(info, size - header_size);
-	 	}
+		}
+		else if (atom_type == ATOM_TYPE('h','d','l','r')) {
+			read_hdlr_atom(info, size - header_size);
+		}
 		else {
 			parse_unused_atom(info, size - header_size);
 		}

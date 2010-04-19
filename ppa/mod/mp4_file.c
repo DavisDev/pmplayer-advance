@@ -27,6 +27,12 @@ void mp4_file_safe_constructor(struct mp4_file_struct *p) {
 	p->audio_tracks = 0;
 	p->audio_up_sample = 0;
 	
+	p->subtitle_tracks = 0;
+	int i;
+	for(i=0; i < 4; i++) {
+		p->subtitle_track_time[i] = 0;
+	}
+	
 	p->maximum_video_sample_size = 0;
 	
 	p->avc_sps_size = 0;
@@ -54,6 +60,13 @@ void mp4_file_close(struct mp4_file_struct *p) {
 	if (p->info != 0) {
 		mp4info_close(p->info);
 	}
+	
+	int i;
+	for(i=0; i < 4; i++) {
+		if ( p->subtitle_track_time[i] )
+			free_64(p->subtitle_track_time[i]);
+	}
+	
 	if ( p->avc_sps )
 		free_64(p->avc_sps);
 	if ( p->avc_pps )
@@ -206,6 +219,33 @@ char *mp4_file_build_index(struct mp4_file_struct *p) {
 		
 	}
 	
+	if ( !p->is_not_interlace ) {
+		for(i = 0; i < p->info->total_tracks; i++) {
+			mp4info_track_t* track = p->info->tracks[i];
+			if (track->type != MP4_TRACK_SUBTITLE)
+				continue;
+			p->subtitle_tracks++;
+			p->subtitle_track_ids[p->subtitle_tracks-1] = i;
+			
+			p->subtitle_track_time_count[p->subtitle_tracks-1] = track->stts_entry_count;
+			p->subtitle_track_time[p->subtitle_tracks-1] = malloc_64(track->stts_entry_count*2*sizeof(unsigned int));
+			
+			if ( !p->subtitle_track_time[p->subtitle_tracks-1] ) {
+				p->subtitle_tracks--;
+				break;
+			}
+			else {
+				for(j=0; j<track->stts_entry_count;j++) {
+					p->subtitle_track_time[p->subtitle_tracks-1][2*j] = track->stts_sample_count[j];
+					p->subtitle_track_time[p->subtitle_tracks-1][2*j+1] = track->stts_sample_duration[j];
+				}
+			}
+			
+			if ( p->subtitle_tracks == 4 )
+				break;
+		}
+	}
+	
 	mp4info_close(p->info);
 	p->info = 0;
 	return(0);
@@ -287,8 +327,8 @@ char *mp4_file_open(struct mp4_file_struct *p, char *s) {
 //				continue;
 			if ( track->samplerate != 8000 && track->samplerate != 22050 && track->samplerate != 24000 && track->samplerate != 44100 && track->samplerate != 48000 )
 				continue;
-			if ( track->samplebits != 16 )
-				continue;
+//			if ( track->samplebits != 16 )
+//				continue;
 			p->audio_tracks++;
 			p->audio_track_ids[p->audio_tracks-1] = i;
 			p->audio_type = track->audio_type;
@@ -305,8 +345,8 @@ char *mp4_file_open(struct mp4_file_struct *p, char *s) {
 //				continue;
 			if ( old_track->samplerate != track->samplerate )
 				continue;
-			if ( old_track->samplebits != track->samplebits )
-				continue;
+//			if ( old_track->samplebits != track->samplebits )
+//				continue;
 			p->audio_tracks++;
 			p->audio_track_ids[p->audio_tracks-1] = i;
 		}

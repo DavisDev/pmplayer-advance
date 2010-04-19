@@ -24,11 +24,12 @@
 
 #include <pspiofilemgr.h>
 
-#define MP4_MAX_TRACKS 1024
-#define MP4_TRACK_UNKNOWN 0
-#define MP4_TRACK_AUDIO   1
-#define MP4_TRACK_VIDEO   2
-#define MP4_TRACK_SYSTEM  3
+#define MP4_MAX_TRACKS  1024
+#define MP4_TRACK_UNKNOWN  0
+#define MP4_TRACK_AUDIO    1
+#define MP4_TRACK_VIDEO    2
+#define MP4_TRACK_SUBTITLE 3
+#define MP4_TRACK_SYSTEM   4
 
 typedef struct {
 	uint32_t type;

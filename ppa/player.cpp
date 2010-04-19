@@ -1135,8 +1135,8 @@ void PmpAvcPlayer::getCurrentMp4FilmInformation() {
 //					continue;
 				if ( track->samplerate != 8000 && track->samplerate != 22050 && track->samplerate != 24000 && track->samplerate != 44100 && track->samplerate != 48000 )
 					continue;
-				if ( track->samplebits != 16 )
-					continue;
+//				if ( track->samplebits != 16 )
+//					continue;
 				first_audio_track_id = i;
 				audio_tracks++;
 			}
@@ -1148,8 +1148,8 @@ void PmpAvcPlayer::getCurrentMp4FilmInformation() {
 //					continue;
 				if ( old_track->samplerate != track->samplerate )
 					continue;
-				if ( old_track->samplebits != track->samplebits )
-					continue;
+//				if ( old_track->samplebits != track->samplebits )
+//					continue;
 				audio_tracks++;
 			}
 			if ( audio_tracks == 6 )
@@ -1160,6 +1160,14 @@ void PmpAvcPlayer::getCurrentMp4FilmInformation() {
 			initFilmInformation();
 			return;
 		}
+		
+		for(i = 0; i < info->total_tracks; i++) {
+			mp4info_track_t* track = info->tracks[i];
+			if (track->type != MP4_TRACK_SUBTITLE)
+				continue;
+			filmSubtitles++;
+		}
+		
 		filmTotalFrames = 0;
 		for( i = 0; i < info->tracks[video_track_id]->stts_entry_count; i++)
 			filmTotalFrames += info->tracks[video_track_id]->stts_sample_count[i];
@@ -1171,7 +1179,7 @@ void PmpAvcPlayer::getCurrentMp4FilmInformation() {
 		filmAudioStreams = audio_tracks;
 		mp4info_close(info);
 		
-		filmSubtitles = getSelectMovieSubtitles();
+		filmSubtitles += getSelectMovieSubtitles();
 	}
 }
 

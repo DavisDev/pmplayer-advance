@@ -402,6 +402,8 @@ void flv1_play_do_seek(volatile struct flv1_play_struct *p) {
 		}
 		
 		flv1_decode_keyframe_forward((struct flv1_decode_struct *) &p->decoder, keyframes);
+		
+		sceKernelDelayThread(200000);
 
 		return;
 	}
@@ -418,6 +420,8 @@ void flv1_play_do_seek(volatile struct flv1_play_struct *p) {
 			p->decoder.output_video_frame_buffers[i].timestamp = -p->decoder.video_frame_duration;
 		
 		flv1_decode_keyframe_backward((struct flv1_decode_struct *) &p->decoder, keyframes);
+		
+		sceKernelDelayThread(200000);
 		
 		return;
 	}
