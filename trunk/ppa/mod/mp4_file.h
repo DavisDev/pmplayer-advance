@@ -43,6 +43,11 @@ struct mp4_file_struct {
 	int video_track_id;
 	int audio_tracks;
 	int audio_track_ids[6];
+	int subtitle_tracks;
+	int subtitle_track_ids[4];
+	
+	int subtitle_track_time_count[4];
+	unsigned int *subtitle_track_time[4];
 	
 	unsigned int video_type;
 	unsigned int video_width;

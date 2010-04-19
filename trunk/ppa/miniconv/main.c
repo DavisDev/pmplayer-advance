@@ -78,6 +78,9 @@ static convertor_t convertors[] = {
 #ifdef ISO8859_6_CONV
 	{"ISO-8859-6", iso8859_6_to_utf8},
 #endif
+#ifdef ISO8859_7_CONV
+	{"ISO-8859-7", iso8859_7_to_utf8},
+#endif
 #ifdef ISO8859_9_CONV
 	{"ISO-8859-9", iso8859_9_to_utf8},
 #endif

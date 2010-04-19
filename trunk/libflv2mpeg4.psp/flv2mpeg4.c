@@ -166,11 +166,11 @@ void* convert_flv_frame_to_mpeg4_frame(void* flv_frame, int in_size, int* out_si
 	if (decode_picture_header(&br, flvpic) < 0) return 0;
 	copy_vol(flvpic, &c->vol);
 	
-	sceKernelDelayThread(50);
+	sceKernelDelayThread(10);
 	
 	m4v_encode_m4v_header(&bw, &c->vol, 0);
 	
-	sceKernelDelayThread(50);
+	sceKernelDelayThread(10);
 	
 	if ( c->width != flvpic->width || c->height != flvpic->height )
 		return 0;
@@ -189,7 +189,7 @@ void* convert_flv_frame_to_mpeg4_frame(void* flv_frame, int in_size, int* out_si
 	copy_vop(flvpic, &vop, c);
 	m4v_encode_vop_header(&bw, &vop, VOL_TIME_BITS, 0);
 	
-	sceKernelDelayThread(50);
+	sceKernelDelayThread(10);
 			
 	// transcode flv to mpeg4
 	for (y = 0; y < mb_height; y++)
@@ -217,7 +217,7 @@ void* convert_flv_frame_to_mpeg4_frame(void* flv_frame, int in_size, int* out_si
 				m4v_encode_P_mb(&bw, &m4v_mb);
 			}
 		}
-		sceKernelDelayThread(50);
+		sceKernelDelayThread(10);
 	}
 
 	m4v_stuffing(&bw);

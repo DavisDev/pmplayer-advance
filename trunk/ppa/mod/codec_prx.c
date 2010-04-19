@@ -41,8 +41,10 @@ char *load_codec_prx(const char* ppa_path, int devkitVersion)
 		sprintf(prx_path, "%s%s", ppa_path, "mpeg_vsh330.prx");
 	else if ( devkitVersion < 0x03070000)
 		sprintf(prx_path, "%s%s", ppa_path, "mpeg_vsh350.prx");
-	else
+	else if ( devkitVersion < 0x05000000)
 		sprintf(prx_path, "%s%s", ppa_path, "mpeg_vsh370.prx");
+	else
+		sprintf(prx_path, "%s%s", "flash0:/kd/", "mpeg_vsh.prx");
 	int status;
 	result = m33KernelLoadModule(prx_path, 0, NULL);
 	if(result >= 0) {

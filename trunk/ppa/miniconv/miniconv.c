@@ -7713,6 +7713,51 @@ iso8859_9_mbtowc (ucs4_t *pwc, const unsigned char *s, int n)
 
 #endif
 
+#ifdef ISO8859_7_CONV
+/*
+ * ISO-8859-7
+ */
+static const unsigned short iso8859_7_2uni[96] = {
+  /* 0xa0 */
+  0x00a0, 0x2018, 0x2019, 0x00a3, 0x20ac, 0x20af, 0x00a6, 0x00a7,
+  0x00a8, 0x00a9, 0x037a, 0x00ab, 0x00ac, 0x00ad, 0xfffd, 0x2015,
+  /* 0xb0 */
+  0x00b0, 0x00b1, 0x00b2, 0x00b3, 0x0384, 0x0385, 0x0386, 0x00b7,
+  0x0388, 0x0389, 0x038a, 0x00bb, 0x038c, 0x00bd, 0x038e, 0x038f,
+  /* 0xc0 */
+  0x0390, 0x0391, 0x0392, 0x0393, 0x0394, 0x0395, 0x0396, 0x0397,
+  0x0398, 0x0399, 0x039a, 0x039b, 0x039c, 0x039d, 0x039e, 0x039f,
+  /* 0xd0 */
+  0x03a0, 0x03a1, 0xfffd, 0x03a3, 0x03a4, 0x03a5, 0x03a6, 0x03a7,
+  0x03a8, 0x03a9, 0x03aa, 0x03ab, 0x03ac, 0x03ad, 0x03ae, 0x03af,
+  /* 0xe0 */
+  0x03b0, 0x03b1, 0x03b2, 0x03b3, 0x03b4, 0x03b5, 0x03b6, 0x03b7,
+  0x03b8, 0x03b9, 0x03ba, 0x03bb, 0x03bc, 0x03bd, 0x03be, 0x03bf,
+  /* 0xf0 */
+  0x03c0, 0x03c1, 0x03c2, 0x03c3, 0x03c4, 0x03c5, 0x03c6, 0x03c7,
+  0x03c8, 0x03c9, 0x03ca, 0x03cb, 0x03cc, 0x03cd, 0x03ce, 0xfffd,
+};
+
+static int
+iso8859_7_mbtowc (ucs4_t *pwc, const unsigned char *s, int n)
+{
+  unsigned char c = *s;
+  if (c < 0xa0) {
+    *pwc = (ucs4_t) c;
+    return 1;
+  }
+  else {
+    unsigned short wc = iso8859_7_2uni[c-0xa0];
+    if (wc != 0xfffd) {
+      *pwc = (ucs4_t) wc;
+      return 1;
+    }
+  }
+  return RET_ILSEQ;
+}
+ 
+#endif
+
 #ifdef ISO8859_6_CONV
 /*
  * ISO-8859-6
@@ -8145,6 +8190,39 @@ char* iso8859_9_to_utf8(const unsigned char* iso8859_9) {
 	j = 0; 
 	while( i < ilen) {
 		ret_val = iso8859_9_mbtowc(&ucs4_char, iso8859_9+i, ilen-i);
+		if ( ret_val < 0 ) { 
+			i++;
+			convert_buffer[j] = '?';
+			j++;
+		}
+		else {
+			i += ret_val;
+			ret_val = utf8_wctomb(convert_buffer+j, ucs4_char, 6);
+			if ( ret_val > 0 )
+				j += ret_val;
+		}
+	}
+	return convert_buffer;//return strdup(convert_buffer);
+}
+#endif
+
+#ifdef ISO8859_7_CONV
+char* iso8859_7_to_utf8(const unsigned char* iso8859_7) {
+	if ( iso8859_7 == NULL )
+		return NULL;
+	
+	int ilen = strlen(iso8859_7);
+	if (ilen == 0)
+		return NULL;
+	
+	memset(convert_buffer, 0, CONVERT_BUFFER_SIZE+1);
+	
+	ucs4_t ucs4_char;
+	int i,j, ret_val;
+	i = 0;
+	j = 0; 
+	while( i < ilen) {
+		ret_val = iso8859_7_mbtowc(&ucs4_char, iso8859_7+i, ilen-i);
 		if ( ret_val < 0 ) { 
 			i++;
 			convert_buffer[j] = '?';

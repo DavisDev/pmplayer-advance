@@ -33,6 +33,9 @@ char* ms_arab_to_utf8(const unsigned char* ms_cyrl);
 #ifdef ISO8859_9_CONV
 char* iso8859_9_to_utf8(const unsigned char* iso8859_9);
 #endif
+#ifdef ISO8859_7_CONV
+char* iso8859_7_to_utf8(const unsigned char* iso8859_7);
+#endif
 #ifdef ISO8859_6_CONV
 char* iso8859_6_to_utf8(const unsigned char* iso8859_6);
 #endif

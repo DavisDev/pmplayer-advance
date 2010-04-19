@@ -405,6 +405,8 @@ void mkv_play_do_seek(volatile struct mkv_play_struct *p) {
 		}
 		
 		mkv_decode_seek((struct mkv_decode_struct *) &p->decoder, seek_timestamp, last_timestamp);
+		
+		sceKernelDelayThread(200000);
 
 		return;
 	}
@@ -426,6 +428,8 @@ void mkv_play_do_seek(volatile struct mkv_play_struct *p) {
 			p->decoder.output_video_frame_buffers[i].timestamp = -p->decoder.video_frame_duration;
 		
 		mkv_decode_seek((struct mkv_decode_struct *) &p->decoder, seek_timestamp, last_timestamp);
+		
+		sceKernelDelayThread(200000);
 		
 		return;
 	}

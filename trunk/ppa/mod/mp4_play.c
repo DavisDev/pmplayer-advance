@@ -407,6 +407,8 @@ void mp4_play_do_seek(volatile struct mp4_play_struct *p) {
 		}
 		
 		mp4_decode_keyframe_forward((struct mp4_decode_struct *) &p->decoder, keyframes);
+		
+		sceKernelDelayThread(200000);
 
 		return;
 	}
@@ -423,6 +425,8 @@ void mp4_play_do_seek(volatile struct mp4_play_struct *p) {
 			p->decoder.output_video_frame_buffers[i].timestamp = -p->decoder.video_frame_duration;
 		
 		mp4_decode_keyframe_backward((struct mp4_decode_struct *) &p->decoder, keyframes);
+		
+		sceKernelDelayThread(200000);
 		
 		return;
 	}
@@ -656,6 +660,26 @@ char *mp4_play_open(struct mp4_play_struct *p, struct movie_file_struct *movie, 
 	if (result != 0) {
 		mp4_play_close(p, 0, pspType);
 		return(result);
+	}
+	
+	if ( p->decoder.reader.file.subtitle_tracks > 0 ) {
+		int subtitle_track = 0;
+		while(p->subtitle_count < MAX_SUBTITLES && subtitle_track < p->decoder.reader.file.subtitle_tracks) {
+			struct subtitle_parse_struct *cur_parser = &subtitle_parser[p->subtitle_count];
+			subtitle_parse_safe_constructor(cur_parser);
+			sprintf(cur_parser->filename, "mp4 subtitle track(%d)", p->decoder.reader.file.subtitle_track_ids[subtitle_track]);
+			subtitle_track++;
+			
+			cur_parser->p_sub_frame = (struct subtitle_frame_struct*)malloc_64( sizeof(struct subtitle_frame_struct) );
+			if (cur_parser->p_sub_frame==0) {
+				subtitle_parse_close(cur_parser);
+				continue;
+			}
+			subtitle_frame_safe_constructor(cur_parser->p_sub_frame);
+			cur_parser->p_cur_sub_frame = cur_parser->p_sub_frame;
+			
+			p->subtitle_count++;
+		} 
 	}
 	
 	if ( p->subtitle_count < MAX_SUBTITLES )

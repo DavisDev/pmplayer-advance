@@ -145,7 +145,7 @@ int32_t buffered_reader_seek(buffered_reader_t* reader, const int32_t position) 
 		}
 		else {
 			if (reader->seek_mode == 0 ) {
-				reader->position_0 = position;
+				reader->position_0 = position & 0xFFFFFFC0;
 				reader->position_1 = reader->position_0 + reader->buffer_size;
 				if ( reader->position_1 >= reader->length )
 					reader->position_1 = reader->length;
@@ -156,10 +156,10 @@ int32_t buffered_reader_seek(buffered_reader_t* reader, const int32_t position) 
 				if ( reader->position_3 >= reader->length )
 					reader->position_3 = reader->length;
 					
-				reader->current_position = reader->position_0;
+				reader->current_position = position;
 			}
 			else {
-				reader->position_1 = position;
+				reader->position_1 = position & 0xFFFFFFC0;
 				reader->position_0 = reader->position_1 - reader->buffer_size;
 				if ( reader->position_0 < 0 )
 					reader->position_0 = 0;
@@ -170,7 +170,7 @@ int32_t buffered_reader_seek(buffered_reader_t* reader, const int32_t position) 
 				if ( reader->position_3 >= reader->length )
 					reader->position_3 = reader->length;
 					
-				reader->current_position = reader->position_1;
+				reader->current_position = position;
 			}
 			sceIoLseek32(reader->handle, reader->position_0, PSP_SEEK_SET);
 //			sceIoReadAsync(reader->handle, reader->first_buffer, reader->position_1 - reader->position_0);

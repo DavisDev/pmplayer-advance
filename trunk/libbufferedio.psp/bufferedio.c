@@ -53,13 +53,18 @@ int32_t io_set_position(void* handle, const int32_t position) {
 		io->current_position = position;
 		return position;
 	}
-	if ( position < 0 )
+	if ( position < 0 ) {
 		io->cache_first_position = sceIoLseek32(io->handle, 0, PSP_SEEK_SET);
-	else if ( position >= io->length )
+		io->current_position = io->cache_first_position;
+	}
+	else if ( position >= io->length ) {
 		io->cache_first_position = sceIoLseek32(io->handle, 0, PSP_SEEK_END);
-	else
-		io->cache_first_position = sceIoLseek32(io->handle, position, PSP_SEEK_SET);
-	io->current_position = io->cache_first_position;
+		io->current_position = io->cache_first_position;
+	}
+	else {
+		io->cache_first_position = sceIoLseek32(io->handle, (position & 0xFFFFFFC0), PSP_SEEK_SET);
+		io->current_position = position;//io->cache_first_position;
+	}
 	io->cache_last_position = io->cache_first_position + CACHE_BUFFER_SIZE ;
 	if ( io->cache_last_position >= io->length )
 		io->cache_last_position = io->length;
