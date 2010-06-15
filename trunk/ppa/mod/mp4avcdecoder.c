@@ -175,7 +175,7 @@ char *mp4_avc_get(struct mp4_avc_struct *p, int mode, void *source_buffer, int s
 		csc.buffer5 = p->mpeg_detail2->yuv_buffer->buffer5 ;
 		csc.buffer6 = p->mpeg_detail2->yuv_buffer->buffer6 ;
 		csc.buffer7 = p->mpeg_detail2->yuv_buffer->buffer7 ;
-		if ( p->mpeg_detail2->info_buffer->width > 512 )
+		if ( p->mpeg_detail2->info_buffer->width > 480 )
 			csc_width = 768;
 		else
 			csc_width = 512;
@@ -205,7 +205,7 @@ char *mp4_avc_get_cache(struct mp4_avc_struct *p, void *destination_buffer, int 
 	csc.buffer5 = yuv_buffer->buffer5 ;
 	csc.buffer6 = yuv_buffer->buffer6 ;
 	csc.buffer7 = yuv_buffer->buffer7 ;
-	if ( info_buffer->width > 512 )
+	if ( info_buffer->width > 480 )
 			csc_width = 768;
 		else
 			csc_width = 512;
