@@ -592,16 +592,31 @@ int mkv_handle_block(struct mkv_read_struct *p, uint8_t *block_buffer, uint64_t 
 	}
 	
 	if ( use_this_block ) {
+		
+		mkvinfo_track_t* current_track = 0;
+		if ( tracknum == video_tracknum )
+			current_track = p->file.info->tracks[p->file.video_track_id];
+		else
+			current_track = p->file.info->tracks[p->file.audio_track_ids[p->current_audio_track]];
+		
 		int i;
 		struct mkv_read_output_struct packet;
 		for (i=0; i < laces; i++) {
 			memset(&packet, 0, sizeof(struct mkv_read_output_struct));
 			packet.size = lace_size[i];
+			
+			packet.size += current_track->compress_setting_size;
+			
 			packet.data = malloc_64(packet.size);
 			if (packet.data == 0) {
 				return -2;
 			}
-			memcpy(packet.data, block_buffer, packet.size);
+			
+			if( current_track->compress_setting_size > 0 ) {
+				memcpy(packet.data,current_track->compress_setting, current_track->compress_setting_size);
+			}
+			memcpy(packet.data+current_track->compress_setting_size, block_buffer, packet.size - current_track->compress_setting_size);
+			
 			packet.timestamp = (int)timecode;
 			if ( tracknum == video_tracknum )
 				tmp = in_mkv_read_queue(p->video_queue, &p->video_queue_size, &p->video_queue_rear, MKV_VIDEO_QUEUE_MAX, &packet);
@@ -611,7 +626,7 @@ int mkv_handle_block(struct mkv_read_struct *p, uint8_t *block_buffer, uint64_t 
 				free_64(packet.data);
 				return -1;
 			}
-			block_buffer+=packet.size;
+			block_buffer += (packet.size - current_track->compress_setting_size);
 			if ( tracknum == video_tracknum )
 				timecode+=(1000LL*p->file.video_scale/p->file.video_rate);
 			else

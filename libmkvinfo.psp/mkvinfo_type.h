@@ -52,6 +52,9 @@ typedef struct {
 	uint32_t samplerate;
 	uint32_t samplebits;
 	
+	uint8_t* compress_setting;
+	uint32_t compress_setting_size;
+	
 	uint8_t* private_data;
 	uint32_t private_size;
 	
