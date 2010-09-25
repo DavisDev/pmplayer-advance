@@ -49,33 +49,36 @@ mkvinfo_t* mkvinfo_open(const char* filename) {
 void mkvinfo_close(mkvinfo_t* info) {
 	int32_t i;
 	
-	if (info->parsed_cues) {
-		free(info->parsed_cues);
-		info->parsed_cues = 0;
-		info->parsed_cues_num = 0;
-	}
-	if (info->parsed_seekhead) {
-		free(info->parsed_seekhead);
-		info->parsed_seekhead = 0;
-		info->parsed_seekhead_num = 0;
-	}
-	if (info->indexes) {
-		free(info->indexes);
-		info->indexes = 0;
-		info->total_indexes = 0;
-	}
-
-	for (i = 0; i < info->total_tracks; i++) {
-		if (info->tracks[i]) {
-			
-			if (info->tracks[i]->private_data)
-				free(info->tracks[i]->private_data);
-			free(info->tracks[i]);
-			info->tracks[i] = 0;
+	if (info) {
+		if (info->parsed_cues) {
+			free(info->parsed_cues);
+			info->parsed_cues = 0;
+			info->parsed_cues_num = 0;
 		}
+		if (info->parsed_seekhead) {
+			free(info->parsed_seekhead);
+			info->parsed_seekhead = 0;
+			info->parsed_seekhead_num = 0;
+		}
+		if (info->indexes) {
+			free(info->indexes);
+			info->indexes = 0;
+			info->total_indexes = 0;
+		}
+
+		for (i = 0; i < info->total_tracks; i++) {
+			if (info->tracks[i]) {
+			
+				if (info->tracks[i]->private_data)
+					free(info->tracks[i]->private_data);
+				if (info->tracks[i]->compress_setting)
+					free(info->tracks[i]->compress_setting);
+				free(info->tracks[i]);
+				info->tracks[i] = 0;
+			}
+		}
+		free(info);
 	}
-	
-	if (info) free(info);
 }
 
 void mkvinfo_dump(mkvinfo_t* info, const char* dumpfile) {
@@ -104,8 +107,14 @@ void mkvinfo_dump(mkvinfo_t* info, const char* dumpfile) {
 		fprintf(fp, "\taudio_samplerate : %d\n", info->tracks[i]->samplerate);
 		fprintf(fp, "\taudio_samplebits : %d\n", info->tracks[i]->samplebits);
 		
-		fprintf(fp, "\tprivate_data[%d] : { ", info->tracks[i]->private_size);
 		int32_t j;
+		
+		fprintf(fp, "\tcompress_setting[%d] : { ", info->tracks[i]->compress_setting_size);
+		for(j = 0; j < info->tracks[i]->compress_setting_size; j++)
+			fprintf(fp, "%02X ", info->tracks[i]->compress_setting[j]);
+		fprintf(fp, "}\n");
+		
+		fprintf(fp, "\tprivate_data[%d] : { ", info->tracks[i]->private_size);
 		for(j = 0; j < info->tracks[i]->private_size; j++)
 			fprintf(fp, "%02X ", info->tracks[i]->private_data[j]);
 		fprintf(fp, "}\n");

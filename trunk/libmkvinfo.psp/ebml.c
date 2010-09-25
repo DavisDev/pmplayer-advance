@@ -315,6 +315,8 @@ static void mkv_free_trackentry(mkvinfo_track_t* track) {
 	if ( track ) {
 		if (track->private_data) 
 			free(track->private_data);
+		if (track->compress_setting)
+			free(track->compress_setting);
 		free(track);
 	}
 }
@@ -410,6 +412,74 @@ static int32_t parse_ebml_trackvideo(mkvinfo_t* info, mkvinfo_track_t* track) {
 	return len;
 }
 
+static int32_t parse_ebml_contentcompression(mkvinfo_t* info, mkvinfo_track_t* track) {
+	uint64_t len, length, l;
+	int32_t il;
+
+	len = length = ebml_read_length(info->handle, &il);
+	len += il;
+	while (length > 0) {
+		switch (ebml_read_id(info->handle, &il)) {
+			
+			case MATROSKA_ID_CONTENTCOMPALGO: {
+				uint64_t num = ebml_read_uint(info->handle, &l);
+				if (num == EBML_UINT_INVALID)
+					return 0;
+				if (num != 3) //just support Header Stripping
+					return 0;
+				break;
+			}
+			
+			case MATROSKA_ID_CONTENTCOMPSETTINGS: {
+				
+				int32_t x;
+				uint64_t num = ebml_read_length(info->handle, &x);
+				if (num > SIZE_MAX - 1000) 
+					return 0;
+				l = x + num;
+				track->compress_setting = malloc(num + MKV_INPUT_PADDING);
+				if ( !track->compress_setting )
+					return 0;
+				if (io_read_data(info->handle, track->compress_setting, num) != num)
+					return 0;
+				track->compress_setting_size = num;
+				break;
+			}
+			
+			default:
+				ebml_read_skip(info->handle, &l);
+				break;
+		}
+		length -= l + il;
+	}
+	return len;
+}
+
+static int32_t parse_ebml_contentencoding(mkvinfo_t* info, mkvinfo_track_t* track) {
+	uint64_t len, length, l;
+	int32_t il;
+
+	len = length = ebml_read_length(info->handle, &il);
+	len += il;
+	while (length > 0) {
+		switch (ebml_read_id(info->handle, &il)) {
+			
+			case MATROSKA_ID_CONTENTCOMPRESSION: {
+				l = parse_ebml_contentcompression(info, track);
+				if ( l == 0 )
+					return 0;
+				break;
+			}
+			
+			default:
+				ebml_read_skip(info->handle, &l);
+				break;
+		}
+		length -= l + il;
+	}
+	return len;
+}
+
 static int32_t parse_ebml_trackencodings(mkvinfo_t* info, mkvinfo_track_t* track) {
 	uint64_t len, length, l;
 	int32_t il;
@@ -418,6 +488,13 @@ static int32_t parse_ebml_trackencodings(mkvinfo_t* info, mkvinfo_track_t* track
 	len += il;
 	while (length > 0) {
 		switch (ebml_read_id(info->handle, &il)) {
+			
+			case MATROSKA_ID_CONTENTENCODING: {
+				l = parse_ebml_contentencoding(info, track);
+				if(l == 0)
+					return 0;
+				break;
+			}
 			
 			default:
 				ebml_read_skip(info->handle, &l);

@@ -1065,8 +1065,8 @@ void PmpAvcPlayer::getCurrentPmpFilmInformation() {
 	}
 			
 	u32 inforBuffer[10];
-	memset(&inforBuffer, 0, 10*sizeof(u32));
-	sceIoRead(fp, &inforBuffer, 10*sizeof(u32));
+	memset(inforBuffer, 0, 10*sizeof(u32));
+	sceIoRead(fp, inforBuffer, 10*sizeof(u32));
 	sceIoClose(fp);
 			
 	if ( inforBuffer[0] != 0x6D706D70 || inforBuffer[1] != 1 ) {
