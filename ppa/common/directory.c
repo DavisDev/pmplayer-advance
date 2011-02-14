@@ -1,20 +1,20 @@
-/* 
+/*
  *	Copyright (C) 2006 cooleyes
- *	eyes.cooleyes@gmail.com 
+ *	eyes.cooleyes@gmail.com
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  This Program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  *  GNU General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU General Public License
  *  along with GNU Make; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *  http://www.gnu.org/copyleft/gpl.html
  *
  */
@@ -69,7 +69,7 @@ static int compare_directory_item(directory_item_struct item1, directory_item_st
 }
 
 file_type_enum directory_get_filetype(const char* filename, file_type_ext_struct* file_type_ext_table) {
-	
+
 	const char * ext = get_file_ext(filename);
 	if(ext == NULL)
 		return FS_UNKNOWN_FILE;
@@ -158,7 +158,7 @@ int open_ms_directory(const char* dir, char* sdir, int show_hidden, int show_unk
 		strcpy((*list)[0].shortname, "..");
 		strcpy((*list)[0].longname, "..");
 		(*list)[0].compname = (*list)[0].longname;
-		cur_count ++ ; 
+		cur_count ++ ;
 	}
 	item_count = cur_count;
 	return item_count;
@@ -191,7 +191,7 @@ int open_usb_net_directory(const char* dir, char* sdir, int show_hidden, int sho
 			}
 		}
 		if ( temp_dir.d_stat.st_attr & FIO_SO_IFDIR ) {
-			if ( strcmp( temp_dir.d_name , "." ) == 0 ) 
+			if ( strcmp( temp_dir.d_name , "." ) == 0 )
 				continue;
 			(*list)[cur_count].filetype = FS_DIRECTORY;
 			strcpy((*list)[cur_count].shortname, temp_dir.d_name);
@@ -202,7 +202,7 @@ int open_usb_net_directory(const char* dir, char* sdir, int show_hidden, int sho
 				if( temp_str != NULL ) {
 					strcpy((*list)[cur_count].longname, temp_str);
 				}
-			}		
+			}
 
 			(*list)[cur_count].compname = (*list)[cur_count].shortname;
 		}
@@ -224,7 +224,7 @@ int open_usb_net_directory(const char* dir, char* sdir, int show_hidden, int sho
 			(*list)[cur_count].compname = (*list)[cur_count].shortname;
 			(*list)[cur_count].filesize = temp_dir.d_stat.st_size;
 		}
-			 
+
 		cur_count ++;
 	}
 	item_count = cur_count;
@@ -235,6 +235,8 @@ int open_directory(const char* dir, char* sdir, int show_hidden, int show_unknow
 	int item_count;
 	if ( strncmp(dir,"ms0:", 4) == 0 )
 		item_count = open_ms_directory(dir, sdir, show_hidden, show_unknown, file_type_ext_table, list);
+	else if ( strncmp(dir,"ef0:", 4) == 0 )
+		item_count = open_usb_net_directory(dir, sdir, show_unknown, show_unknown, file_type_ext_table, list);
 	else if ( strncmp(dir,"usbhost0:", 9) == 0 || strncmp(dir,"nethost0:", 9) == 0)
 		item_count = open_usb_net_directory(dir, sdir, show_unknown, show_unknown, file_type_ext_table, list);
 	else {
@@ -242,31 +244,36 @@ int open_directory(const char* dir, char* sdir, int show_hidden, int show_unknow
 			free((void *)(*list));
 			*list = NULL;
 		}
-		item_count = 3;
-		*list = (directory_item_struct*)malloc(sizeof(directory_item_struct) * 3);
+		item_count = 4;
+		*list = (directory_item_struct*)malloc(sizeof(directory_item_struct) * 4);
 		if(*list == NULL) {
 			item_count = 0;
 			return item_count;
 		}
-		
-		memset(*list, 0, sizeof(directory_item_struct) * 3 );
-		
+
+		memset(*list, 0, sizeof(directory_item_struct) * 4 );
+
 		(*list)[0].filetype = FS_DIRECTORY;
 		strcpy((*list)[0].shortname, "ms0:");
 		strcpy((*list)[0].longname, "ms0:");
 		(*list)[0].compname = (*list)[0].longname;
-			
+
 		(*list)[1].filetype = FS_DIRECTORY;
 		strcpy((*list)[1].shortname, "usbhost0:");
 		strcpy((*list)[1].longname, "usbhost0:");
 		(*list)[1].compname = (*list)[1].longname;
-		
+
 		(*list)[2].filetype = FS_DIRECTORY;
 		strcpy((*list)[2].shortname, "nethost0:");
 		strcpy((*list)[2].longname, "nethost0:");
 		(*list)[2].compname = (*list)[2].longname;
-	}	
-	
+
+		(*list)[3].filetype = FS_DIRECTORY;
+		strcpy((*list)[3].shortname, "ef0:");
+		strcpy((*list)[3].longname, "ef0:");
+		(*list)[3].compname = (*list)[3].longname;
+	}
+
 	int swap = 1;
 	while ( (swap == 1) && (item_count>0)){
 		swap = 0;
@@ -283,7 +290,7 @@ int open_directory(const char* dir, char* sdir, int show_hidden, int show_unknow
 				temp_item.filetype = (*list)[i].filetype;
 				strcpy(temp_item.shortname, (*list)[i].shortname);
 				strcpy(temp_item.longname, (*list)[i].longname);
-	
+
 				(*list)[i].filesize = (*list)[i+1].filesize;
 				(*list)[i].cdate = (*list)[i+1].cdate;
 				(*list)[i].ctime = (*list)[i+1].ctime;
@@ -292,7 +299,7 @@ int open_directory(const char* dir, char* sdir, int show_hidden, int show_unknow
 				(*list)[i].filetype = (*list)[i+1].filetype;
 				strcpy((*list)[i].shortname, (*list)[i+1].shortname);
 				strcpy((*list)[i].longname, (*list)[i+1].longname);
-	
+
 				(*list)[i+1].filesize = temp_item.filesize;
 				(*list)[i+1].cdate = temp_item.cdate;
 				(*list)[i+1].ctime = temp_item.ctime;
@@ -303,17 +310,17 @@ int open_directory(const char* dir, char* sdir, int show_hidden, int show_unknow
 				strcpy((*list)[i+1].longname, temp_item.longname);
 			}
 		}
-	}	
+	}
 	return item_count;
 }
 
 int is_next_movie(const char* prev, const char* next) {
 	int prev_len = strlen(prev);
 	int next_len = strlen(next);
-	
-	if ( (prev_len != next_len) && (prev_len != next_len-1) ) 
+
+	if ( (prev_len != next_len) && (prev_len != next_len-1) )
 		return 0;
-	
+
 	char* s1 = prev;
 	char* s2 = next;
 	while (*s1 && *s2) {
@@ -329,7 +336,7 @@ int is_next_movie(const char* prev, const char* next) {
 		else {
 			s1++;
 			s2++;
-		}	
+		}
 	}
 	if ( *s1 == 0)
 		return 0;
@@ -349,14 +356,14 @@ int is_next_movie(const char* prev, const char* next) {
 			s3--;
 			s4--;
 		}
-	}	
-	
+	}
+
 	char value1[256], value2[256];
 	memset(value1, 0, 256);
 	memset(value2, 0, 256);
 	strncpy(value1, s1, (s3-s1)+1);
 	strncpy(value2, s2, (s4-s2)+1);
-	
+
 	if ( (strlen(value1)==1) && (strlen(value2)==1) ) {
 		if ((value1[0] >= 'a') && (value1[0] <= 'z'))
 			value1[0] -= 'a' - 'A';
@@ -377,7 +384,7 @@ int is_next_movie(const char* prev, const char* next) {
 		else
 			return 0;
 	}
-	
+
 	return 1;
 }
 
