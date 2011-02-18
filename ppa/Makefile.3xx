@@ -22,19 +22,19 @@ OBJS = main.o player.o config.o skin.o ftfont.o cfgdialog.o versiondialog.o msgd
 	mod/subtitle_parse.o mod/subtitle_microdvd.o mod/subtitle_subrip.o mod/subtitle_subass.o mod/subtitle_subssa.o \
 	tinyxml/tinystr.o tinyxml/tinyxml.o tinyxml/tinyxmlerror.o tinyxml/tinyxmlparser.o \
 	../cooleyesBridge/cooleyesBridge.o \
-	
-#OBJS += mod/flv1decoder.o 
-	
+
+#OBJS += mod/flv1decoder.o
+
 INCDIR = $(PSPM33SDKDIR)/include ../cooleyesBridge ../pspvideocodec ../libmpeg \
 	../libmp4info.psp  ../libmkvinfo.psp ../libflv1info.psp \
 	../opencore-amr.psp \
 
 #INCDIR += ../ffmpeg-psp.0.5/include
 INCDIR += ../libflv2mpeg4.psp
-INCDIR += $(PSPLIBSDIR)/include $(PSPLIBSDIR)/include/freetype2 
+INCDIR += $(PSPLIBSDIR)/include $(PSPLIBSDIR)/include/freetype2
 
-CFLAGS = -O3 -G0 -g -Wall -DENABLE_USBHOST -DENABLE_NETHOST 
-#CFLAGS = -O3 -G0 -g -Wall 
+CFLAGS = -O3 -G0 -g -Wall -DENABLE_USBHOST -DENABLE_NETHOST
+#CFLAGS = -O0 -G0 -g -Wall
 
 #CFLAGS += -DUSE_FFMPEG_FLV1_DECODER
 CFLAGS += -DUSE_FLV2MPEG4_CONV
@@ -56,7 +56,7 @@ LIBS += -lflv2mpeg4
 LIBS += -lfreetype -lpng -lz -lm \
 	-lpsppower -lpspaudiocodec -lpspaudio -lpspaudio_driver \
 	-lpspgu -lpspmpeg -lpspjpeg -lpspvideocodec -lpspusb -lpspusbstor \
-	-lpsphprm -lpsprtc -lmp4info -lmkvinfo -lflv1info -lbufferedio -lopencore-amrnb 
+	-lpsphprm -lpsprtc -lmp4info -lmkvinfo -lflv1info -lbufferedio -lopencore-amrnb
 
 EXTRA_TARGETS = EBOOT.PBP
 PSP_EBOOT_TITLE = PMPlayer Advance

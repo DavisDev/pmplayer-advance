@@ -1,24 +1,24 @@
-/* 
+/*
  *	Copyright (C) 2006 cooleyes
- *	eyes.cooleyes@gmail.com 
+ *	eyes.cooleyes@gmail.com
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  This Program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  *  GNU General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU General Public License
  *  along with GNU Make; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *  http://www.gnu.org/copyleft/gpl.html
  *
  */
- 
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -109,7 +109,7 @@ struct subtitle_ext_charset_struct subtitleExt[] = {
 	{".big5.ssa", 9, "BIG5"},
 	{".cht.ssa", 8, "BIG5"},
 	{".tc.ssa", 7, "BIG5"},
-	{NULL, 0, NULL}	
+	{NULL, 0, NULL}
 };
 
 file_type_ext_struct movieFileFilter[] = {
@@ -140,13 +140,13 @@ file_type_ext_struct movieAttachmentFilter[] = {
 
 PmpAvcPlayer::PmpAvcPlayer() {
 	drawImage = NULL;
-	
+
 	filmPreviewImage = NULL;
-	
+
 	fileItems = NULL;
-	
+
 	attachmentItems = NULL;
-	
+
 	batteryPercent10 = NULL;
 	batteryPercent33 = NULL;
 	batteryPercent66 = NULL;
@@ -156,75 +156,75 @@ PmpAvcPlayer::PmpAvcPlayer() {
 };
 
 PmpAvcPlayer::~PmpAvcPlayer() {
-	
+
 	if ( fileItems ) {
 		free(fileItems);
 	}
-	
+
 	if ( attachmentItems ) {
 		free(attachmentItems);
 	}
-	
+
 	if ( drawImage ) {
 		freeImage(drawImage);
 		drawImage = NULL;
 	}
-	
+
 	if ( filmPreviewImage ) {
 		freeImage(filmPreviewImage);
 		filmPreviewImage = NULL;
 	}
-	
+
 	if ( batteryPercent10 ) {
 		freeImage(batteryPercent10);
 		batteryPercent10 = NULL;
 	}
-	
+
 	if ( batteryPercent33 ) {
 		freeImage(batteryPercent33);
 		batteryPercent33 = NULL;
 	}
-	
+
 	if ( batteryPercent66 ) {
 		freeImage(batteryPercent66);
 		batteryPercent66 = NULL;
 	}
-	
+
 	if ( batteryPercent100 ) {
 		freeImage(batteryPercent100);
 		batteryPercent100 = NULL;
 	}
-	
+
 	if ( batteryCharging ) {
 		freeImage(batteryCharging);
 		batteryCharging = NULL;
 	}
-	
+
 	ctrl_destroy();
 	fat_free();
 	disableGraphics();
 	sceDisplayWaitVblankStart();
 	sceGuTerm();
-	
+
 	FtFontManager::freeFtFontManager();
 	Skin::freeSkin();
 	Config::freeConfig();
-	
+
 	gu_font_close();
-	
+
 };
 
 void PmpAvcPlayer::initSkinData() {
 	Skin* skin = NULL;
 	skin = Skin::getInstance();
-	
+
 	char tempPath[1024];
-	
+
 	//TODO init fileList
 	fileListTextColor = skin->getColorValue("skin/font_color/color", 0xFFFFFF);
 	fileListHLTextColor = skin->getColorValue("skin/files_list/highlight_color", 0xFFFFFF);
 	fileListHLBackgroundColor = skin->getColorValue("skin/files_list/highlight_background_color", 0x000000);
-	
+
 	if ( skin->getBooleanValue("skin/files_list/highlight_alpha_enable", false) ) {
 		Color alpha = skin->getColorValue("skin/files_list/highlight_alpha_value", 0xFF);
 		fileListHLBackgroundColor = (alpha << 24) | fileListHLBackgroundColor;
@@ -233,14 +233,14 @@ void PmpAvcPlayer::initSkinData() {
 		fileListHLBackgroundColor = 0xff000000 | fileListHLBackgroundColor;
 	}
 	fileListScrollbarColor = fileListHLBackgroundColor;
-	
+
 	fileListBoxLeft = skin->getIntegerValue("skin/files_list/left", 0);
 	fileListBoxTop = skin->getIntegerValue("skin/files_list/top", 0);
 	fileListBoxWidth = skin->getIntegerValue("skin/files_list/width", 480);
 	fileListBoxHeight = skin->getIntegerValue("skin/files_list/height", 272);
-	
+
 	fileItemBottom = fileListBoxHeight / ( textPixelSize + 2*TEXT_ITEM_BORDER );
-	
+
 	//TODO init datetime
 	dateVisible = skin->getBooleanValue("skin/datetime_pannel/date_label/visible", false);
 	dateLeft = skin->getIntegerValue("skin/datetime_pannel/date_label/left", 0);
@@ -252,7 +252,7 @@ void PmpAvcPlayer::initSkinData() {
 	timeTop = skin->getIntegerValue("skin/datetime_pannel/time_label/top", 0);
 	timeWidth = skin->getIntegerValue("skin/datetime_pannel/time_label/width", 144);
 	timeHeight = skin->getIntegerValue("skin/datetime_pannel/time_label/height", 80);
-	
+
 	//TODO init battery
 	batteryStatusVisible = skin->getBooleanValue("skin/battery_pannel/battery_status_label/visible", false);
 	batteryStatusLeft = skin->getIntegerValue("skin/battery_pannel/battery_status_label/left", 0);
@@ -264,7 +264,7 @@ void PmpAvcPlayer::initSkinData() {
 	batteryLifeTop = skin->getIntegerValue("skin/battery_pannel/battery_life_label/top", 0);
 	batteryLifeWidth = skin->getIntegerValue("skin/battery_pannel/battery_life_label/width", 144);
 	batteryLifeHeight = skin->getIntegerValue("skin/battery_pannel/battery_life_label/height", 80);
-	
+
 	memset(tempPath, 0, 1024);
 	sprintf(tempPath, "%s%s", skinPath, skin->getStringValue("skin/battery_pannel/battery_status_image/percent10", "10.png"));
 	freeImage(batteryPercent10);
@@ -284,9 +284,9 @@ void PmpAvcPlayer::initSkinData() {
 	memset(tempPath, 0, 1024);
 	sprintf(tempPath, "%s%s", skinPath, skin->getStringValue("skin/battery_pannel/battery_status_image/charging", "charging.png"));
 	batteryCharging = loadPNGImage(tempPath);
-	
+
 	filmReloadEnable = true;
-	
+
 	//TODO init preview
 	filmPreviewVisible = skin->getBooleanValue("skin/film_preview_pannel/preview_image/visible", false);
 	filmPreviewReload = filmReloadEnable;
@@ -294,7 +294,7 @@ void PmpAvcPlayer::initSkinData() {
 	filmPreviewTop = skin->getIntegerValue("skin/film_preview_pannel/preview_image/top", 0);
 	filmPreviewWidth = skin->getIntegerValue("skin/film_preview_pannel/preview_image/width", 144);
 	filmPreviewHeight = skin->getIntegerValue("skin/film_preview_pannel/preview_image/height", 80);
-	
+
 	//TODO init filminformation
 	filmInformationReload = filmReloadEnable;
 	filmAspectRatioVisible = skin->getBooleanValue("skin/film_information_pannel/aspect_ratio_label/visible", false);
@@ -302,41 +302,41 @@ void PmpAvcPlayer::initSkinData() {
 	filmAspectRatioTop = skin->getIntegerValue("skin/film_information_pannel/aspect_ratio_label/top", 0);
 	filmAspectRatioWidth = skin->getIntegerValue("skin/film_information_pannel/aspect_ratio_label/width", 144);
 	filmAspectRatioHeight = skin->getIntegerValue("skin/film_information_pannel/aspect_ratio_label/height", 80);
-	
+
 	filmFpsVisible = skin->getBooleanValue("skin/film_information_pannel/fps_label/visible", false);
 	filmFpsLeft = skin->getIntegerValue("skin/film_information_pannel/fps_label/left", 0);
 	filmFpsTop = skin->getIntegerValue("skin/film_information_pannel/fps_label/top", 0);
 	filmFpsWidth = skin->getIntegerValue("skin/film_information_pannel/fps_label/width", 144);
 	filmFpsHeight = skin->getIntegerValue("skin/film_information_pannel/fps_label/height", 80);
-	
+
 	filmTotalTimeVisible = skin->getBooleanValue("skin/film_information_pannel/total_time_label/visible", false);
 	filmTotalTimeLeft = skin->getIntegerValue("skin/film_information_pannel/total_time_label/left", 0);
 	filmTotalTimeTop = skin->getIntegerValue("skin/film_information_pannel/total_time_label/top", 0);
 	filmTotalTimeWidth = skin->getIntegerValue("skin/film_information_pannel/total_time_label/width", 144);
 	filmTotalTimeHeight = skin->getIntegerValue("skin/film_information_pannel/total_time_label/height", 80);
-	
+
 	filmAudioStreamsVisible = skin->getBooleanValue("skin/film_information_pannel/audio_streams_label/visible", false);
 	filmAudioStreamsLeft = skin->getIntegerValue("skin/film_information_pannel/audio_streams_label/left", 0);
 	filmAudioStreamsTop = skin->getIntegerValue("skin/film_information_pannel/audio_streams_label/top", 0);
 	filmAudioStreamsWidth = skin->getIntegerValue("skin/film_information_pannel/audio_streams_label/width", 144);
 	filmAudioStreamsHeight = skin->getIntegerValue("skin/film_information_pannel/audio_streams_label/height", 80);
-	
+
 	filmSubtitlesVisible = skin->getBooleanValue("skin/film_information_pannel/subtitles_label/visible", false);
 	filmSubtitlesLeft = skin->getIntegerValue("skin/film_information_pannel/subtitles_label/left", 0);
 	filmSubtitlesTop = skin->getIntegerValue("skin/film_information_pannel/subtitles_label/top", 0);
 	filmSubtitlesWidth = skin->getIntegerValue("skin/film_information_pannel/subtitles_label/width", 144);
 	filmSubtitlesHeight = skin->getIntegerValue("skin/film_information_pannel/subtitles_label/height", 80);
-	
+
 };
 
 int PmpAvcPlayer::init(char* ppaPath) {
-	
+
 	char tempPath[1024];
 	SceUID modid;
 	int status;
 
 	pspType = m33KernelGetModel();
-	
+
 	if ( ppaPath == NULL ) {
 		memset(applicationPath, 0, 256);
 		getcwd(applicationPath, 256);
@@ -346,8 +346,8 @@ int PmpAvcPlayer::init(char* ppaPath) {
 		strncpy(applicationPath, ppaPath, 255);
 	}
 	strcat(applicationPath, "/");
-	
-#ifdef DEBUG	
+
+#ifdef DEBUG
 	pspDebugScreenPrintf("load cooleyesBridge.prx...\n");
 #endif
 	memset(tempPath, 0, 1024);
@@ -361,7 +361,7 @@ int PmpAvcPlayer::init(char* ppaPath) {
 		return 0;
 	}
 
-#ifdef DEBUG	
+#ifdef DEBUG
 	pspDebugScreenPrintf("load miniconv.prx...\n");
 #endif
     memset(tempPath, 0, 1024);
@@ -375,7 +375,7 @@ int PmpAvcPlayer::init(char* ppaPath) {
 		return 0;
 	}
 
-#ifdef DEBUG	
+#ifdef DEBUG
 	pspDebugScreenPrintf("load i18n.prx...\n");
 #endif
     memset(tempPath, 0, 1024);
@@ -391,24 +391,24 @@ int PmpAvcPlayer::init(char* ppaPath) {
 
 	memset(tempPath, 0, 1024);
 	sprintf(tempPath, "%s%s", applicationPath, "dvemgr.prx");
-#ifdef DEBUG	
+#ifdef DEBUG
 	pspDebugScreenPrintf("load dvemgr...\n");
 #endif
 	if ( ! VideoMode::init(pspType, tempPath))
 		return 0;
 
-#ifdef ENABLE_USBHOST	
+#ifdef ENABLE_USBHOST
 	memset(tempPath, 0, 1024);
 	sprintf(tempPath, "%s%s", applicationPath, "usbhostfs.prx");
-#ifdef DEBUG	
+#ifdef DEBUG
 	pspDebugScreenPrintf("load usbhost driver...\n");
 #endif
 	if ( ! UsbHost::loadUsbHostPrx(tempPath))
 		return 0;
-#endif	
+#endif
 
-#ifdef ENABLE_NETHOST	
-	NetHost::setPrxBasePath(applicationPath);	
+#ifdef ENABLE_NETHOST
+	NetHost::setPrxBasePath(applicationPath);
 #endif
 
 #ifdef DEBUG
@@ -428,44 +428,44 @@ int PmpAvcPlayer::init(char* ppaPath) {
 	memset(tempPath, 0, 1024);
 	sprintf(tempPath, "%s%s", applicationPath, "moviestat.dat");
 	init_movie_stat(tempPath);
-	
+
 	memset(fontPath, 0, 1024);
 	sprintf(fontPath, "%s%s", applicationPath, "fonts/");
-	
+
 	memset(skinPath, 0, 1024);
 	sprintf(skinPath, "%s%s", applicationPath, "skins/");
-#ifdef DEBUG	
+#ifdef DEBUG
 	pspDebugScreenPrintf("init draw_image...\n");
 #endif
 	drawImage = createImage(PSP_SCREEN_WIDTH, PSP_SCREEN_HEIGHT);
 	if (!drawImage)
 		return 0;
-	
+
 	Config* config = NULL;
 	FtFontManager* fontManager = NULL;
 	FtFont* mainFont = NULL;
-	
+
 	//TODO load config
 #ifdef DEBUG
 	pspDebugScreenPrintf("init config...\n");
 #endif
-	if ( !Config::loadConfig("config.xml") ) 
+	if ( !Config::loadConfig("config.xml") )
 		return 0;
 	config = Config::getInstance();
-	
+
 	idleSecond = 300;
-		
+
 	//TODO load skin
 #ifdef DEBUG
 	pspDebugScreenPrintf("init skin...\n");
 #endif
 	strcat(skinPath, config->getStringValue("config/windows/skin/current", "default") ) ;
 	strcat(skinPath, "/") ;
-	
+
 	if ( !Skin::loadSkin( skinPath ) )
 		return 0;
-	
-		
+
+
 	//TODO load main font
 #ifdef DEBUG
 	pspDebugScreenPrintf("init main_font...\n");
@@ -487,40 +487,40 @@ int PmpAvcPlayer::init(char* ppaPath) {
 	mainFont->setPixelSize( textPixelSize );
 	mainFont->setAntiAlias( config->getBooleanValue("config/windows/font/anti_alias", true) );
 	mainFont->setEmbolden( config->getBooleanValue("config/windows/font/embolden", false) );
-	
+
 	fileItemBottom = fileItemTop = fileItemCurrent = fileItemCount = 0;
-	
+
 	initSkinData();
-	
+
 	//TODO init FileList
 	fileShowHidden = 0;//( config->getBooleanValue("config/filesystem/file_filter/show_hidden", false) ? 1 : 0 );
 	fileShowHidden = 0;//( config->getBooleanValue("config/filesystem/file_filter/show_unknown", false) ? 1 : 0 );
-		
+
 	miniConvSetFileSystemConv( config->getStringValue("config/filesystem/charset/value", "UTF-8") );
 	const char* last_path = config->getStringValue("config/filesystem/browser/last_path", "");
 	base64decode((unsigned char*)filePath, last_path, strlen(last_path));
 	base64decode((unsigned char*)fileShortPath, last_path, strlen(last_path));
-	
+
 #ifdef DEBUG
 	pspDebugScreenPrintf("init fat,ctrl...\n");
-#endif	
+#endif
 	//TODO init fat
 	fat_init(sceKernelDevkitVersion());
 	ctrl_init();
 #ifdef ENABLE_HPRM
 	ctrl_enablehprm(1);
-#endif	
+#endif
 	//TODO init pmpavc mod kernel
 #ifdef DEBUG
 	pspDebugScreenPrintf("init pmpavc_kernel(cpu)...\n");
 #endif
 	cpu_clock_set_cpu_speed( config->getIntegerValue("config/cpu/speed", 120 ) );
-	
+
 	sceCtrlSetSamplingCycle(0);
 	sceCtrlSetSamplingMode(PSP_CTRL_MODE_ANALOG);
 
-//*/	
-#ifdef DEBUG	
+//*/
+#ifdef DEBUG
 	pspDebugScreenPrintf("init pmpavc_kernel(avcodec)...\n");
 #endif
 	char* result;
@@ -531,8 +531,8 @@ int PmpAvcPlayer::init(char* ppaPath) {
 #endif
 		return 0;
 	}
-	
-#ifdef DEBUG	
+
+#ifdef DEBUG
 	pspDebugScreenPrintf("init pmpavc_kernel(GU_FONT)...\n");
 #endif
 	gu_font_init();
@@ -550,7 +550,7 @@ int PmpAvcPlayer::init(char* ppaPath) {
 		}
 		else
 			gu_font_border_enable(0);
-	
+
 		gu_font_color_set(config->getColorValue("config/subtitles/font/color",0xffffff));
 		gu_font_border_color_set(config->getColorValue("config/subtitles/font/border_color",0x000000));
 		if ( config->getBooleanValue("config/subtitles/font/embolden",true) )
@@ -559,12 +559,12 @@ int PmpAvcPlayer::init(char* ppaPath) {
 			gu_font_embolden_enable(0);
 		int sub_distance = config->getIntegerValue("config/subtitles/position/distance", 16 );
 		sub_distance = (sub_distance<0)?(-sub_distance):sub_distance;
-		
+
 		if ( stricmp("top", config->getStringValue("config/subtitles/position/align", "bottom") ) == 0 )
 			gu_font_align_set(0);
 		else
 			gu_font_align_set(1);
-			
+
 		gu_font_distance_set(sub_distance);
 		miniConvSetDefaultSubtitleConv(config->getStringValue("config/subtitles/charset/value","UTF-8"));
 	}
@@ -594,7 +594,7 @@ int PmpAvcPlayer::init(char* ppaPath) {
 	initGraphics(pspType, VideoMode::getVideoMode());
 	sceDisplayWaitVblankStart();
 	sceGuDisplay(GU_TRUE);
-	
+
 	return 1;
 };
 
@@ -619,12 +619,12 @@ void PmpAvcPlayer::run() {
 	}
 	if ( fileItemCount > 1 && fileItems[1].filetype != FS_DIRECTORY )
 		fileItemCurrent = 1;
-	
+
 	activeTime = time(NULL);
 	isSuspended = false;
-	
+
 	while( true ) {
-		
+
 		u32 key = ctrl_read();
 		//if ( (key & PSP_CTRL_SELECT) && (key &PSP_CTRL_START) ) {
 		//	break;
@@ -682,7 +682,7 @@ void PmpAvcPlayer::run() {
 				delete dialog;
 			}
 			activeTime = time(NULL);
-		} 
+		}
 		else if ( (key & PSP_CTRL_LTRIGGER) && (key & PSP_CTRL_START) ) {
 			MessageDialog* dialog = new MessageDialog(Skin::getInstance()->getBackground(skinPath), drawImage);
 			if ( dialog ) {
@@ -761,7 +761,7 @@ void PmpAvcPlayer::run() {
 			if (fileItemCurrent + 1 < fileItemCount) {
 				fileItemCurrent++;
 			}
-			else 
+			else
 				fileItemCurrent = 0;
 			filmPreviewReload = filmInformationReload = filmReloadEnable;
 			activeTime = time(NULL);
@@ -791,7 +791,7 @@ void PmpAvcPlayer::run() {
 				}
 				else {
 					strcat(filePath, fileItems[fileItemCurrent].compname);
-					strcat(filePath, "/");	
+					strcat(filePath, "/");
 				}
 				if( listDirectory() == false) {
 					memset(filePath, 0, 512);
@@ -827,7 +827,7 @@ void PmpAvcPlayer::run() {
 			}
 			activeTime = time(NULL);
 		}
-		
+
 
 		if (!isSuspended && ( time(NULL) - activeTime >= idleSecond) ) {
 			isSuspended = true;
@@ -844,11 +844,11 @@ void PmpAvcPlayer::run() {
 void PmpAvcPlayer::saveConfig() {
 	char last_path[2048];
 	base64encode(last_path, (const unsigned char*)filePath, strlen(filePath));
-	
+
 	Config* config = Config::getInstance();
 	if ( config ) {
 		config->setStringValue("config/filesystem/browser/last_path", last_path);
-	
+
 		char configPath[1024];
 		memset(configPath, 0, 1024);
 		sprintf(configPath, "%s%s", applicationPath, "config.xml");
@@ -859,13 +859,13 @@ void PmpAvcPlayer::saveConfig() {
 void PmpAvcPlayer::paint() {
 	Image* mainWindow = Skin::getInstance()->getBackground(skinPath);
 	clearImage(drawImage, 0);
-	
+
 	paintFileListBox();
 	paintDateTime();
 	paintBattery();
 	paintFilmPreview();
 	paintFilmInformation();
-	
+
 	guStart();
 	clearScreen();
 	blitImageToScreen(0, 0, mainWindow->imageWidth, mainWindow->imageHeight, mainWindow, 0, 0);
@@ -890,40 +890,40 @@ void PmpAvcPlayer::paintFileListBox(){
 	else if (fileItemCurrent - fileItemTop >= fileItemBottom ){
 		fileItemTop = fileItemCurrent - fileItemBottom + 1;
 	}
-	
+
 	int scrollbarWidth = 0;
-	if ( fileItemCount > fileItemBottom ) 
+	if ( fileItemCount > fileItemBottom )
 		scrollbarWidth = 5;
-	
+
 	int scrollbarPosHeight = (fileListBoxHeight + fileItemCount/2) / fileItemCount ;
-	
+
 	if ( scrollbarWidth > 0 ) {
 		Color lineColor = fileListScrollbarColor;
-		//drawLineInImage( drawImage, lineColor, fileListBoxLeft+fileListBoxWidth-4, fileListBoxTop, 
+		//drawLineInImage( drawImage, lineColor, fileListBoxLeft+fileListBoxWidth-4, fileListBoxTop,
 		//	fileListBoxLeft+fileListBoxWidth-1, fileListBoxTop);
-		//drawLineInImage( drawImage, lineColor, fileListBoxLeft+fileListBoxWidth-4, fileListBoxTop+fileListBoxHeight-1, 
+		//drawLineInImage( drawImage, lineColor, fileListBoxLeft+fileListBoxWidth-4, fileListBoxTop+fileListBoxHeight-1,
 		//	fileListBoxLeft+fileListBoxWidth-1, fileListBoxTop+fileListBoxHeight-1);
-		drawLineInImage( drawImage, lineColor, fileListBoxLeft+fileListBoxWidth-4, fileListBoxTop, 
+		drawLineInImage( drawImage, lineColor, fileListBoxLeft+fileListBoxWidth-4, fileListBoxTop,
 			fileListBoxLeft+fileListBoxWidth-4, fileListBoxTop+fileListBoxHeight-1);
-		drawLineInImage( drawImage, lineColor, fileListBoxLeft+fileListBoxWidth-1, fileListBoxTop, 
-			fileListBoxLeft+fileListBoxWidth-1, fileListBoxTop+fileListBoxHeight-1);	
-			
+		drawLineInImage( drawImage, lineColor, fileListBoxLeft+fileListBoxWidth-1, fileListBoxTop,
+			fileListBoxLeft+fileListBoxWidth-1, fileListBoxTop+fileListBoxHeight-1);
+
 		int x = fileListBoxLeft+fileListBoxWidth-4;
 		int y = fileItemCurrent * scrollbarPosHeight;
 		if ( ( y > fileListBoxHeight-scrollbarPosHeight ) || (fileItemCurrent == fileItemCount-1) )
 			y = fileListBoxHeight - scrollbarPosHeight;
 		y += fileListBoxTop;
-		fillImageRect(drawImage, lineColor, x, y, 4, scrollbarPosHeight);	
+		fillImageRect(drawImage, lineColor, x, y, 4, scrollbarPosHeight);
 	}
-	
+
 
 	int i;
 	for(i=0;i<fileItemBottom;i++) {
 		if( fileItemTop + i < fileItemCount) {
 			textColor = fileListTextColor;
 			if( fileItemTop + i == fileItemCurrent ) {
-				fillImageRect(drawImage, fileListHLBackgroundColor, 
-					fileListBoxLeft, fileListBoxTop+i*(2*TEXT_ITEM_BORDER+textPixelSize), 
+				fillImageRect(drawImage, fileListHLBackgroundColor,
+					fileListBoxLeft, fileListBoxTop+i*(2*TEXT_ITEM_BORDER+textPixelSize),
 					fileListBoxWidth - scrollbarWidth , 2*TEXT_ITEM_BORDER+textPixelSize);
 				textColor = fileListHLTextColor;
 			}
@@ -934,12 +934,12 @@ void PmpAvcPlayer::paintFileListBox(){
 			else {
 				sprintf(stringBuffer, "%s", fileItems[fileItemTop + i].longname);
 			}
-			mainFont->printStringToImage(drawImage, fileListBoxLeft+TEXT_ITEM_BORDER, 
+			mainFont->printStringToImage(drawImage, fileListBoxLeft+TEXT_ITEM_BORDER,
 				fileListBoxTop+i*(2*TEXT_ITEM_BORDER+textPixelSize) + textPixelSize-TEXT_ITEM_BORDER,
 				fileListBoxWidth - 2*TEXT_ITEM_BORDER - scrollbarWidth,
 				textPixelSize,
 				textColor,
-				stringBuffer); 
+				stringBuffer);
 		}
 	}
 };
@@ -963,7 +963,7 @@ void PmpAvcPlayer::paintDateTime() {
 		mainFont->printStringToImage(drawImage,
 			timeLeft, timeTop+textPixelSize-TEXT_ITEM_BORDER, timeWidth, timeHeight,
 			color, stringBuffer);
-	}	
+	}
 };
 
 void PmpAvcPlayer::paintBattery() {
@@ -985,12 +985,12 @@ void PmpAvcPlayer::paintBattery() {
 			statusImage = batteryPercent66;
 		else if ( batteryLifePercent > 10 )
 			statusImage = batteryPercent33;
-		else 
+		else
 			statusImage = batteryPercent10;
-			
-		if ( statusImage ) 
+
+		if ( statusImage )
 			putImageToImage(statusImage, drawImage, batteryStatusLeft, batteryStatusTop, batteryStatusWidth, batteryStatusHeight);
-		
+
 	}
 	//*/
 	//*/
@@ -1007,23 +1007,23 @@ void PmpAvcPlayer::paintBattery() {
 void PmpAvcPlayer::paintFilmPreview(){
 	if ( !filmReloadEnable )
 		return;
-	if ( !filmPreviewVisible ) 
+	if ( !filmPreviewVisible )
 		return;
-	
+
 	if ( filmPreviewReload ) {
-		
+
 		if ( filmPreviewImage ) {
 			freeImage(filmPreviewImage);
 			filmPreviewImage = NULL;
 		}
-		
-		if ( fileItems[fileItemCurrent].filetype == FS_PMP_FILE 
-			|| fileItems[fileItemCurrent].filetype == FS_MP4_FILE 
+
+		if ( fileItems[fileItemCurrent].filetype == FS_PMP_FILE
+			|| fileItems[fileItemCurrent].filetype == FS_MP4_FILE
 			|| fileItems[fileItemCurrent].filetype == FS_MKV_FILE
 			|| fileItems[fileItemCurrent].filetype == FS_FLV1_FILE) {
 			char previewFileName[512];
 			memset(previewFileName, 0, 512);
-	
+
 			sprintf(previewFileName,"%s%s", fileShortPath, fileItems[fileItemCurrent].shortname);
 			int filenameEnd = strlen(previewFileName);
 			previewFileName[filenameEnd-1] = 'g';
@@ -1056,23 +1056,23 @@ void PmpAvcPlayer::initFilmInformation() {
 void PmpAvcPlayer::getCurrentPmpFilmInformation() {
 	char previewFileName[512];
 	memset(previewFileName, 0, 512);
-	
+
 	sprintf(previewFileName,"%s%s", fileShortPath, fileItems[fileItemCurrent].shortname);
 	SceUID fp = sceIoOpen(previewFileName, PSP_O_RDONLY, 0777);
 	if ( !fp ) {
 		initFilmInformation();
 		return;
 	}
-			
+
 	u32 inforBuffer[10];
 	memset(inforBuffer, 0, 10*sizeof(u32));
 	sceIoRead(fp, inforBuffer, 10*sizeof(u32));
 	sceIoClose(fp);
-			
+
 	if ( inforBuffer[0] != 0x6D706D70 || inforBuffer[1] != 1 ) {
 		initFilmInformation();
 	}
-	else {			
+	else {
 		filmTotalFrames = inforBuffer[3];
 		filmWidth = inforBuffer[4];
 		filmHeight = inforBuffer[5];
@@ -1087,9 +1087,9 @@ void PmpAvcPlayer::getCurrentMp4FilmInformation() {
 	initFilmInformation();
 	char previewFileName[512];
 	memset(previewFileName, 0, 512);
-	
+
 	sprintf(previewFileName,"%s%s", fileShortPath, fileItems[fileItemCurrent].shortname);
-	
+
 	mp4info_t* info = mp4info_open(previewFileName);
 	if ( info == 0 ) {
 		initFilmInformation();
@@ -1103,14 +1103,14 @@ void PmpAvcPlayer::getCurrentMp4FilmInformation() {
 				continue;
 			if ( track->width < 1 || track->height < 1 )
 				continue;
-			if ( track->width > 720 || track->height > 480 ) 
+			if ( track->width > 720 || track->height > 480 )
 				continue;
 			if ( track->video_type == 0x61766331 /*avc1*/) {
-				if ( track->avc_profile==0x42 && (track->width > 480 || track->height > 272) ) 
+				if ( track->avc_profile==0x42 && (track->width > 480 || track->height > 272) )
 					continue;
 			}
 			else {
-				if ( track->width > 480 || track->height > 272 ) 
+				if ( track->width > 480 || track->height > 272 )
 					continue;
 			}
 			video_track_id = i;
@@ -1120,8 +1120,8 @@ void PmpAvcPlayer::getCurrentMp4FilmInformation() {
 			mp4info_close(info);
 			initFilmInformation();
 			return;
-		} 
-		
+		}
+
 		int audio_tracks = 0;
 		int first_audio_track_id = 0;
 		for(i = 0; i < info->total_tracks; i++) {
@@ -1160,25 +1160,25 @@ void PmpAvcPlayer::getCurrentMp4FilmInformation() {
 			initFilmInformation();
 			return;
 		}
-		
+
 		for(i = 0; i < info->total_tracks; i++) {
 			mp4info_track_t* track = info->tracks[i];
 			if (track->type != MP4_TRACK_SUBTITLE)
 				continue;
 			filmSubtitles++;
 		}
-		
+
 		filmTotalFrames = 0;
 		for( i = 0; i < info->tracks[video_track_id]->stts_entry_count; i++)
 			filmTotalFrames += info->tracks[video_track_id]->stts_sample_count[i];
-		
+
 		filmWidth = info->tracks[video_track_id]->width;
 		filmHeight = info->tracks[video_track_id]->height;
 		filmScale = info->tracks[video_track_id]->stts_sample_duration[0];
 		filmRate = info->tracks[video_track_id]->time_scale;
 		filmAudioStreams = audio_tracks;
 		mp4info_close(info);
-		
+
 		filmSubtitles += getSelectMovieSubtitles();
 	}
 }
@@ -1187,9 +1187,9 @@ void PmpAvcPlayer::getCurrentMkvFilmInformation() {
 	initFilmInformation();
 	char previewFileName[512];
 	memset(previewFileName, 0, 512);
-	
+
 	sprintf(previewFileName,"%s%s", fileShortPath, fileItems[fileItemCurrent].shortname);
-	
+
 	mkvinfo_t* info = mkvinfo_open(previewFileName);
 	if ( info == 0 ) {
 		initFilmInformation();
@@ -1203,17 +1203,17 @@ void PmpAvcPlayer::getCurrentMkvFilmInformation() {
 				continue;
 			if ( track->width < 1 || track->height < 1 )
 				continue;
-			if ( track->width > 720 || track->height > 480 ) 
+			if ( track->width > 720 || track->height > 480 )
 				continue;
 			if ( track->video_type == 0x61766331 /*avc1*/) {
 				if ( track->private_size < 2 )
 					continue;
 				uint8_t avc_profile = track->private_data[1];
-				if ( avc_profile==0x42 && (track->width > 480 || track->height > 272) ) 
+				if ( avc_profile==0x42 && (track->width > 480 || track->height > 272) )
 					continue;
 			}
 			else {
-				if ( track->width > 480 || track->height > 272 ) 
+				if ( track->width > 480 || track->height > 272 )
 					continue;
 			}
 			video_track_id = i;
@@ -1223,8 +1223,8 @@ void PmpAvcPlayer::getCurrentMkvFilmInformation() {
 			mkvinfo_close(info);
 			initFilmInformation();
 			return;
-		} 
-		
+		}
+
 		int audio_tracks = 0;
 		int first_audio_track_id = 0;
 		for(i = 0; i < info->total_tracks; i++) {
@@ -1263,16 +1263,16 @@ void PmpAvcPlayer::getCurrentMkvFilmInformation() {
 			initFilmInformation();
 			return;
 		}
-		
+
 		for(i = 0; i < info->total_tracks; i++) {
 			mkvinfo_track_t* track = info->tracks[i];
 			if (track->type != MATROSKA_TRACK_SUBTITLE)
 				continue;
-			if ( (track->video_type == 0x74787475) || (track->video_type == 0x7478746C) 
+			if ( (track->video_type == 0x74787475) || (track->video_type == 0x7478746C)
 				|| (track->video_type == 0x73736175) || (track->video_type == 0x61737375) /*txtu & txtl & ssau & assu*/)
 				filmSubtitles++;
 		}
-		
+
 		filmTotalFrames = (u32)(1LL*info->duration/(1000LL*info->tracks[video_track_id]->duration/info->tracks[video_track_id]->time_scale));
 		filmWidth = info->tracks[video_track_id]->width;
 		filmHeight = info->tracks[video_track_id]->height;
@@ -1280,7 +1280,7 @@ void PmpAvcPlayer::getCurrentMkvFilmInformation() {
 		filmRate = info->tracks[video_track_id]->time_scale;
 		filmAudioStreams = audio_tracks;
 		mkvinfo_close(info);
-		
+
 		filmSubtitles += getSelectMovieSubtitles();
 	}
 }
@@ -1289,9 +1289,9 @@ void PmpAvcPlayer::getCurrentFlv1FilmInformation() {
 	initFilmInformation();
 	char previewFileName[512];
 	memset(previewFileName, 0, 512);
-	
+
 	sprintf(previewFileName,"%s%s", fileShortPath, fileItems[fileItemCurrent].shortname);
-	
+
 	flv1info_t* info = flv1info_open(previewFileName, 0);
 	if ( info == 0 ) {
 		initFilmInformation();
@@ -1301,14 +1301,14 @@ void PmpAvcPlayer::getCurrentFlv1FilmInformation() {
 			flv1info_close(info);
 			initFilmInformation();
 			return;
-		} 
-		
+		}
+
 		if ( info->audio_type != 0x6D703320 &&  info->audio_type != 0x6D703461) {
 			flv1info_close(info);
 			initFilmInformation();
 			return;
 		}
-		
+
 		filmTotalFrames = (u32)(1000LL*info->duration/info->video_frame_duration);
 		filmWidth = info->width;
 		filmHeight = info->height;
@@ -1316,7 +1316,7 @@ void PmpAvcPlayer::getCurrentFlv1FilmInformation() {
 		filmRate = info->video_scale;
 		filmAudioStreams = 1;
 		flv1info_close(info);
-		
+
 		filmSubtitles += getSelectMovieSubtitles();
 	}
 }
@@ -1341,11 +1341,11 @@ void PmpAvcPlayer::paintFilmInformation() {
 		}
 		filmInformationReload = false;
 	}
-	if ( fileItems[fileItemCurrent].filetype == FS_PMP_FILE 
-		|| fileItems[fileItemCurrent].filetype == FS_MP4_FILE 
+	if ( fileItems[fileItemCurrent].filetype == FS_PMP_FILE
+		|| fileItems[fileItemCurrent].filetype == FS_MP4_FILE
 		|| fileItems[fileItemCurrent].filetype == FS_MKV_FILE
 		|| fileItems[fileItemCurrent].filetype == FS_FLV1_FILE) {
-			
+
 		FtFont* mainFont = FtFontManager::getInstance()->getMainFont();
 		Color color = Skin::getInstance()->getColorValue("skin/font_color/color", 0xFFFFFF);
 		char stringBuffer[64];
@@ -1371,7 +1371,7 @@ void PmpAvcPlayer::paintFilmInformation() {
 			u32 second = totalTime % 60;
 			totalTime /= 60;
 			u32 minute = totalTime % 60;
-			u32 hour = totalTime / 60;			 
+			u32 hour = totalTime / 60;
 			sprintf(stringBuffer, "%02d:%02d:%02d" , hour, minute, second);
 			mainFont->printStringToImage(drawImage,
 				filmTotalTimeLeft, filmTotalTimeTop+textPixelSize-TEXT_ITEM_BORDER, filmTotalTimeWidth, filmTotalTimeHeight,
@@ -1390,9 +1390,9 @@ void PmpAvcPlayer::paintFilmInformation() {
 			mainFont->printStringToImage(drawImage,
 				filmSubtitlesLeft, filmSubtitlesTop+textPixelSize-TEXT_ITEM_BORDER, filmSubtitlesWidth, filmSubtitlesHeight,
 				color, stringBuffer);
-		}	
+		}
 	}
-	
+
 };
 
 void PmpAvcPlayer::paintLoading() {
@@ -1403,7 +1403,7 @@ void PmpAvcPlayer::paintLoading() {
 	if ( img ) {
 		guStart();
 		clearScreen();
-		blitAlphaImageToScreen(0, 0, img->imageWidth, img->imageHeight, img, 
+		blitAlphaImageToScreen(0, 0, img->imageWidth, img->imageHeight, img,
 			(PSP_SCREEN_WIDTH - img->imageWidth)/2, (PSP_SCREEN_HEIGHT - img->imageHeight)/2);
 		flipScreen();
 		freeImage(img);
@@ -1429,26 +1429,26 @@ void PmpAvcPlayer::showPadHelp() {
 };
 
 void PmpAvcPlayer::deleteSelectMovie() {
-	if ( fileItems[fileItemCurrent].filetype != FS_PMP_FILE 
-		&& fileItems[fileItemCurrent].filetype != FS_MP4_FILE 
+	if ( fileItems[fileItemCurrent].filetype != FS_PMP_FILE
+		&& fileItems[fileItemCurrent].filetype != FS_MP4_FILE
 		&& fileItems[fileItemCurrent].filetype != FS_MKV_FILE
 		&& fileItems[fileItemCurrent].filetype != FS_FLV1_FILE)
 		return;
 	int deleteFileCount = 1;
 	char deleteFiles[5120];
-	
+
 	memset(deleteFiles, 0, 5120);
-	
+
 	strncpy( &deleteFiles[0], fileItems[fileItemCurrent].shortname, 511);
-	
+
 	int items = open_directory(filePath, fileShortPath, fileShowHidden, fileShowUnknown, movieAttachmentFilter, &attachmentItems);
 	int i, filename_size;
-	
+
 	filename_size = strlen(fileItems[fileItemCurrent].longname)-4;
 	for(i=0; i<items; i++) {
 		if ( strnicmp(fileItems[fileItemCurrent].longname, attachmentItems[i].longname, filename_size) == 0 ) {
 			if(strnicmp(&(attachmentItems[i].longname[filename_size]), ".png", 4) == 0) {
-				strncpy( &deleteFiles[(deleteFileCount++)*512], attachmentItems[i].shortname, 511); 
+				strncpy( &deleteFiles[(deleteFileCount++)*512], attachmentItems[i].shortname, 511);
 			}
 			else {
 				struct subtitle_ext_charset_struct* exts = subtitleExt;
@@ -1464,9 +1464,9 @@ void PmpAvcPlayer::deleteSelectMovie() {
 		if (deleteFileCount >= 10 )
 			break;
 	}
-	
+
 	char deleteFileName[1024];
-	
+
 	for(i=0;i<deleteFileCount;i++) {
 		memset(deleteFileName, 0, 1024);
 		sprintf(deleteFileName, "%s%s", fileShortPath, &deleteFiles[i*512]);
@@ -1499,16 +1499,16 @@ int PmpAvcPlayer::getSelectMovieSubtitles() {
 void PmpAvcPlayer::fillSelectMovieInfo() {
 	memset(currentMovie.movie_file, 0, 512);
 	sprintf(currentMovie.movie_file, "%s%s", fileShortPath, fileItems[fileItemCurrent].shortname);
-	
+
 	memset(currentMovie.movie_hash, 0, 16);
 	sceKernelUtilsMd5Digest((u8*)(fileItems[fileItemCurrent].longname), strlen(fileItems[fileItemCurrent].longname), (u8*)(currentMovie.movie_hash));
-	
+
 	currentMovie.movie_subtitle_num = 0;
 	int items = open_directory(filePath, fileShortPath, fileShowHidden, fileShowUnknown, movieSubtitleFilter, &attachmentItems);
 	if ( items < 1)
 		return ;
 	int i, filename_size;
-	
+
 	filename_size = strlen(fileItems[fileItemCurrent].longname)-4;
 	for(i=0; i<items; i++) {
 		if ( strnicmp(fileItems[fileItemCurrent].longname, attachmentItems[i].longname, filename_size) == 0 ) {
@@ -1532,19 +1532,19 @@ void PmpAvcPlayer::fillSelectMovieInfo() {
 
 void PmpAvcPlayer::playMovie(bool resume) {
 
-#ifdef ENABLE_SUSPEND	
+#ifdef ENABLE_SUSPEND
 	scePowerLock(0);
 #endif
-	
+
 	fillSelectMovieInfo();
-	
+
 	char* result = NULL;
-	
+
 	int left, top, right, bottom;
 	VideoMode::getTVOverScan(left, top, right, bottom);
-	
+
 	int usePos = resume ? 1 : 0;
-	
+
 	if ( fileItems[fileItemCurrent].filetype == FS_PMP_FILE )
 		result = pmp_play(&currentMovie, usePos, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode() );
 	else if ( fileItems[fileItemCurrent].filetype == FS_MP4_FILE )
@@ -1555,7 +1555,7 @@ void PmpAvcPlayer::playMovie(bool resume) {
 		result = flv1_play(&currentMovie, usePos, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode() );
 	else
 		result = "unsupported movie";
-	
+
 	sceKernelDcacheWritebackInvalidateAll();
 	sceKernelDelayThread(1000000);
 	if ( result ) {
@@ -1564,18 +1564,23 @@ void PmpAvcPlayer::playMovie(bool resume) {
 		memset(tempPath, 0, 1024);
 		sprintf(tempPath, "%s%s", applicationPath, "playlog.txt");
 		FILE* log = fopen(tempPath,"w+");
-		fprintf(log, "%s\n", result);
-		fclose(log);
+		if(log) {
+			fprintf(log, "%s\n", result);
+			fclose(log);
+		}else {
+			//printf("Cannot open %s\n", tempPath);
+		}
+		log = 0;
 
-#ifdef ENABLE_SUSPEND	
+#ifdef ENABLE_SUSPEND
 		scePowerUnlock(0);
 #endif
 		return;
 	}
-	
+
 	Config* config = Config::getInstance();
 	const char* playMode = config->getStringValue("config/player/play_mode", "group");
-	
+
 	if ( stricmp("single", playMode) == 0  ){
 		scePowerUnlock(0);
 		return;
@@ -1594,10 +1599,10 @@ void PmpAvcPlayer::playMovie(bool resume) {
 				else if ( fileItems[fileItemCurrent].filetype == FS_MKV_FILE )
 					result = mkv_play(&currentMovie, 0, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode());
 				else if ( fileItems[fileItemCurrent].filetype == FS_FLV1_FILE )
-					result = flv1_play(&currentMovie, 0, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode());						
+					result = flv1_play(&currentMovie, 0, pspType, VideoMode::getTVAspectRatio(), left, top, right, bottom, VideoMode::getVideoMode());
 				else
 					result = "unsupported movie";
-					
+
 				sceKernelDcacheWritebackInvalidateAll();
 				sceKernelDelayThread(1000000);
 				if ( result ) {
@@ -1612,12 +1617,12 @@ void PmpAvcPlayer::playMovie(bool resume) {
 			}
 			else
 				break;
-		} 
+		}
 	}
 	else if ( stricmp("all", playMode) == 0 ) {
 		while(fileItemCurrent < fileItemCount - 1) {
 			fileItemCurrent++;
-			fillSelectMovieInfo(); 
+			fillSelectMovieInfo();
 			int left, top, right, bottom;
 			VideoMode::getTVOverScan(left, top, right, bottom);
 			if ( fileItems[fileItemCurrent].filetype == FS_PMP_FILE )
@@ -1631,7 +1636,7 @@ void PmpAvcPlayer::playMovie(bool resume) {
 			else
 				result = "unsupported movie";
 			sceKernelDcacheWritebackInvalidateAll();
-			sceKernelDelayThread(1000000); 
+			sceKernelDelayThread(1000000);
 			if ( result ) {
 				char tempPath[1024];
 				memset(tempPath, 0, 1024);
@@ -1641,10 +1646,10 @@ void PmpAvcPlayer::playMovie(bool resume) {
 				fclose(log);
 				break;
 			}
-		} 
-	} 
+		}
+	}
 	scePowerUnlock(0);
-	
+
 	guStart();
 	flipScreen();
 };
@@ -1652,20 +1657,20 @@ void PmpAvcPlayer::playMovie(bool resume) {
 
 void PmpAvcPlayer::enterSuspendMode(){
 	isSuspended = true;
-	
+
 	gu_font_on_suspend();
-	
+
 	FtFontManager::getInstance()->getMainFont()->onSuspend();
-	
+
 };
 
 void PmpAvcPlayer::leaveSuspendMode(){
-	
+
 	FtFontManager::getInstance()->getMainFont()->onResume();
-	
+
 	gu_font_on_resume();
-	
+
 	activeTime = time(NULL);
 	isSuspended = false;
-	
+
 };

@@ -176,6 +176,7 @@ int open_usb_net_directory(const char* dir, char* sdir, int show_hidden, int sho
 	if ( fd < 0 )
 		return 0;
 	SceIoDirent temp_dir;
+	memset(&temp_dir, 0, sizeof(SceIoDirent));
 	u32 cur_count = 0;
 	while ( sceIoDread(fd, &temp_dir) > 0 ) {
 		if(cur_count % 256 == 0)
@@ -228,6 +229,7 @@ int open_usb_net_directory(const char* dir, char* sdir, int show_hidden, int sho
 		cur_count ++;
 	}
 	item_count = cur_count;
+	sceIoDclose(fd);
 	return item_count;
 }
 
