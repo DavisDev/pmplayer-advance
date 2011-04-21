@@ -8,3 +8,5 @@
 	IMPORT_FUNC	"sceMeCore_driver",0xD857CF93,sceMeBootStart380
 	IMPORT_FUNC	"sceMeCore_driver",0x8988AD49,sceMeBootStart395
 	IMPORT_FUNC	"sceMeCore_driver",0x051C1601,sceMeBootStart500
+	IMPORT_FUNC	"sceMeCore_driver",0x3A2E60BB,sceMeBootStart620
+	IMPORT_FUNC	"sceMeCore_driver",0x99E4DBFA,sceMeBootStart635
