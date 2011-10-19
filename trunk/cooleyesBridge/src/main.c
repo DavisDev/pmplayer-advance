@@ -17,6 +17,7 @@ int sceAudioSetFrequency395(int frequency);
 int sceAudioSetFrequency500(int frequency);
 int sceAudioSetFrequency620(int frequency);
 int sceAudioSetFrequency635(int frequency);
+int sceAudioSetFrequency660(int frequency);
 
 int sceMeBootStart(int mebooterType);
 int sceMeBootStart371(int mebooterType);
@@ -25,6 +26,7 @@ int sceMeBootStart395(int mebooterType);
 int sceMeBootStart500(int mebooterType);
 int sceMeBootStart620(int mebooterType);
 int sceMeBootStart635(int mebooterType);
+int sceMeBootStart660(int mebooterType);
 
 int cooleyesAudioSetFrequency(int devkitVersion, int frequency) {
 	u32 k1;
@@ -42,8 +44,10 @@ int cooleyesAudioSetFrequency(int devkitVersion, int frequency) {
 		ret = sceAudioSetFrequency500(frequency);
 	else if ( devkitVersion < 0x06030500 )
 		ret = sceAudioSetFrequency620(frequency);
-	else
+	else if ( devkitVersion < 0x06060000 )
 		ret = sceAudioSetFrequency635(frequency);
+	else
+		ret = sceAudioSetFrequency660(frequency);
 	pspSdkSetK1(k1);
 	return ret;
 }
@@ -64,8 +68,10 @@ int cooleyesMeBootStart(int devkitVersion, int mebooterType) {
 		ret = sceMeBootStart500(mebooterType);
 	else if ( devkitVersion < 0x06030500 )
 		ret = sceMeBootStart620(mebooterType);
-	else
+	else if ( devkitVersion < 0x06060000 )
 		ret = sceMeBootStart635(mebooterType);
+	else
+		ret = sceMeBootStart660(mebooterType);
 	pspSdkSetK1(k1);
 	return ret;
 }

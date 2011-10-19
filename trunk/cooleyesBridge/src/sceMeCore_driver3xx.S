@@ -10,3 +10,4 @@
 	IMPORT_FUNC	"sceMeCore_driver",0x051C1601,sceMeBootStart500
 	IMPORT_FUNC	"sceMeCore_driver",0x3A2E60BB,sceMeBootStart620
 	IMPORT_FUNC	"sceMeCore_driver",0x99E4DBFA,sceMeBootStart635
+	IMPORT_FUNC	"sceMeCore_driver",0x5DFF5C50,sceMeBootStart660
